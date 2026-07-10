@@ -28,9 +28,10 @@ function App() {
 }
 
 async function bootstrap() {
-  // Dev-only in-browser mock backend. Enabled when VITE_ENABLE_MOCKS=true so
-  // the SPA is fully clickable before a real backend exists.
-  if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCKS === "true") {
+  // In-browser mock backend. Enabled when VITE_ENABLE_MOCKS=true so the SPA is
+  // fully clickable before a real backend exists — including production demo
+  // builds (e.g. deployed to Vercel with the flag set).
+  if (import.meta.env.VITE_ENABLE_MOCKS === "true") {
     const { startMockWorker } = await import("@/mocks/browser")
     await startMockWorker()
   }
