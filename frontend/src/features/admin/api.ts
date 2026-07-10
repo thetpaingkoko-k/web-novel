@@ -1,0 +1,168 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { apiClient, getList } from "@/api/client"
+import type {
+  AdminActionLog,
+  ApprovalKind,
+  NewWalletRequest,
+  PaymentSubmissionReview,
+  PendingChapterReview,
+  PendingUser,
+} from "@/types/admin"
+import type { AdminWallet } from "@/types/subscriptions"
+import type { Withdrawal } from "@/types/earnings"
+
+// ---- Users & authors ----
+
+export function usePendingUsers() {
+  return useQuery({
+    queryKey: ["admin", "users", "pending"] as const,
+    queryFn: () => getList<PendingUser>("/admin/users", { params: { status: "pending" } }),
+  })
+}
+
+export function useApproveUser() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, kind }: { userId: number; kind: ApprovalKind }) => {
+      await apiClient.put(`/admin/users/${userId}/approve`, { kind })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
+  })
+}
+
+export function useSuspendUser() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, ban }: { userId: number; ban: boolean }) => {
+      await apiClient.put(`/admin/users/${userId}/suspend`, { ban })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
+  })
+}
+
+// ---- Hobbyist chapter review ----
+
+export function usePendingChapters() {
+  return useQuery({
+    queryKey: ["admin", "chapters", "pending_review"] as const,
+    queryFn: () =>
+      getList<PendingChapterReview>("/admin/chapters", { params: { status: "pending_review" } }),
+  })
+}
+
+export function useApproveChapter() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (chapterId: number) => {
+      await apiClient.put(`/admin/chapters/${chapterId}/approve`)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "chapters"] }),
+  })
+}
+
+export function useRejectChapter() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ chapterId, reason }: { chapterId: number; reason: string }) => {
+      await apiClient.put(`/admin/chapters/${chapterId}/reject`, { rejectionReason: reason })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "chapters"] }),
+  })
+}
+
+// ---- Payment submissions ----
+
+export function usePendingPayments() {
+  return useQuery({
+    queryKey: ["admin", "payments", "pending"] as const,
+    queryFn: () =>
+      getList<PaymentSubmissionReview>("/admin/payment-submissions", { params: { status: "pending" } }),
+  })
+}
+
+export function useApprovePayment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (submissionId: number) => {
+      await apiClient.put(`/admin/payment-submissions/${submissionId}/approve`)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "payments"] }),
+  })
+}
+
+export function useRejectPayment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ submissionId, reason }: { submissionId: number; reason: string }) => {
+      await apiClient.put(`/admin/payment-submissions/${submissionId}/reject`, { rejectionReason: reason })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "payments"] }),
+  })
+}
+
+// ---- Admin wallets ----
+
+export function useAdminWallets() {
+  return useQuery({
+    queryKey: ["admin", "wallets"] as const,
+    queryFn: () => getList<AdminWallet>("/admin/wallets"),
+  })
+}
+
+export function useAddWallet() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: NewWalletRequest) => {
+      await apiClient.post("/admin/wallets", payload)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "wallets"] }),
+  })
+}
+
+export function useDeactivateWallet() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (walletId: number) => {
+      await apiClient.put(`/admin/wallets/${walletId}/deactivate`)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "wallets"] }),
+  })
+}
+
+// ---- Withdrawals ----
+
+export function usePendingWithdrawals() {
+  return useQuery({
+    queryKey: ["admin", "withdrawals", "pending"] as const,
+    queryFn: () => getList<Withdrawal>("/admin/withdrawals", { params: { status: "pending" } }),
+  })
+}
+
+export function useMarkWithdrawalPaid() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (withdrawalId: number) => {
+      await apiClient.put(`/admin/withdrawals/${withdrawalId}/mark-paid`)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "withdrawals"] }),
+  })
+}
+
+export function useRejectWithdrawal() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ withdrawalId, reason }: { withdrawalId: number; reason: string }) => {
+      await apiClient.put(`/admin/withdrawals/${withdrawalId}/reject`, { rejectionReason: reason })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "withdrawals"] }),
+  })
+}
+
+// ---- Audit log ----
+
+export function useAuditLog() {
+  return useQuery({
+    queryKey: ["admin", "actions"] as const,
+    queryFn: () => getList<AdminActionLog>("/admin/actions"),
+  })
+}

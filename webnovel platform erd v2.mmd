@@ -1,0 +1,265 @@
+erDiagram
+
+    %% ===== CORE USER / CONTENT =====
+    USER ||--o| AUTHOR_PROFILE : "has (if author)"
+    USER ||--o{ BOOK : "writes"
+    BOOK ||--o{ CHAPTER : "contains"
+    USER ||--o{ CHAPTER : "reviews as admin"
+
+    %% ===== SUBSCRIPTION (reader -> specific author, manual wallet verification) =====
+    USER ||--o{ SUBSCRIPTION : "subscribes as reader"
+    USER ||--o{ SUBSCRIPTION : "receives subscribers as author"
+    ADMIN_WALLET ||--o{ PAYMENT_SUBMISSION : "receives transfer into"
+    USER ||--o{ PAYMENT_SUBMISSION : "submits as reader"
+    USER ||--o{ PAYMENT_SUBMISSION : "reviews as admin"
+    SUBSCRIPTION ||--o{ PAYMENT_SUBMISSION : "funded by"
+
+    %% ===== DIRECT AUTHOR EARNINGS (replaces pooled revenue/payout) =====
+    PAYMENT_SUBMISSION ||--o| AUTHOR_EARNING : "generates on approval"
+    SUBSCRIPTION ||--o{ AUTHOR_EARNING : "relates to"
+    USER ||--o{ AUTHOR_EARNING : "earns as author"
+    USER ||--o{ AUTHOR_WITHDRAWAL : "requests as author"
+    USER ||--o{ AUTHOR_WITHDRAWAL : "reviews as admin"
+
+    %% ===== VIEW TRACKING / ENGAGEMENT (DB-only dedup, no Redis) =====
+    CHAPTER ||--o{ CHAPTER_VIEW : "tracked by"
+    USER ||--o{ CHAPTER_VIEW : "generates"
+
+    CHAPTER ||--o{ CHAPTER_LIKE : "receives"
+    USER ||--o{ CHAPTER_LIKE : "gives"
+
+    CHAPTER ||--o{ CHAPTER_COMMENT : "has"
+    USER ||--o{ CHAPTER_COMMENT : "writes"
+    CHAPTER_COMMENT ||--o{ CHAPTER_COMMENT : "replies to"
+
+    USER ||--o{ READING_PROGRESS : "tracks"
+    BOOK ||--o{ READING_PROGRESS : "progress in"
+
+    %% ===== DEBATE ENGINE (1 discussion per reader per book, capped 10 / 5 days per book) =====
+    BOOK ||--o{ DEBATE_THREAD : "hosts"
+    USER ||--o{ DEBATE_THREAD : "starts (max 1 per book)"
+    DEBATE_THREAD ||--o{ DEBATE_POST : "contains"
+    USER ||--o{ DEBATE_POST : "writes"
+    DEBATE_POST ||--o{ DEBATE_POST : "replies to"
+    DEBATE_POST ||--o{ DEBATE_VOTE : "receives"
+    USER ||--o{ DEBATE_VOTE : "casts"
+
+    %% ===== MODERATION =====
+    USER ||--o{ REPORT : "files as reporter"
+    USER ||--o{ REPORT : "reviews as admin"
+    USER ||--o{ ADMIN_ACTION : "performs as admin"
+
+    %% ===== AUTHOR FEED =====
+    USER ||--o{ AUTHOR_FEED_POST : "publishes"
+
+    USER {
+        int user_id PK
+        string username
+        string email
+        string password_hash
+        enum role "reader, hobbyist_author, professional_author, admin"
+        enum status "pending, approved, suspended, banned"
+        datetime created_at
+    }
+
+    AUTHOR_PROFILE {
+        int author_profile_id PK
+        int user_id FK
+        text bio
+        enum career_stage "hobbyist, professional"
+        boolean is_monetization_enabled "admin-approved to accept subscriptions"
+        decimal monthly_subscription_price "author-set price, null if not monetized"
+        enum payout_wallet_provider "KBZPay, WavePay, AYAPay, other"
+        string payout_wallet_number "author's own wallet to receive withdrawals"
+        decimal available_balance "denormalized cache: earned - withdrawn"
+        decimal total_earned "denormalized lifetime cache"
+        datetime approved_at "when monetization was enabled by admin"
+    }
+
+    BOOK {
+        int book_id PK
+        int author_id FK
+        string title
+        text synopsis
+        string genre
+        string cover_image_url
+        enum status "draft, ongoing, completed, hiatus"
+        boolean is_premium "true = whole book requires subscription to this author"
+        datetime created_at
+    }
+
+    CHAPTER {
+        int chapter_id PK
+        int book_id FK
+        int chapter_number
+        string title
+        longtext content
+        enum status "draft, pending_review, scheduled, published, rejected"
+        int reviewed_by FK "nullable, admin user_id (hobbyist submissions only)"
+        datetime reviewed_at
+        text rejection_reason
+        int like_count "denormalized cache"
+        int unique_view_count "denormalized cache"
+        int completion_count "denormalized cache, reader reached end"
+        datetime published_at
+    }
+
+    %% ---- Manual wallet-transfer payment model ----
+
+    ADMIN_WALLET {
+        int wallet_id PK
+        enum provider "KBZPay, WavePay, AYAPay, other"
+        string wallet_number
+        boolean is_active
+        datetime created_at
+    }
+
+    PAYMENT_SUBMISSION {
+        int submission_id PK
+        int reader_id FK
+        int wallet_id FK "admin wallet paid into"
+        int subscription_id FK "nullable, set on creation of a pending subscription"
+        decimal amount
+        string screenshot_url
+        string last_6_digits
+        datetime submitted_at
+        enum status "pending, approved, rejected, flagged_duplicate"
+        int reviewed_by FK "nullable, admin user_id"
+        datetime reviewed_at
+        text rejection_reason
+    }
+
+    SUBSCRIPTION {
+        int subscription_id PK
+        int reader_id FK
+        int author_id FK "the specific professional author subscribed to"
+        enum status "pending_payment, active, expired, rejected"
+        datetime start_date "set only on approval, not on request"
+        datetime end_date
+        decimal price_mmk "snapshot of author's price at request time"
+        boolean reminder_sent "prevents duplicate renewal reminders, no Redis lock needed"
+    }
+
+    %% ---- Direct per-author earnings (fee taken, remainder credited to author) ----
+
+    AUTHOR_EARNING {
+        int earning_id PK
+        int author_id FK
+        int payment_submission_id FK "the approved payment that generated this credit"
+        int subscription_id FK
+        decimal gross_amount "= payment amount"
+        decimal platform_fee_percent "snapshot at time of transaction"
+        decimal platform_fee_amount
+        decimal net_amount "credited to author.available_balance"
+        datetime created_at
+    }
+
+    AUTHOR_WITHDRAWAL {
+        int withdrawal_id PK
+        int author_id FK
+        decimal amount "<= available_balance at request time"
+        enum payout_wallet_provider "snapshot"
+        string payout_wallet_number "snapshot"
+        enum status "pending, paid, rejected"
+        datetime requested_at
+        int reviewed_by FK "nullable, admin user_id"
+        datetime paid_at "nullable until status=paid"
+        text rejection_reason
+    }
+
+    CHAPTER_VIEW {
+        int view_id PK
+        int chapter_id FK
+        int reader_id FK "nullable for anonymous"
+        string session_id
+        string device_fingerprint
+        boolean is_unique "deduped via DB query, 24h window, no Redis"
+        datetime viewed_at
+    }
+
+    CHAPTER_LIKE {
+        int like_id PK
+        int chapter_id FK
+        int reader_id FK
+        datetime created_at
+    }
+
+    CHAPTER_COMMENT {
+        int comment_id PK
+        int chapter_id FK
+        int reader_id FK
+        int parent_comment_id FK "nullable, self-reference"
+        text content
+        boolean is_spoiler_flagged
+        enum status "visible, hidden, removed"
+        datetime created_at
+    }
+
+    READING_PROGRESS {
+        int progress_id PK
+        int reader_id FK
+        int book_id FK
+        int last_chapter_read_id FK
+        datetime updated_at
+    }
+
+    DEBATE_THREAD {
+        int thread_id PK
+        int book_id FK
+        int creator_id FK "UNIQUE with book_id: 1 discussion per reader per book"
+        string title
+        enum status "open, locked, archived"
+        int post_count "denormalized cache"
+        datetime created_at
+    }
+
+    DEBATE_POST {
+        int post_id PK
+        int thread_id FK
+        int author_id FK
+        int parent_post_id FK "nullable, self-reference for tree"
+        text content
+        int upvote_count "denormalized cache"
+        int downvote_count "denormalized cache"
+        enum status "visible, hidden, removed"
+        datetime created_at
+    }
+
+    DEBATE_VOTE {
+        int vote_id PK
+        int post_id FK
+        int reader_id FK
+        enum vote_type "up, down"
+        datetime created_at
+    }
+
+    REPORT {
+        int report_id PK
+        int reporter_id FK
+        enum target_type "chapter_comment, debate_post, book, user"
+        int target_id
+        string reason
+        enum status "pending, reviewed, action_taken, dismissed"
+        int reviewed_by FK "nullable, admin user_id"
+        datetime created_at
+        datetime resolved_at
+    }
+
+    AUTHOR_FEED_POST {
+        int feed_post_id PK
+        int author_id FK
+        string title
+        text content
+        boolean is_premium_only
+        datetime published_at
+    }
+
+    ADMIN_ACTION {
+        int admin_action_id PK
+        int admin_id FK
+        enum action_type "user_approval, content_approval, content_rejection, content_removal, ban, report_resolution, withdrawal_approval"
+        string target_type
+        int target_id
+        text notes
+        datetime created_at
+    }

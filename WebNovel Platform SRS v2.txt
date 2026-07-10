@@ -1,0 +1,455 @@
+
+Next-Gen Web Novel
+Smart Access Control, Direct Author Earnings & Threaded Debates
+Software Requirements & System Specification (SRS)
+Version 2.0
+Final Year Project Documentation
+July 2026
+ Table of Contents
+
+
+ 1. Introduction
+1.1 Purpose
+This document specifies the functional and non-functional requirements, system architecture, data model, core algorithms, and API contract for the Next-Gen Web Novel platform, version 2.0. It supersedes SRS v1.0 and incorporates a set of refinements adopted after v1.0 review, most significantly a move from chapter-level to book-level premium access, from pooled/engagement-weighted author payouts to direct per-author subscription earnings, and from an infrastructure-heavy (Redis-based) design to a PostgreSQL-only design. It is intended to guide implementation directly and to serve as the authoritative reference during development and evaluation.
+1.2 Project Overview
+The platform connects hobbyist authors, professional authors, and readers within a single administrator-moderated ecosystem. Authors create a book directly with a cover, title, and metadata, then upload chapters incrementally - there is no book-template step. A reader's premium access is granted per author: a reader subscribes to a specific professional author (not to the platform as a whole) to unlock every premium book that author has published. Subscriptions are funded through manual mobile-wallet transfer (KBZPay / Wave Pay / AYA Pay), since card payments are impractical in the target market. The platform takes a fee from each approved subscription payment and credits the remainder directly to that author's balance, visible on the author's own profile - there is no batch revenue pool or engagement-weighted distribution.
+The system distinguishes itself through four core technical contributions:
+•	Book-Level Premium Access Control - real-time, per-author subscription validation gating an entire premium book, not individual chapters.
+•	Hobbyist Publishing Approval - chapters submitted by hobbyist authors enter a review queue and go live only after admin approval; verified professional authors publish directly.
+•	Direct Author Earnings - each approved subscription payment is split into a platform fee and an author credit at the moment of approval, with no pooling or periodic distribution engine.
+•	Rate-Limited Threaded Debate Engine - book-level structured discussion capped at one thread per reader per book and ten new threads per book per rolling 5-day window, served entirely from PostgreSQL.
+1.3 Scope
+In scope: reader/author/admin web application (React, Vite), backend REST API (Spring Boot 3.5.16, Java 21), a single relational data store (PostgreSQL - no separate cache/session/dedup infrastructure), manual payment verification workflow, direct per-author earnings and withdrawal workflow, moderation and reporting tools, hobbyist content-approval workflow, and an administrator dashboard covering user approval, content moderation, payment review, and withdrawal review.
+Out of scope for v2.0: automated payment gateway integration, native mobile applications, multi-language content localization, real-time chat, and book templates (removed in this version).
+1.4 Definitions & Abbreviations
+Term	Definition
+MMK	Myanmar Kyat, the platform's billing currency
+Premium Book	A book with is_premium = true; every chapter in it requires an active subscription to that book's author
+Author Subscription	A reader's paid, time-boxed relationship with one specific professional author, unlocking all of that author's premium books
+Unique View	One counted read of a chapter per reader/session within a 24-hour de-duplication window, detected via a database query (no external cache)
+Platform Fee	The percentage the platform retains from each approved subscription payment before crediting the author
+Author Earning	A ledger record crediting an author's balance with the net amount of one approved subscription payment
+Author Withdrawal	An author-initiated, admin-verified manual wallet transfer that pays out part or all of an author's available balance
+Payment Submission	A reader-submitted proof of manual wallet transfer awaiting admin verification
+Hobbyist Review Queue	The set of chapters submitted by hobbyist authors awaiting admin approval before publication
+Discussion	A book-level debate thread; a reader may create at most one per book, and a book may receive at most 10 new discussions per rolling 5-day window
+ 2. System Overview
+2.1 User Roles
+Role	Description	Key Capabilities
+Reader	Default registered user	Browse, read free chapters, subscribe to an author, read that author's premium books, like/comment, start/join one discussion per book, report content
+Hobbyist Author	Unverified writer	Create books, upload chapters (enter review queue), view basic analytics; cannot publish premium books
+Professional Author	Admin-verified, monetization-enabled writer	All hobbyist capabilities + publish directly without review, publish premium books, set own subscription price, author feed, view earnings and withdrawal history
+Admin	Platform operator	Approve users/authors, review hobbyist chapters, review payment submissions, moderate reports, manage admin wallets, review/approve author withdrawals
+2.2 Technology Stack
+Layer	Technology
+Backend API	Spring Boot 3.5.16 (Java 21), layered controller / service / repository architecture
+Frontend	React 18+ with Vite (any React 18/19-compatible toolchain consuming the REST API below)
+Primary Database	PostgreSQL 15+ - single source of truth for all data, including view de-duplication (no Redis)
+Backend Hosting	Railway.app
+Frontend Hosting	Vercel
+Auth	JWT (access + refresh token), role-based access control
+Migrations	Flyway
+Scheduled Jobs	Spring @Scheduled tasks (renewal reminders), safe under a single application instance; see 4.4
+Redis has been intentionally removed from the v2.0 stack. Unique-view de-duplication, which previously used short-TTL Redis keys, is now a plain PostgreSQL query against the CHAPTER_VIEW table (6.2). This trades a small amount of query cost for one fewer piece of infrastructure to run, operate, and pay for - appropriate for the platform's expected scale and a solo-developer maintenance timeline.
+2.3 High-Level Architecture
+The system is a stateless, layered monolith. The React SPA communicates with the Spring Boot API exclusively over authenticated REST/JSON. PostgreSQL is the single data store for all transactional, relational, and de-duplication data, favoring ACID consistency and operational simplicity over a multi-store design.
+Architecture layers, request path for a premium chapter read:
+Client (React/Vite)
+-> GET /api/chapters/{id}
+Spring Boot Controller
+-> ChapterService.getChapterForUser(user, chapterId)
+-> AccessControlService.canAccess(user, chapter)
+   [PostgreSQL: chapter.book.is_premium? then active SUBSCRIPTION(reader, book.author_id) check]
+-> ViewTrackingService.recordView(user, chapter, session)
+   [PostgreSQL: SELECT ... WHERE session/device + chapter_id + viewed_at > now()-24h]
+-> returns Chapter DTO (content withheld if access denied)
+<- 200 OK / 403 Forbidden
+ 3. Functional Requirements
+3.1 User Management & Authentication
+•	FR-1.1 Users register with email, username, and password (bcrypt-hashed).
+•	FR-1.2 New accounts default to role = reader, status = approved; author applications default to status = pending until admin review.
+•	FR-1.3 JWT access + refresh tokens issued on login; refresh rotation enforced.
+•	FR-1.4 Admin can suspend or ban any account; suspended/banned users are blocked at the auth filter, not just the UI.
+•	FR-1.5 Admin approval is also required to enable monetization on an author profile (is_monetization_enabled = true), which is a prerequisite for publishing premium books and setting a subscription price (3.4).
+3.2 Content Management (Books & Chapters)
+Book templates are removed in v2.0. Authors create a book directly and upload chapters one at a time.
+•	FR-2.1 Authors create a BOOK directly by supplying a cover image, title, synopsis, and genre - no template step.
+•	FR-2.2 BOOK.status tracks the work's own lifecycle: draft, ongoing, completed, hiatus.
+•	FR-2.3 A book is marked is_premium at the book level. This applies to every chapter in the book uniformly - there is no per-chapter free/premium flag.
+•	FR-2.4 Only professional authors with is_monetization_enabled = true may set a book's is_premium = true.
+•	FR-2.5 Authors upload CHAPTERs incrementally with a chapter_number, title, and content.
+•	FR-2.6 Scheduled chapters (status = scheduled) auto-publish via a scheduled job when published_at is reached, once already approved where approval is required (3.3).
+3.3 Hobbyist Publishing Approval
+Hobbyist-authored chapters are gated behind admin review before they become publicly visible; verified professional authors publish directly, since their account was already vetted when monetization was enabled.
+•	FR-3.1 When a hobbyist author submits a chapter for publishing, CHAPTER.status is set to pending_review, not published.
+•	FR-3.2 When a professional author submits a chapter for publishing, CHAPTER.status is set directly to published (or scheduled, for a future publish time) - no review step.
+•	FR-3.3 An admin reviewing a pending_review chapter either approves it (status = published or scheduled, reviewed_by and reviewed_at set) or rejects it (status = rejected, rejection_reason required).
+•	FR-3.4 A rejected chapter can be edited and resubmitted by its author, re-entering pending_review.
+•	FR-3.5 Every approval or rejection is written to ADMIN_ACTION for audit purposes.
+3.4 Book-Level Premium Access Control
+Every request for chapter content is validated in real time against the reader's subscription to that specific book's author - never cached as a blanket unlock.
+•	FR-4.1 If the chapter's book has is_premium = false, the chapter is servable to any user, including anonymous/unauthenticated readers (subject to its own published status).
+•	FR-4.2 If the chapter's book has is_premium = true, the requesting user must hold a SUBSCRIPTION to that book's author with status = active and end_date in the future.
+•	FR-4.3 The book's own author and admins bypass the subscription check for that author's content.
+•	FR-4.4 Access denial returns a 403 with a machine-readable reason (no_subscription | expired_subscription) identifying which author must be subscribed to, so the frontend can route to that author's subscribe flow.
+•	FR-4.5 Access checks are never short-circuited by client-side state; the API is the sole authority.
+3.5 Unique View Analytics (Database-Only)
+View counts that feed public metrics and author-facing analytics resist trivial manipulation (refresh spam, bot traffic), using PostgreSQL alone.
+•	FR-5.1 Each chapter view is recorded with reader_id (nullable), session_id, and device_fingerprint.
+•	FR-5.2 A view is marked is_unique = true only if no CHAPTER_VIEW row for the same (session_id or device_fingerprint) and chapter_id exists with viewed_at within the last 24 hours - checked with an indexed SQL query at write time.
+•	FR-5.3 Only unique views increment CHAPTER.unique_view_count.
+•	FR-5.4 Raw (non-unique) views are still persisted in CHAPTER_VIEW for auditing and anomaly detection.
+•	FR-5.5 A chapter is considered 'completed' by a reader (feeding chapter_completions) when scroll depth or reading time crosses a configurable threshold reported by the client.
+Unlike v1.0, view/completion/like metrics no longer feed a payout formula (3.7 replaces engagement-weighted payout with direct per-subscription earnings). They remain valuable as author-facing and public analytics.
+3.6 Manual Wallet-Transfer Payment & Per-Author Subscription
+Subscriptions are reader-to-author, funded via reader-initiated wallet transfers, verified by an admin.
+•	FR-6.1 A reader initiates a subscription request against one specific professional author; the system displays the currently active ADMIN_WALLET and that author's monthly_subscription_price.
+•	FR-6.2 The reader submits a PAYMENT_SUBMISSION with screenshot_url, last_6_digits, and amount; a SUBSCRIPTION row is created with status = pending_payment, author_id set, and price_mmk snapshotted from the author's current price.
+•	FR-6.3 The system enforces a uniqueness check on (wallet_id, last_6_digits, amount); a collision with a prior approved submission sets status = flagged_duplicate for manual admin adjudication rather than auto-rejecting.
+•	FR-6.4 Admin approval sets SUBSCRIPTION.status = active, start_date = now(), end_date = now() + 30 days, notifies the reader, and triggers the earnings credit in 3.7.
+•	FR-6.5 Admin rejection records rejection_reason, notifies the reader, and allows resubmission.
+•	FR-6.6 A scheduled job notifies readers 3 days before end_date, guarded by SUBSCRIPTION.reminder_sent to avoid duplicate notifications (replaces the v1.0 Redis distributed lock; safe under the single-instance deployment assumed in 4.4).
+•	FR-6.7 A reader may hold concurrent, independent subscriptions to multiple different authors at once; each is tracked as its own SUBSCRIPTION lifecycle.
+3.7 Direct Author Earnings & Withdrawal
+This replaces the v1.0 pooled-revenue / engagement-weighted payout engine entirely. There is no billing-period batch job: every approved payment is settled immediately and individually.
+•	FR-7.1 The moment a PAYMENT_SUBMISSION is approved (FR-6.4), the system creates one AUTHOR_EARNING record: platform_fee_amount = amount x platform_fee_percent (configurable, 10.1), net_amount = amount - platform_fee_amount.
+•	FR-7.2 AUTHOR_PROFILE.available_balance and total_earned are incremented by net_amount (denormalized caches for fast profile display).
+•	FR-7.3 An author's current available_balance and lifetime total_earned are shown on their own author profile.
+•	FR-7.4 An author may request an AUTHOR_WITHDRAWAL for any amount up to their current available_balance, specifying (or reusing) their own wallet number.
+•	FR-7.5 Admin reviews a pending withdrawal and either marks it paid (paid_at set, available_balance decremented) after manually transferring funds to the author's wallet, or rejects it with a reason (no balance change).
+•	FR-7.6 Authors can view their full earnings history (AUTHOR_EARNING, one row per subscription payment) and withdrawal history (AUTHOR_WITHDRAWAL) for transparency.
+3.8 Chapter-Level Engagement (Likes & Spoiler-Safe Comments)
+•	FR-8.1 Readers may like/unlike a chapter once each; like_count is denormalized on CHAPTER for fast reads.
+•	FR-8.2 Readers may comment on a chapter, with threaded replies via parent_comment_id.
+•	FR-8.3 Spoiler-safe visibility: a comment on chapter N is only rendered to a reader whose READING_PROGRESS.last_chapter_read_id >= N for that book.
+3.9 Book-Level Debate Engine (Rate-Limited Discussions)
+Macro-discussion scoped to the whole book, structured as a threaded tree with upvoting, with two new v2.0 limits to keep each book's discussion space focused rather than flooded.
+•	FR-9.1 A reader may create at most one DEBATE_THREAD per book - enforced by a UNIQUE (book_id, creator_id) constraint on DEBATE_THREAD.
+•	FR-9.2 A book may receive at most 10 new DEBATE_THREADs within any rolling 5-day window. The window is evaluated as COUNT(*) of threads on that book with created_at within the last 5 days at the moment of creation.
+•	FR-9.3 Requests beyond the 10-per-5-days limit are rejected with a clear reason; admission is first-come-first-served - whichever request reaches the server first within the window succeeds, with no waitlist or queue.
+•	FR-9.4 Readers post DEBATE_POSTs within a thread; posts may reply to other posts via parent_post_id, forming a tree.
+•	FR-9.5 Readers cast one DEBATE_VOTE (up/down) per post; upvote_count/downvote_count are denormalized for ranking.
+•	FR-9.6 Threads can be locked or archived by an admin or the thread's own creator.
+3.10 Reading Progress Tracking
+•	FR-10.1 READING_PROGRESS.last_chapter_read_id updates whenever a reader completes a chapter (per the completion threshold in FR-5.5).
+•	FR-10.2 One progress record per (reader_id, book_id).
+3.11 Author Content Feed
+•	FR-11.1 Authors publish AUTHOR_FEED_POSTs, optionally marked is_premium_only.
+•	FR-11.2 Feed posts are surfaced on the author's profile and in subscriber activity feeds.
+3.12 Moderation & Reporting
+•	FR-12.1 Any user may file a REPORT against a chapter_comment, debate_post, book, or user, with a target_type/target_id/reason.
+•	FR-12.2 Admins review pending reports and set status to action_taken or dismissed, recording reviewed_by and resolved_at.
+•	FR-12.3 Action taken on a report may cascade to hiding/removing the target content (status = hidden/removed on the target entity).
+3.13 Admin Dashboard
+•	FR-13.1 User/author approval queue.
+•	FR-13.2 Hobbyist chapter review queue (approve/reject with reason).
+•	FR-13.3 Payment submission review queue (approve/reject/flagged_duplicate).
+•	FR-13.4 Admin wallet management (activate/deactivate).
+•	FR-13.5 Author withdrawal review queue (mark paid/reject).
+•	FR-13.6 Report resolution queue.
+•	FR-13.7 Full ADMIN_ACTION audit log of every administrative action taken.
+ 4. Non-Functional Requirements
+4.1 Performance
+•	Chapter read endpoint responds in under 300ms at the API layer for typical chapter sizes on the target PostgreSQL instance.
+•	View-tracking write (FR-5.1-5.2) is fire-and-forget from the client's perspective and must never block chapter content delivery.
+•	CHAPTER_VIEW carries an index on (chapter_id, session_id, viewed_at) and (chapter_id, device_fingerprint, viewed_at) so the 24-hour de-duplication query stays fast without an external cache.
+4.2 Scalability
+•	API layer is stateless; JWT carries auth state, so horizontal scaling on Railway is possible without sticky sessions.
+•	PostgreSQL schema is normalized (3NF) with denormalized counters (like_count, unique_view_count, post_count, upvote_count, available_balance, total_earned) to avoid expensive aggregate queries on read paths - the only intentional deviation from strict normalization, and it is documented per field.
+•	If the deployment is scaled to multiple instances, an optional local in-memory cache (e.g. Caffeine) may front hot, read-heavy endpoints such as published book listings; this is a same-process cache, not shared infrastructure, and is not required at MVP scale.
+4.3 Security
+•	Passwords hashed with bcrypt; JWT signed with a rotating secret; refresh tokens revocable server-side.
+•	All admin-only endpoints enforce role = admin at the controller layer via method security, not just route guarding in the frontend.
+•	Payment submission screenshot uploads are validated for file type/size and stored outside the public web root; URLs are signed/expiring.
+•	Rate limiting on PAYMENT_SUBMISSION creation, CHAPTER_VIEW recording, and DEBATE_THREAD creation endpoints to blunt abuse.
+•	All admin actions are written to ADMIN_ACTION for auditability; this log is append-only.
+4.4 Reliability & Availability
+•	Each AUTHOR_EARNING credit (FR-7.1) is created in the same database transaction as the PAYMENT_SUBMISSION approval, so an author is never credited without an approved payment behind it, and never twice for the same submission.
+•	The renewal-reminder scheduled job is safe under a single application instance, which is the assumed deployment shape for this project's scale; SUBSCRIPTION.reminder_sent prevents a re-run from re-notifying the same subscription. If the deployment is later scaled to multiple instances, a PostgreSQL advisory lock (pg_advisory_lock) should guard the job - no external lock service is required.
+•	Database migrations are versioned via Flyway; no manual schema edits in production.
+4.5 Maintainability
+•	Backend follows a strict controller -> service -> repository separation; business rules (access control, fee split, discussion caps) live in services, never in controllers.
+•	Core algorithms (6) are implemented as independently unit-testable service methods.
+ 5. Data Model
+The full entity-relationship diagram is maintained separately in Mermaid format (webnovel_platform_erd_v2.mmd) and should be treated as the authoritative schema reference alongside this document. The schema is in Third Normal Form; the only intentional deviations are the documented denormalized counters used purely as read-path caches, each of which is fully re-derivable from its underlying rows.
+5.1 Entity Summary
+Domain	Entities
+Identity	USER, AUTHOR_PROFILE
+Content	BOOK, CHAPTER
+Payments	ADMIN_WALLET, PAYMENT_SUBMISSION, SUBSCRIPTION
+Author Earnings	AUTHOR_EARNING, AUTHOR_WITHDRAWAL
+Engagement (chapter)	CHAPTER_VIEW, CHAPTER_LIKE, CHAPTER_COMMENT, READING_PROGRESS
+Engagement (book)	DEBATE_THREAD, DEBATE_POST, DEBATE_VOTE
+Moderation	REPORT, ADMIN_ACTION
+Marketing	AUTHOR_FEED_POST
+Removed from v1.0: BOOK_TEMPLATE (book templates dropped, 3.2), REVENUE_POOL and AUTHOR_PAYOUT (replaced by direct, immediate per-payment settlement, 3.7).
+5.2 Key Constraints
+•	UNIQUE (wallet_id, last_6_digits, amount) on PAYMENT_SUBMISSION - collisions route to flagged_duplicate rather than silent rejection.
+•	At most one non-expired (pending_payment or active) SUBSCRIPTION per (reader_id, author_id) pair at a time, enforced at the service layer; a reader may hold independent subscriptions to different authors simultaneously.
+•	SUBSCRIPTION.start_date/end_date are only ever set on the transition to status = active; never on request creation.
+•	One CHAPTER_LIKE per (chapter_id, reader_id); one DEBATE_VOTE per (post_id, reader_id) - enforced at the DB level, not just application logic.
+•	UNIQUE (book_id, creator_id) on DEBATE_THREAD - one discussion per reader per book, enforced at the DB level (FR-9.1).
+•	READING_PROGRESS is unique per (reader_id, book_id).
+•	AUTHOR_EARNING.payment_submission_id is unique - exactly one earning credit per approved payment, never duplicated.
+•	CHAPTER no longer carries an access_type field; premium status is read from chapter.book.is_premium (consistent with 3NF: access applies to the whole book, so it is stored once on BOOK, not repeated per chapter).
+ 6. Core Algorithms
+6.1 Book-Level Premium Access Control Validation
+function canAccessChapter(user, chapter):
+book = chapter.book
+
+if book.is_premium == false:
+    return ALLOW
+
+if user is null:
+    return DENY("no_subscription", authorId = book.author_id)
+
+if user.role == ADMIN or user.id == book.author_id:
+    return ALLOW
+
+subscription = SubscriptionRepository.findActive(user.id, book.author_id)
+
+if subscription != null
+   and subscription.status == ACTIVE
+   and subscription.end_date > now():
+    return ALLOW
+
+if subscription != null and subscription.end_date <= now():
+    return DENY("expired_subscription", authorId = book.author_id)
+
+return DENY("no_subscription", authorId = book.author_id)
+6.2 Database-Only Unique View Detection
+function recordView(user, chapter, sessionId, deviceFingerprint):
+windowStart = now() - 24h
+
+exists = ChapterViewRepository.existsRecentView(
+    chapterId = chapter.id,
+    sessionId, deviceFingerprint,
+    since = windowStart
+)   // indexed query on (chapter_id, session_id/device_fingerprint, viewed_at)
+
+isUnique = NOT exists
+
+ChapterViewRepository.insert(
+    chapterId = chapter.id,
+    readerId = user?.id,
+    sessionId, deviceFingerprint,
+    isUnique, viewedAt = now()
+)
+
+if isUnique:
+    ChapterRepository.incrementUniqueViewCount(chapter.id)
+
+return isUnique
+6.3 Payment Submission Fraud Check
+function submitPayment(reader, authorId, walletId, amount, screenshotUrl, last6Digits):
+collision = PaymentSubmissionRepository
+    .findApproved(walletId, last6Digits, amount)
+
+subscription = SubscriptionRepository.createOrReuse(
+    readerId = reader.id, authorId = authorId,
+    status = PENDING_PAYMENT,
+    priceMmk = AuthorProfileRepository.getPrice(authorId)
+)
+
+submission = new PaymentSubmission(
+    readerId = reader.id, walletId, amount,
+    screenshotUrl, last6Digits,
+    subscriptionId = subscription.id,
+    submittedAt = now()
+)
+
+submission.status = collision.exists ? FLAGGED_DUPLICATE : PENDING
+if collision.exists:
+    notifyAdmin("duplicate_payment_review", submission)
+
+save(submission)
+return submission
+6.4 Payment Approval -> Direct Author Earning Credit
+Executed atomically in one transaction when an admin approves a PAYMENT_SUBMISSION. This is the entire settlement step in v2.0 - there is no separate periodic pool-generation job.
+function approvePayment(admin, submission, feePercent):
+transaction:
+    submission.status = APPROVED
+    submission.reviewedBy = admin.id
+    submission.reviewedAt = now()
+
+    subscription = submission.subscription
+    subscription.status = ACTIVE
+    subscription.startDate = now()
+    subscription.endDate = now() + 30 days
+
+    grossAmount = submission.amount
+    feeAmount = grossAmount * feePercent
+    netAmount = grossAmount - feeAmount
+
+    AuthorEarningRepository.insert(
+        authorId = subscription.authorId,
+        paymentSubmissionId = submission.id,
+        subscriptionId = subscription.id,
+        grossAmount, platformFeePercent = feePercent,
+        platformFeeAmount = feeAmount, netAmount,
+        createdAt = now()
+    )
+
+    AuthorProfileRepository.incrementBalance(
+        authorId = subscription.authorId,
+        availableBalanceDelta = netAmount,
+        totalEarnedDelta = netAmount
+    )
+
+    ADMIN_ACTION.log(admin.id, "payment_approval", submission.id)
+
+notifyReader(subscription.readerId, "subscription_active")
+6.5 Hobbyist Chapter Publish Approval
+function submitChapterForPublish(author, chapter):
+if author.careerStage == PROFESSIONAL and author.isMonetizationEnabled:
+    chapter.status = chapter.scheduledFor != null ? SCHEDULED : PUBLISHED
+    chapter.publishedAt = chapter.scheduledFor ?? now()
+else:
+    chapter.status = PENDING_REVIEW
+save(chapter)
+return chapter
+
+function reviewChapter(admin, chapter, decision, reason = null):
+if decision == APPROVE:
+    chapter.status = chapter.scheduledFor != null ? SCHEDULED : PUBLISHED
+    chapter.publishedAt = chapter.scheduledFor ?? now()
+    chapter.reviewedBy = admin.id
+    chapter.reviewedAt = now()
+    ADMIN_ACTION.log(admin.id, "content_approval", chapter.id)
+else:
+    chapter.status = REJECTED
+    chapter.rejectionReason = reason
+    chapter.reviewedBy = admin.id
+    chapter.reviewedAt = now()
+    ADMIN_ACTION.log(admin.id, "content_rejection", chapter.id)
+save(chapter)
+notifyAuthor(chapter.book.authorId, decision, reason)
+6.6 Debate Thread Creation (One-Per-Book, Ten-Per-Five-Days)
+Concurrency for the rolling window check is handled with a PostgreSQL session-level advisory lock keyed on the book id - a built-in Postgres feature, not an additional service - so two simultaneous requests for the same book cannot both slip past the count check.
+function createDebateThread(reader, book, title):
+if DebateThreadRepository.existsByBookAndCreator(book.id, reader.id):
+    reject("You already have a discussion on this book")
+
+transaction:
+    pg_advisory_xact_lock(book.id)   // serializes concurrent creations for this book only
+
+    windowStart = now() - 5 days
+    recentCount = DebateThreadRepository.countByBookSince(book.id, windowStart)
+
+    if recentCount >= 10:
+        reject("This book has reached its discussion limit for now, try again later")
+
+    thread = DebateThreadRepository.insert(
+        bookId = book.id, creatorId = reader.id,
+        title, status = OPEN, postCount = 0, createdAt = now()
+    )
+    return thread
+ 7. API Specification
+All endpoints are prefixed /api and require a valid JWT unless marked Public. Role column indicates the minimum role required beyond authentication.
+7.1 Auth
+Method	Endpoint	Role	Description
+POST	/api/auth/register	Public	Create reader account
+POST	/api/auth/login	Public	Authenticate, issue access + refresh token
+POST	/api/auth/refresh	Public	Rotate access token
+POST	/api/auth/logout	Reader	Revoke refresh token
+7.2 Users & Authors
+Method	Endpoint	Role	Description
+GET	/api/users/me	Reader	Current user profile
+PUT	/api/users/me	Reader	Update profile
+POST	/api/authors/apply	Reader	Apply for author status
+GET	/api/authors/{id}	Public	Author public profile, incl. subscription price
+GET	/api/admin/users?status=pending	Admin	Pending approval queue
+PUT	/api/admin/users/{id}/approve	Admin	Approve/verify user, author, or monetization
+PUT	/api/admin/users/{id}/suspend	Admin	Suspend or ban a user
+7.3 Content (Books & Chapters)
+Method	Endpoint	Role	Description
+POST	/api/books	Author	Create book directly (cover, title, metadata)
+PUT	/api/books/{id}	Author	Update book
+GET	/api/books/{id}	Public	Book detail
+GET	/api/books?genre=&status=	Public	Browse/search books
+POST	/api/books/{bookId}/chapters	Author	Upload chapter
+PUT	/api/chapters/{id}	Author	Update chapter
+POST	/api/chapters/{id}/publish	Author	Submit for publish (6.5: direct or pending_review)
+GET	/api/chapters/{id}	Reader	Read chapter (access-controlled, 6.1)
+GET	/api/admin/chapters?status=pending_review	Admin	Hobbyist review queue
+PUT	/api/admin/chapters/{id}/approve	Admin	Approve pending chapter
+PUT	/api/admin/chapters/{id}/reject	Admin	Reject with reason
+7.4 Engagement
+Method	Endpoint	Role	Description
+POST	/api/chapters/{id}/view	Reader	Record a view (6.2)
+POST	/api/chapters/{id}/like	Reader	Like chapter
+DELETE	/api/chapters/{id}/like	Reader	Unlike chapter
+POST	/api/chapters/{id}/comments	Reader	Post comment (spoiler-safe filtered on read)
+GET	/api/chapters/{id}/comments	Reader	List visible comments for this reader
+PUT	/api/books/{id}/progress	Reader	Update reading progress
+GET	/api/books/{id}/progress	Reader	Get reading progress
+7.5 Debate Engine
+Method	Endpoint	Role	Description
+POST	/api/books/{id}/debates	Reader	Start discussion (6.6: 1/book, 10/book/5 days)
+GET	/api/books/{id}/debates	Public	List threads
+POST	/api/debates/{id}/posts	Reader	Post/reply in thread
+POST	/api/posts/{id}/vote	Reader	Upvote/downvote post
+PUT	/api/debates/{id}/lock	Admin	Lock/archive thread
+7.6 Subscriptions & Payments
+Method	Endpoint	Role	Description
+GET	/api/wallets/active	Reader	Current active admin wallet
+GET	/api/authors/{id}/subscription-price	Public	That author's current price
+POST	/api/authors/{id}/payment-submissions	Reader	Submit wallet-transfer proof for this author (6.3)
+GET	/api/subscriptions/me	Reader	My subscriptions, all authors
+GET	/api/admin/payment-submissions?status=pending	Admin	Review queue
+PUT	/api/admin/payment-submissions/{id}/approve	Admin	Approve, credit author (6.4)
+PUT	/api/admin/payment-submissions/{id}/reject	Admin	Reject with reason
+POST	/api/admin/wallets	Admin	Add admin wallet
+PUT	/api/admin/wallets/{id}/deactivate	Admin	Deactivate wallet
+7.7 Author Earnings & Withdrawals
+Method	Endpoint	Role	Description
+GET	/api/authors/{id}/earnings	Author/Admin	Earnings ledger (one row per payment)
+GET	/api/authors/{id}/balance	Author/Admin	Current available_balance & total_earned
+POST	/api/authors/{id}/withdrawals	Author	Request a withdrawal
+GET	/api/authors/{id}/withdrawals	Author/Admin	Withdrawal history
+GET	/api/admin/withdrawals?status=pending	Admin	Review queue
+PUT	/api/admin/withdrawals/{id}/mark-paid	Admin	Confirm manual wallet transfer completed
+PUT	/api/admin/withdrawals/{id}/reject	Admin	Reject with reason
+7.8 Moderation & Feed
+Method	Endpoint	Role	Description
+POST	/api/reports	Reader	File a report
+GET	/api/admin/reports?status=pending	Admin	Review queue
+PUT	/api/admin/reports/{id}/resolve	Admin	Resolve (action_taken/dismissed)
+GET	/api/admin/actions	Admin	Audit log
+POST	/api/authors/{id}/feed	Author	Publish feed post
+GET	/api/authors/{id}/feed	Public	List feed posts
+ 8. Use Case Summary
+Actor	Use Cases
+Reader	Register/Login; Browse & search books; Read free chapter; Subscribe to a specific author via wallet transfer; Read that author's premium chapters; Like/comment on chapter; Track reading progress; Start one discussion per book (subject to the 10/5-day book cap); Post/reply in discussion; Vote on post; Report content
+Hobbyist Author	All reader use cases + Create book (cover/title/metadata); Upload chapters (enter review queue); View basic chapter analytics; Edit and resubmit a rejected chapter
+Professional Author	All hobbyist use cases + Publish chapters/premium books directly (no review); Set own subscription price; Publish feed post; View earnings ledger and balance; Request withdrawal
+Admin	Approve users/authors/monetization; Manage admin wallets; Review & approve/reject hobbyist chapters; Review & approve/reject payment submissions; Review & approve/reject withdrawals; Resolve reports; View audit log
+ 9. Security Considerations
+•	Financial integrity: the earning credit in 6.4 is created in the same transaction as the payment approval, so an author is never credited without a corresponding approved payment, and a submission can never generate two earning records.
+•	PII minimization: payment screenshots may contain third-party financial data; access restricted to the submitting reader and admins, never exposed via public URLs.
+•	Abuse resistance: the unique-view dedup window (6.2) and rate limiting on view/like/comment/discussion endpoints protect both public metrics and each author's income from manipulation.
+•	Discussion-cap fairness: the per-book advisory lock in 6.6 prevents a race between two nearly-simultaneous discussion creations from both slipping in over the 10/5-day cap; admission is strictly first-come-first-served with no queueing or reservation.
+•	Audit trail: every admin approval, rejection, and withdrawal confirmation is recorded in ADMIN_ACTION with actor, target, and timestamp, supporting dispute resolution with authors.
+ 10. Appendix
+10.1 Configurable Parameters
+Parameter	Default	Notes
+Subscription price	Author-set, per author	Each professional author sets their own monthly_subscription_price once monetization is enabled; no single platform-wide price
+Platform fee	20%	Taken from each approved payment at approval time (6.4); remainder is credited to the author immediately
+Minimum withdrawal amount	5,000 MMK	Below this, a withdrawal request is rejected at submission time rather than queued
+View dedup window	24 hours	Evaluated per (session/device + chapter) via an indexed PostgreSQL query, no external TTL store
+Discussions per reader per book	1	Hard DB constraint, UNIQUE (book_id, creator_id) on DEBATE_THREAD
+Discussions per book per window	10 per rolling 5 days	Checked at creation time under a PostgreSQL advisory lock keyed on book_id
+Renewal reminder lead time	3 days before end_date	Scheduled job, guarded by SUBSCRIPTION.reminder_sent
+10.2 Related Documents
+•	webnovel_platform_erd_v2.mmd - full entity-relationship diagram (authoritative schema)
+•	System flow diagrams (Draw.io / Mermaid) - to be produced separately, covering the per-author subscription/payment flow, book-level chapter access flow, hobbyist chapter approval flow, and direct earnings-credit flow.
+10.3 Summary of Changes from v1.0 to v2.0
+Area	v1.0	v2.0
+Premium granularity	Per chapter (access_type on CHAPTER)	Per book (is_premium on BOOK); applies to all its chapters
+Subscription target	Platform-wide, one plan	Per specific professional author; a reader may hold several
+Author payout	Pooled revenue, engagement-weighted, periodic batch (REVENUE_POOL, AUTHOR_PAYOUT)	Direct per-payment fee split, credited immediately (AUTHOR_EARNING); author-initiated AUTHOR_WITHDRAWAL
+Content publishing	No review gate	Hobbyist chapters require admin approval (pending_review); professional authors publish directly
+Book creation	Optional BOOK_TEMPLATE, instantiated into a book	Removed; book created directly with cover, title, metadata
+Debate threads	Unlimited per reader and per book	1 per reader per book; 10 per book per rolling 5 days, first-come-first-served
+Cache/session/dedup store	Redis (TTL keys, distributed lock)	Removed; PostgreSQL-only, indexed queries and advisory locks
+Backend versions	Spring Boot 3.3	Spring Boot 3.5.16, Java 21
