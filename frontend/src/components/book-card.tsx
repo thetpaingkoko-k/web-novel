@@ -1,11 +1,14 @@
 import { BookOpen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
+import { ProgressRing } from "@/components/progress-ring"
 import { Badge } from "@/components/ui/badge"
 import type { BookListItem } from "@/types/content"
 
 export function BookCard({ book, to }: { book: BookListItem; to?: string }) {
   const { t } = useTranslation()
+  const hasProgress =
+    book.readChaptersCount != null && book.readChaptersCount > 0 && book.chapterCount > 0
 
   return (
     <Link
@@ -28,6 +31,19 @@ export function BookCard({ book, to }: { book: BookListItem; to?: string }) {
           <Badge className="absolute top-2 right-2" variant="default">
             {t("books.premium")}
           </Badge>
+        )}
+        {hasProgress && (
+          <div className="absolute top-2 left-2 rounded-full bg-background/80 p-0.5 backdrop-blur-sm">
+            <ProgressRing
+              value={book.readChaptersCount! / book.chapterCount}
+              size={34}
+              strokeWidth={3}
+              label={t("books.progressText", {
+                read: book.readChaptersCount,
+                total: book.chapterCount,
+              })}
+            />
+          </div>
         )}
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3">

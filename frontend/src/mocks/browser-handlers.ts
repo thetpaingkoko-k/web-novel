@@ -26,6 +26,32 @@ import {
 } from "./seed"
 
 const BASE = "/api/v1"
+
+// In-memory author-profile edits (bio/price/wallet) keyed by userId. A dev
+// stand-in for the AUTHOR_PROFILE row the real backend would persist.
+type AuthorEdits = {
+  bio?: string
+  monthlySubscriptionPrice?: number | null
+  payoutWalletProvider?: string | null
+  payoutWalletNumber?: string | null
+}
+const authorEdits = new Map<number, AuthorEdits>()
+
+// In-memory reading progress keyed by bookId, so "continue reading" resumes.
+const readingProgress = new Map<number, number>()
+
+// In-memory saved books (bookmarks) for the current dev session.
+const bookmarkedBookIds = new Set<number>()
+
+// How many published chapters the current reader has completed in a book.
+function readCountForBook(bookId: number) {
+  const lastId = readingProgress.get(bookId)
+  if (!lastId) return 0
+  const published = chaptersForBook(bookId).filter((c) => c.status === "published")
+  const idx = published.findIndex((c) => c.chapterId === lastId)
+  return idx >= 0 ? idx + 1 : 0
+}
+
 const tokensFor = (user: AuthUser) => ({
   accessToken: `mock-access-${user.userId}`,
   refreshToken: `mock-refresh-${user.userId}`,
@@ -74,8 +100,59 @@ export const browserHandlers = [
     if (!user) return HttpResponse.json({ message: "unauthorized" }, { status: 401 })
     return HttpResponse.json(user)
   }),
+  http.put(`${BASE}/users/me`, async ({ request }) => {
+    const user = currentUser()
+    if (!user) return HttpResponse.json({ message: "unauthorized" }, { status: 401 })
+    const body = (await request.json()) as { username?: string; email?: string }
+    if (body.username) user.username = body.username
+    if (body.email) user.email = body.email
+    return HttpResponse.json(user)
+  }),
 
   // ---- Authors ----
+  http.post(`${BASE}/authors/apply`, async ({ request }) => {
+    const { bio } = (await request.json()) as { bio: string }
+    const user = currentUser()
+    if (!user) return new HttpResponse(null, { status: 401 })
+    user.status = "pending"
+    authorEdits.set(user.userId, { ...(authorEdits.get(user.userId) ?? {}), bio })
+    return HttpResponse.json(user)
+  }),
+  http.get(`${BASE}/authors/me`, () => {
+    const user = currentUser()
+    if (!user) return new HttpResponse(null, { status: 401 })
+    const edits = authorEdits.get(user.userId) ?? {}
+    return HttpResponse.json({
+      authorId: user.userId,
+      username: user.username,
+      bio: edits.bio ?? null,
+      careerStage: user.role === "professional_author" ? "professional" : "hobbyist",
+      isMonetizationEnabled: user.isMonetizationEnabled,
+      monthlySubscriptionPrice:
+        edits.monthlySubscriptionPrice ?? (user.isMonetizationEnabled ? 5000 : null),
+      payoutWalletProvider: edits.payoutWalletProvider ?? null,
+      payoutWalletNumber: edits.payoutWalletNumber ?? null,
+    })
+  }),
+  http.put(`${BASE}/authors/me`, async ({ request }) => {
+    const user = currentUser()
+    if (!user) return new HttpResponse(null, { status: 401 })
+    const body = (await request.json()) as AuthorEdits
+    authorEdits.set(user.userId, { ...(authorEdits.get(user.userId) ?? {}), ...body })
+    const edits = authorEdits.get(user.userId) ?? {}
+    return HttpResponse.json({
+      authorId: user.userId,
+      username: user.username,
+      bio: edits.bio ?? null,
+      careerStage: user.role === "professional_author" ? "professional" : "hobbyist",
+      isMonetizationEnabled: user.isMonetizationEnabled,
+      monthlySubscriptionPrice: user.isMonetizationEnabled
+        ? (edits.monthlySubscriptionPrice ?? null)
+        : null,
+      payoutWalletProvider: edits.payoutWalletProvider ?? null,
+      payoutWalletNumber: edits.payoutWalletNumber ?? null,
+    })
+  }),
   http.get(`${BASE}/authors/:authorId`, ({ params }) => {
     const authorId = Number(params.authorId)
     const seeded = users.find((u) => u.userId === authorId)
@@ -111,6 +188,7 @@ export const browserHandlers = [
         status: b.status,
         isPremium: b.isPremium,
         chapterCount: chaptersForBook(b.bookId).length,
+        ...(currentUser() ? { readChaptersCount: readCountForBook(b.bookId) } : {}),
       }))
     return HttpResponse.json(list)
   }),
@@ -177,6 +255,7 @@ export const browserHandlers = [
       uniqueViewCount: 0,
       completionCount: 0,
       publishedAt: null,
+      scheduledFor: null,
       rejectionReason: null,
       likedByMe: false,
     }
@@ -189,13 +268,23 @@ export const browserHandlers = [
     Object.assign(chapter, await request.json())
     return HttpResponse.json(chapter)
   }),
-  http.post(`${BASE}/chapters/:chapterId/publish`, ({ params }) => {
+  http.post(`${BASE}/chapters/:chapterId/publish`, async ({ params, request }) => {
     const chapter = chapters.find((c) => c.chapterId === Number(params.chapterId))
     if (!chapter) return HttpResponse.json({ message: "not_found" }, { status: 404 })
     const user = currentUser()
-    // Professional authors publish directly; everyone else enters review.
-    chapter.status = user?.role === "professional_author" ? "published" : "pending_review"
-    chapter.publishedAt = chapter.status === "published" ? new Date().toISOString() : null
+    const body = (await request.json().catch(() => ({}))) as { scheduledFor?: string }
+    const isPro = user?.role === "professional_author"
+    if (isPro && body.scheduledFor) {
+      // Professional author scheduling a future publish (FR-2.6).
+      chapter.status = "scheduled"
+      chapter.scheduledFor = body.scheduledFor
+      chapter.publishedAt = body.scheduledFor
+    } else {
+      // Professional authors publish directly; everyone else enters review.
+      chapter.status = isPro ? "published" : "pending_review"
+      chapter.scheduledFor = null
+      chapter.publishedAt = chapter.status === "published" ? new Date().toISOString() : null
+    }
     return HttpResponse.json(chapter)
   }),
   http.post(`${BASE}/chapters/:chapterId/view`, () => new HttpResponse(null, { status: 204 })),
@@ -239,10 +328,41 @@ export const browserHandlers = [
   }),
 
   // ---- Reading progress ----
-  http.get(`${BASE}/books/:bookId/progress`, () => HttpResponse.json({ lastChapterReadId: null })),
-  http.put(`${BASE}/books/:bookId/progress`, async ({ request }) => {
+  http.get(`${BASE}/books/:bookId/progress`, ({ params }) =>
+    HttpResponse.json({ lastChapterReadId: readingProgress.get(Number(params.bookId)) ?? null })
+  ),
+  http.put(`${BASE}/books/:bookId/progress`, async ({ params, request }) => {
     const body = (await request.json()) as { lastChapterReadId: number }
+    readingProgress.set(Number(params.bookId), body.lastChapterReadId)
     return HttpResponse.json({ lastChapterReadId: body.lastChapterReadId })
+  }),
+
+  // ---- Bookmarks (saved books) ----
+  http.get(`${BASE}/bookmarks/me`, () =>
+    HttpResponse.json(
+      books
+        .filter((b) => bookmarkedBookIds.has(b.bookId))
+        .map((b) => ({
+          bookId: b.bookId,
+          authorId: b.authorId,
+          authorUsername: b.authorUsername,
+          title: b.title,
+          genre: b.genre,
+          coverImageUrl: b.coverImageUrl,
+          status: b.status,
+          isPremium: b.isPremium,
+          chapterCount: chaptersForBook(b.bookId).length,
+          readChaptersCount: readCountForBook(b.bookId),
+        }))
+    )
+  ),
+  http.post(`${BASE}/books/:bookId/bookmark`, ({ params }) => {
+    bookmarkedBookIds.add(Number(params.bookId))
+    return new HttpResponse(null, { status: 204 })
+  }),
+  http.delete(`${BASE}/books/:bookId/bookmark`, ({ params }) => {
+    bookmarkedBookIds.delete(Number(params.bookId))
+    return new HttpResponse(null, { status: 204 })
   }),
 
   // ---- Debates ----
@@ -267,6 +387,22 @@ export const browserHandlers = [
       createdAt: new Date().toISOString(),
     }
     threads.push(thread)
+    return HttpResponse.json(thread)
+  }),
+  http.get(`${BASE}/debates/:threadId`, ({ params }) => {
+    const thread = threads.find((t) => t.threadId === Number(params.threadId))
+    if (!thread) return new HttpResponse(null, { status: 404 })
+    return HttpResponse.json(thread)
+  }),
+  http.put(`${BASE}/debates/:threadId/lock`, async ({ params, request }) => {
+    const { status } = (await request.json()) as { status: "open" | "locked" | "archived" }
+    const user = currentUser()
+    const thread = threads.find((t) => t.threadId === Number(params.threadId))
+    if (!thread) return new HttpResponse(null, { status: 404 })
+    if (!user || (user.role !== "admin" && user.userId !== thread.creatorId)) {
+      return new HttpResponse(null, { status: 403 })
+    }
+    thread.status = status
     return HttpResponse.json(thread)
   }),
   http.get(`${BASE}/debates/:threadId/posts`, ({ params }) =>
@@ -379,9 +515,40 @@ export const browserHandlers = [
   http.put(`${BASE}/admin/reports/:id/resolve`, () => new HttpResponse(null, { status: 204 })),
 
   // ---- Admin queues (empty by default; enough to render the dashboard) ----
-  http.get(`${BASE}/admin/users`, () => HttpResponse.json([])),
+  http.get(`${BASE}/admin/users`, ({ request }) => {
+    const url = new URL(request.url)
+    const status = url.searchParams.get("status")
+    const search = url.searchParams.get("search")?.toLowerCase()
+    const list = users
+      .filter((u) => u.role !== "admin")
+      .filter((u) => (status ? u.status === status : true))
+      .filter((u) =>
+        search ? u.username.toLowerCase().includes(search) || u.email.toLowerCase().includes(search) : true
+      )
+      .map((u) => ({
+        userId: u.userId,
+        username: u.username,
+        email: u.email,
+        role: u.role,
+        status: u.status,
+        careerStage:
+          u.role === "professional_author" ? "professional" : u.role === "hobbyist_author" ? "hobbyist" : null,
+        createdAt: new Date().toISOString(),
+      }))
+    return HttpResponse.json(list)
+  }),
   http.put(`${BASE}/admin/users/:id/approve`, () => new HttpResponse(null, { status: 204 })),
-  http.put(`${BASE}/admin/users/:id/suspend`, () => new HttpResponse(null, { status: 204 })),
+  http.put(`${BASE}/admin/users/:id/suspend`, async ({ params, request }) => {
+    const { ban } = (await request.json()) as { ban: boolean }
+    const u = users.find((x) => x.userId === Number(params.id))
+    if (u) u.status = ban ? "banned" : "suspended"
+    return new HttpResponse(null, { status: 204 })
+  }),
+  http.put(`${BASE}/admin/users/:id/reactivate`, ({ params }) => {
+    const u = users.find((x) => x.userId === Number(params.id))
+    if (u) u.status = "approved"
+    return new HttpResponse(null, { status: 204 })
+  }),
   http.get(`${BASE}/admin/chapters`, () =>
     HttpResponse.json(
       chapters

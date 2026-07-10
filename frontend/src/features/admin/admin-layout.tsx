@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 
 const TABS = [
   { to: "/admin/users", key: "admin.tabs.users" },
+  { to: "/admin/manage-users", key: "admin.tabs.manageUsers" },
   { to: "/admin/chapters", key: "admin.tabs.chapters" },
   { to: "/admin/payments", key: "admin.tabs.payments" },
   { to: "/admin/withdrawals", key: "admin.tabs.withdrawals" },

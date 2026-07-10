@@ -6,6 +6,7 @@ import type {
   LoginResponse,
   RegisterRequest,
   RegisterResponse,
+  UpdateProfileRequest,
 } from "@/types/auth"
 
 export const authKeys = { currentUser: ["auth", "me"] as const }
@@ -46,6 +47,19 @@ export function useRegister() {
     onSuccess: (data) => {
       tokenStorage.setTokens(data.accessToken, data.refreshToken)
       queryClient.setQueryData(authKeys.currentUser, data.user)
+    },
+  })
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: UpdateProfileRequest) => {
+      const { data } = await apiClient.put<AuthUser>("/users/me", payload)
+      return data
+    },
+    onSuccess: (user) => {
+      queryClient.setQueryData(authKeys.currentUser, user)
     },
   })
 }

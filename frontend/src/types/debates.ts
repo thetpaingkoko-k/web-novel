@@ -35,6 +35,15 @@ export interface CreateThreadRequest {
   title: string
 }
 
+/**
+ * Body for `PUT /debates/{id}/lock` (FR-9.6). Carries the target lifecycle
+ * state so the one endpoint covers lock, archive, and reopen. Permitted for
+ * an admin or the thread's own creator; the backend is the authority.
+ */
+export interface SetThreadStatusRequest {
+  status: ThreadStatus
+}
+
 export interface CreatePostRequest {
   content: string
   parentPostId?: number

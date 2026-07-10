@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { isAxiosError } from "axios"
 import { Heart, Lock } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -12,6 +12,11 @@ import { useBook, useUpdateReadingProgress } from "@/features/books/api"
 import type { AccessDeniedError } from "@/types/content"
 import { CommentThread } from "./components/comment-thread"
 import { useChapter, useLikeChapter, useRecordChapterView } from "./api"
+
+/** Fraction of the page that must be scrolled to count a chapter as read. */
+const COMPLETION_SCROLL_RATIO = 0.9
+/** Dwell time (ms) that completes a chapter too short to scroll. */
+const COMPLETION_DWELL_MS = 8000
 
 export function ChapterReaderPage() {
   const { chapterId } = useParams<{ chapterId: string }>()
@@ -30,9 +35,38 @@ export function ChapterReaderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapter?.chapterId])
 
-  // Advance reading progress to this chapter for authenticated readers (FR-10.1).
+  // A chapter counts as "read" only once the reader crosses a completion
+  // threshold (FR-5.5): scrolled to the end, or — for a chapter too short to
+  // scroll — after a minimum reading time. Only then do we advance
+  // READING_PROGRESS (FR-10.1), which also gates spoiler-safe comments (FR-8.3).
+  const completedChapterRef = useRef<number | null>(null)
   useEffect(() => {
-    if (chapter && isAuthenticated) updateProgress.mutate(chapter.chapterId)
+    if (!chapter || !isAuthenticated) return
+    const chapterId = chapter.chapterId
+
+    function markComplete() {
+      if (completedChapterRef.current === chapterId) return
+      completedChapterRef.current = chapterId
+      updateProgress.mutate(chapterId)
+      window.removeEventListener("scroll", onScroll)
+    }
+    function onScroll() {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight
+      const ratio = scrollable > 0 ? window.scrollY / scrollable : 1
+      if (ratio >= COMPLETION_SCROLL_RATIO) markComplete()
+    }
+
+    // Short chapters that never scroll: complete after a minimum dwell time.
+    const timer = window.setTimeout(() => {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight
+      if (scrollable <= 0) markComplete()
+    }, COMPLETION_DWELL_MS)
+    window.addEventListener("scroll", onScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      window.clearTimeout(timer)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapter?.chapterId, isAuthenticated])
 

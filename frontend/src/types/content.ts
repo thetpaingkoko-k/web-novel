@@ -25,6 +25,12 @@ export interface BookListItem {
   status: BookStatus
   isPremium: boolean
   chapterCount: number
+  /**
+   * Chapters this reader has completed in the book, if known — populated for an
+   * authenticated reader so listings can show a reading-progress ring. Absent
+   * for anonymous requests.
+   */
+  readChaptersCount?: number
 }
 
 export interface BookListParams {
@@ -51,6 +57,7 @@ export interface ChapterSummary {
   status: ChapterStatus
   likeCount: number
   uniqueViewCount: number
+  completionCount: number
   publishedAt: string | null
   rejectionReason: string | null
 }
@@ -66,6 +73,7 @@ export interface Chapter {
   uniqueViewCount: number
   completionCount: number
   publishedAt: string | null
+  scheduledFor: string | null
   rejectionReason: string | null
   likedByMe: boolean
 }

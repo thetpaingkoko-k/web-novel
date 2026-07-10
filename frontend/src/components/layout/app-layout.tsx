@@ -23,6 +23,14 @@ export function AppLayout() {
             <Link to="/books" className="text-sm text-muted-foreground hover:text-foreground">
               {t("nav.browse")}
             </Link>
+            {user?.role === "reader" && (
+              <Link
+                to="/my-list"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                {t("nav.myList")}
+              </Link>
+            )}
             {isAuthor && (
               <Link
                 to="/author/books"
@@ -39,7 +47,23 @@ export function AppLayout() {
                 {t("nav.myFeed")}
               </Link>
             )}
-            {isAuthenticated && (
+            {isAuthor && (
+              <Link
+                to="/author/settings"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                {t("nav.authorSettings")}
+              </Link>
+            )}
+            {user?.role === "reader" && (
+              <Link
+                to="/authors/apply"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                {t("nav.becomeAuthor")}
+              </Link>
+            )}
+            {user?.role === "reader" && (
               <Link
                 to="/subscriptions/me"
                 className="text-sm text-muted-foreground hover:text-foreground"
@@ -63,9 +87,14 @@ export function AppLayout() {
           </div>
           <nav className="flex items-center gap-2">
             {isAuthenticated ? (
-              <Button variant="ghost" onClick={() => logout.mutate()}>
-                {t("nav.logout")}
-              </Button>
+              <>
+                <Button variant="ghost" asChild>
+                  <Link to="/account">{t("nav.account")}</Link>
+                </Button>
+                <Button variant="ghost" onClick={() => logout.mutate()}>
+                  {t("nav.logout")}
+                </Button>
+              </>
             ) : (
               <>
                 <Button variant="ghost" asChild>

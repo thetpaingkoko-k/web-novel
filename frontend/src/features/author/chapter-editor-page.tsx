@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { QueryError } from "@/components/query-error"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
@@ -40,12 +40,18 @@ export function ChapterEditorPage() {
     formState: { errors },
   } = useForm<ChapterFormSchema>({
     resolver: zodResolver(schema),
-    defaultValues: { chapterNumber: 1, title: "", content: "" },
+    defaultValues: { chapterNumber: 1, title: "", content: "", scheduledFor: "" },
   })
 
   useEffect(() => {
     if (chapter) {
-      reset({ chapterNumber: chapter.chapterNumber, title: chapter.title, content: chapter.content })
+      reset({
+        chapterNumber: chapter.chapterNumber,
+        title: chapter.title,
+        content: chapter.content,
+        // ISO → the "YYYY-MM-DDTHH:mm" shape a datetime-local input expects.
+        scheduledFor: chapter.scheduledFor ? chapter.scheduledFor.slice(0, 16) : "",
+      })
     }
   }, [chapter, reset])
 
@@ -80,12 +86,14 @@ export function ChapterEditorPage() {
     const mutation = isEditMode ? updateChapter : createChapter
     mutation.mutate(values, {
       onSuccess: (saved) => {
-        submitForPublish.mutate(undefined, {
+        submitForPublish.mutate(values.scheduledFor || undefined, {
           onSuccess: (published) => {
             toast.success(
-              published.status === "published"
-                ? t("author.chapterPublished")
-                : t("author.chapterSubmittedForReview")
+              published.status === "scheduled"
+                ? t("author.chapterScheduled")
+                : published.status === "published"
+                  ? t("author.chapterPublished")
+                  : t("author.chapterSubmittedForReview")
             )
             navigate(`/author/books/${published.bookId}/edit`)
           },
@@ -139,6 +147,19 @@ export function ChapterEditorPage() {
                 />
                 <FieldError errors={[errors.content]} />
               </Field>
+
+              {isProfessional && (
+                <Field>
+                  <FieldLabel htmlFor="chapter-schedule">{t("author.schedulePublish")}</FieldLabel>
+                  <Input
+                    id="chapter-schedule"
+                    type="datetime-local"
+                    className="max-w-60"
+                    {...register("scheduledFor")}
+                  />
+                  <FieldDescription>{t("author.scheduleHint")}</FieldDescription>
+                </Field>
+              )}
 
               <div className="flex gap-2">
                 <Button

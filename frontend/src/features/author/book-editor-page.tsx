@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { FileText, ListPlus } from "lucide-react"
+import { CheckCircle2, Eye, FileText, Heart, ListPlus } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -195,9 +195,27 @@ export function BookEditorPage() {
                     to={`/author/chapters/${chapter.chapterId}/edit`}
                     className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-muted"
                   >
-                    <span>
-                      {t("chapters.chapterLabel", { number: chapter.chapterNumber })} · {chapter.title}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span>
+                        {t("chapters.chapterLabel", { number: chapter.chapterNumber })} · {chapter.title}
+                      </span>
+                      {chapter.status === "published" && (
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                            {t("author.viewsCount", { count: chapter.uniqueViewCount })}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Heart className="h-3.5 w-3.5" aria-hidden="true" />
+                            {t("author.likesCount", { count: chapter.likeCount })}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            {t("author.completionsCount", { count: chapter.completionCount })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     <Badge variant={chapter.status === "rejected" ? "destructive" : "secondary"}>
                       {t("author.chapterStatus." + chapter.status)}
                     </Badge>

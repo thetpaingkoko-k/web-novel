@@ -5,11 +5,17 @@ import { AuditLogPage } from "@/features/admin/pages/audit-log-page"
 import { ChaptersQueuePage } from "@/features/admin/pages/chapters-queue-page"
 import { PaymentsQueuePage } from "@/features/admin/pages/payments-queue-page"
 import { ReportsQueuePage } from "@/features/admin/pages/reports-queue-page"
+import { UsersManagementPage } from "@/features/admin/pages/users-management-page"
 import { UsersQueuePage } from "@/features/admin/pages/users-queue-page"
 import { WalletsPage } from "@/features/admin/pages/wallets-page"
 import { WithdrawalsQueuePage } from "@/features/admin/pages/withdrawals-queue-page"
+import { AccountPage } from "@/features/auth/account-page"
 import { LoginPage } from "@/features/auth/login-page"
 import { RegisterPage } from "@/features/auth/register-page"
+import { AuthorApplicationPage } from "@/features/authors/author-application-page"
+import { MyListPage } from "@/features/bookmarks/my-list-page"
+import { AuthorProfilePage } from "@/features/authors/author-profile-page"
+import { AuthorSettingsPage } from "@/features/authors/author-settings-page"
 import { AuthorDashboardPage } from "@/features/author/author-dashboard-page"
 import { BookEditorPage } from "@/features/author/book-editor-page"
 import { ChapterEditorPage } from "@/features/author/chapter-editor-page"
@@ -37,12 +43,16 @@ export const router = createBrowserRouter([
       { path: "books/:bookId/debates", element: <DebateListPage /> },
       { path: "debates/:threadId", element: <DebateThreadPage /> },
       { path: "chapters/:chapterId", element: <ChapterReaderPage /> },
+      { path: "authors/:authorId", element: <AuthorProfilePage /> },
       { path: "authors/:authorId/feed", element: <AuthorFeedPage /> },
       { path: "login", element: <LoginPage /> },
       { path: "register", element: <RegisterPage /> },
       {
         element: <ProtectedRoute />,
         children: [
+          { path: "account", element: <AccountPage /> },
+          { path: "my-list", element: <MyListPage /> },
+          { path: "authors/apply", element: <AuthorApplicationPage /> },
           { path: "authors/:authorId/subscribe", element: <SubscribePage /> },
           { path: "subscriptions/me", element: <MySubscriptionsPage /> },
         ],
@@ -51,6 +61,7 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute allowedRoles={[...AUTHOR_ROLES]} />,
         children: [
           { path: "author/books", element: <AuthorDashboardPage /> },
+          { path: "author/settings", element: <AuthorSettingsPage /> },
           { path: "author/books/new", element: <BookEditorPage /> },
           { path: "author/books/:bookId/edit", element: <BookEditorPage /> },
           { path: "author/books/:bookId/chapters/new", element: <ChapterEditorPage /> },
@@ -70,6 +81,7 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <UsersQueuePage /> },
               { path: "users", element: <UsersQueuePage /> },
+              { path: "manage-users", element: <UsersManagementPage /> },
               { path: "chapters", element: <ChaptersQueuePage /> },
               { path: "payments", element: <PaymentsQueuePage /> },
               { path: "withdrawals", element: <WithdrawalsQueuePage /> },

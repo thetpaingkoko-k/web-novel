@@ -3,19 +3,31 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useApproveUser, usePendingUsers } from "../api"
+import { useApproveUser, usePendingUsers, useSuspendUser } from "../api"
+import { ConfirmDialog } from "../components/confirm-dialog"
 import { QueueShell } from "../components/queue-shell"
 
 export function UsersQueuePage() {
   const { t } = useTranslation()
   const { data, isLoading, isError, refetch } = usePendingUsers()
   const approve = useApproveUser()
+  const suspend = useSuspendUser()
 
   function onApprove(userId: number, kind: "verify_author" | "enable_monetization") {
     approve.mutate(
       { userId, kind },
       {
         onSuccess: () => toast.success(t("admin.userApproved")),
+        onError: () => toast.error(t("common.genericError")),
+      }
+    )
+  }
+
+  function onSuspend(userId: number, ban: boolean) {
+    suspend.mutate(
+      { userId, ban },
+      {
+        onSuccess: () => toast.success(t(ban ? "admin.userBanned" : "admin.userSuspended")),
         onError: () => toast.error(t("common.genericError")),
       }
     )
@@ -43,7 +55,7 @@ export function UsersQueuePage() {
                   </Badge>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
                 <Button size="sm" onClick={() => onApprove(user.userId, "verify_author")} disabled={approve.isPending}>
                   {t("admin.verifyAuthor")}
                 </Button>
@@ -55,6 +67,28 @@ export function UsersQueuePage() {
                 >
                   {t("admin.enableMonetization")}
                 </Button>
+                <ConfirmDialog
+                  trigger={
+                    <Button size="sm" variant="outline" disabled={suspend.isPending}>
+                      {t("admin.suspend")}
+                    </Button>
+                  }
+                  title={t("admin.suspendTitle", { user: user.username })}
+                  description={t("admin.suspendDescription")}
+                  confirmLabel={t("admin.suspend")}
+                  onConfirm={() => onSuspend(user.userId, false)}
+                />
+                <ConfirmDialog
+                  trigger={
+                    <Button size="sm" variant="destructive" disabled={suspend.isPending}>
+                      {t("admin.ban")}
+                    </Button>
+                  }
+                  title={t("admin.banTitle", { user: user.username })}
+                  description={t("admin.banDescription")}
+                  confirmLabel={t("admin.ban")}
+                  onConfirm={() => onSuspend(user.userId, true)}
+                />
               </div>
             </li>
           ))}

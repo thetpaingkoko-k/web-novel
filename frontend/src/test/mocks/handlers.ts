@@ -35,6 +35,7 @@ export const mockBookDetail: Book = {
       status: "published",
       likeCount: 2,
       uniqueViewCount: 10,
+      completionCount: 6,
       publishedAt: new Date(0).toISOString(),
       rejectionReason: null,
     },
@@ -81,6 +82,8 @@ export const handlers = [
   http.post("/api/v1/authors/:authorId/payment-submissions", () =>
     HttpResponse.json({ submissionId: 1, status: "pending" })
   ),
+
+  http.get("/api/v1/authors/:authorId/feed", () => HttpResponse.json([])),
 
   http.get("/api/v1/authors/:authorId/balance", () =>
     HttpResponse.json({ availableBalance: 40000, totalEarned: 120000 })

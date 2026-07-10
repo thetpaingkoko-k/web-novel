@@ -27,5 +27,11 @@ export interface RegisterRequest {
   password: string
 }
 
+/** Body for `PUT /users/me` — update the signed-in user's basic profile. */
+export interface UpdateProfileRequest {
+  username: string
+  email: string
+}
+
 export type LoginResponse = AuthTokens & { user: AuthUser }
 export type RegisterResponse = AuthTokens & { user: AuthUser }

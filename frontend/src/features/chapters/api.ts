@@ -24,6 +24,7 @@ export function useRecordChapterView(chapterId: number) {
     mutationFn: async () => {
       await apiClient.post(`/chapters/${chapterId}/view`, {
         sessionId: getOrCreateSessionId(),
+        deviceFingerprint: getDeviceFingerprint(),
       })
     },
   })
@@ -72,8 +73,11 @@ export function useUpdateChapter(chapterId: number) {
 export function useSubmitChapterForPublish(chapterId: number) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async () => {
-      const { data } = await apiClient.post<Chapter>(`/chapters/${chapterId}/publish`)
+    mutationFn: async (scheduledFor?: string | null) => {
+      const { data } = await apiClient.post<Chapter>(
+        `/chapters/${chapterId}/publish`,
+        scheduledFor ? { scheduledFor } : {}
+      )
       return data
     },
     onSuccess: (data) => {
@@ -105,6 +109,7 @@ export function usePostComment(chapterId: number) {
 }
 
 const SESSION_ID_KEY = "webnovel_session_id"
+const DEVICE_FP_KEY = "webnovel_device_fp"
 
 function getOrCreateSessionId() {
   let sessionId = localStorage.getItem(SESSION_ID_KEY)
@@ -113,4 +118,19 @@ function getOrCreateSessionId() {
     localStorage.setItem(SESSION_ID_KEY, sessionId)
   }
   return sessionId
+}
+
+/**
+ * A stable-per-device identifier for view de-duplication (FR-5.1). Persisted
+ * separately from the session id so it survives new sessions on the same
+ * device; the backend pairs it with session id for the 24h dedup window.
+ */
+function getDeviceFingerprint() {
+  let fp = localStorage.getItem(DEVICE_FP_KEY)
+  if (!fp) {
+    const seed = `${navigator.userAgent}|${navigator.language}|${screen.width}x${screen.height}|${new Date().getTimezoneOffset()}`
+    fp = `${btoa(seed).replace(/[^a-zA-Z0-9]/g, "").slice(0, 24)}-${crypto.randomUUID().slice(0, 8)}`
+    localStorage.setItem(DEVICE_FP_KEY, fp)
+  }
+  return fp
 }

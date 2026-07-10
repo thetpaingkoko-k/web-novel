@@ -5,10 +5,12 @@ import type {
   CreateThreadRequest,
   DebatePost,
   DebateThread,
+  SetThreadStatusRequest,
 } from "@/types/debates"
 
 export const debateKeys = {
   threads: (bookId: number) => ["debates", "threads", bookId] as const,
+  thread: (threadId: number) => ["debates", "thread", threadId] as const,
   posts: (threadId: number) => ["debates", "posts", threadId] as const,
 }
 
@@ -17,6 +19,17 @@ export function useDebateThreads(bookId: number) {
     queryKey: debateKeys.threads(bookId),
     queryFn: () => getList<DebateThread>(`/books/${bookId}/debates`),
     enabled: Number.isFinite(bookId),
+  })
+}
+
+export function useDebateThread(threadId: number) {
+  return useQuery({
+    queryKey: debateKeys.thread(threadId),
+    queryFn: async () => {
+      const { data } = await apiClient.get<DebateThread>(`/debates/${threadId}`)
+      return data
+    },
+    enabled: Number.isFinite(threadId),
   })
 }
 
@@ -50,6 +63,25 @@ export function useCreatePost(threadId: number) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: debateKeys.posts(threadId) })
+    },
+  })
+}
+
+/**
+ * Lock, archive, or reopen a thread (FR-9.6). Allowed for an admin or the
+ * thread's creator; the backend enforces authorization and returns the
+ * updated thread.
+ */
+export function useSetThreadStatus(threadId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: SetThreadStatusRequest) => {
+      const { data } = await apiClient.put<DebateThread>(`/debates/${threadId}/lock`, payload)
+      return data
+    },
+    onSuccess: (thread) => {
+      queryClient.setQueryData(debateKeys.thread(threadId), thread)
+      queryClient.invalidateQueries({ queryKey: debateKeys.threads(thread.bookId) })
     },
   })
 }

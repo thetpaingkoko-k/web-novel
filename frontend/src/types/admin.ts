@@ -15,6 +15,17 @@ export interface PendingUser {
 /** What an admin approval grants — verify the account, or enable monetization. */
 export type ApprovalKind = "verify_author" | "enable_monetization"
 
+/** A row in the full user-management list (any status), for FR-1.4. */
+export interface AdminUser {
+  userId: number
+  username: string
+  email: string
+  role: UserRole
+  status: UserStatus
+  careerStage: "hobbyist" | "professional" | null
+  createdAt: string
+}
+
 export interface PaymentSubmissionReview {
   submissionId: number
   readerId: number

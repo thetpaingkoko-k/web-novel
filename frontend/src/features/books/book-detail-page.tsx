@@ -1,18 +1,24 @@
 import { BookOpen, ListX } from "lucide-react"
-import { useTranslation } from "react-i18next"
+import { Trans, useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 import { EmptyState } from "@/components/empty-state"
+import { ProgressRing } from "@/components/progress-ring"
 import { QueryError } from "@/components/query-error"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useBook } from "./api"
+import { useAuth } from "@/features/auth/auth-context"
+import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button"
+import { ReportDialog } from "@/features/moderation/report-dialog"
+import { useBook, useReadingProgress } from "./api"
 
 export function BookDetailPage() {
   const { bookId } = useParams<{ bookId: string }>()
   const { t } = useTranslation()
+  const { isAuthenticated } = useAuth()
   const id = Number(bookId)
   const { data: book, isLoading, isError, refetch } = useBook(id)
+  const { data: progress } = useReadingProgress(id, isAuthenticated)
 
   if (isError) {
     return <QueryError message={t("books.notFound")} onRetry={() => refetch()} />
@@ -31,7 +37,14 @@ export function BookDetailPage() {
     )
   }
 
-  const firstChapter = book.chapters.find((c) => c.status === "published")
+  const publishedChapters = book.chapters.filter((c) => c.status === "published")
+  const firstChapter = publishedChapters[0]
+  const lastReadIndex = progress?.lastChapterReadId
+    ? publishedChapters.findIndex((c) => c.chapterId === progress.lastChapterReadId)
+    : -1
+  const readCount = lastReadIndex >= 0 ? lastReadIndex + 1 : 0
+  const totalCount = publishedChapters.length
+  const resumeChapterId = readCount > 0 ? publishedChapters[lastReadIndex].chapterId : undefined
 
   return (
     <div className="flex flex-col gap-8">
@@ -51,7 +64,18 @@ export function BookDetailPage() {
             {book.isPremium && <Badge>{t("books.premium")}</Badge>}
           </div>
           <p className="text-sm text-muted-foreground">
-            {t("books.byAuthor", { author: book.authorUsername })}
+            <Trans
+              i18nKey="books.byAuthorLink"
+              values={{ author: book.authorUsername }}
+              components={{
+                authorLink: (
+                  <Link
+                    to={`/authors/${book.authorId}`}
+                    className="text-foreground underline underline-offset-4 hover:text-primary"
+                  />
+                ),
+              }}
+            />
           </p>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {book.genre && <span>{book.genre}</span>}
@@ -64,15 +88,45 @@ export function BookDetailPage() {
               <p className="mt-1 text-sm text-muted-foreground">{book.synopsis}</p>
             </div>
           )}
+          {readCount > 0 && totalCount > 0 && (
+            <div className="mt-2 flex items-center gap-3">
+              <ProgressRing
+                value={readCount / totalCount}
+                label={t("books.progressText", { read: readCount, total: totalCount })}
+              />
+              <span className="text-sm text-muted-foreground">
+                {t("books.progressText", { read: readCount, total: totalCount })}
+              </span>
+            </div>
+          )}
+
           <div className="mt-2 flex flex-wrap gap-2">
-            {firstChapter && (
+            {resumeChapterId ? (
               <Button asChild className="w-fit">
-                <Link to={`/chapters/${firstChapter.chapterId}`}>{t("books.startReading")}</Link>
+                <Link to={`/chapters/${resumeChapterId}`}>{t("books.continueReading")}</Link>
               </Button>
+            ) : (
+              firstChapter && (
+                <Button asChild className="w-fit">
+                  <Link to={`/chapters/${firstChapter.chapterId}`}>{t("books.startReading")}</Link>
+                </Button>
+              )
             )}
             <Button asChild variant="outline" className="w-fit">
               <Link to={`/books/${book.bookId}/debates`}>{t("debates.discussions")}</Link>
             </Button>
+            <BookmarkButton bookId={book.bookId} />
+            {isAuthenticated && (
+              <ReportDialog
+                targetType="book"
+                targetId={book.bookId}
+                trigger={
+                  <Button variant="ghost" className="w-fit text-muted-foreground">
+                    {t("moderation.report")}
+                  </Button>
+                }
+              />
+            )}
           </div>
         </div>
       </div>
