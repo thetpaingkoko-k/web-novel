@@ -25,8 +25,6 @@ const users = [
     email: "reader@example.com",
     role: "reader",
     status: "approved",
-    careerStage: null,
-    createdAt: new Date(0).toISOString(),
   },
   {
     userId: 5,
@@ -34,8 +32,6 @@ const users = [
     email: "bob@example.com",
     role: "reader",
     status: "banned",
-    careerStage: null,
-    createdAt: new Date(0).toISOString(),
   },
 ]
 

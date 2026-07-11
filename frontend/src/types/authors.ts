@@ -23,6 +23,8 @@ export interface AuthorApplicationRequest {
 export interface MyAuthorProfile extends AuthorProfile {
   payoutWalletProvider: WalletProvider | null
   payoutWalletNumber: string | null
+  availableBalance: number
+  totalEarned: number
 }
 
 /**

@@ -33,7 +33,7 @@ export function CommentComposer({ chapterId, parentCommentId, onPosted, autoFocu
 
   const onSubmit = handleSubmit((values) => {
     postComment.mutate(
-      { content: values.content, parentCommentId },
+      { content: values.content, parentCommentId, spoiler: false },
       {
         onSuccess: () => {
           reset()

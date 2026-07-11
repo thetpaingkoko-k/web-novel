@@ -11,9 +11,9 @@ export function ReportsQueuePage() {
   const { data, isLoading, isError, refetch } = useReportQueue("pending")
   const resolve = useResolveReport()
 
-  function onResolve(reportId: number, resolution: "action_taken" | "dismissed") {
+  function onResolve(reportId: number, status: "action_taken" | "dismissed") {
     resolve.mutate(
-      { reportId, resolution },
+      { reportId, status },
       {
         onSuccess: () => toast.success(t("moderation.resolved")),
         onError: () => toast.error(t("common.genericError")),

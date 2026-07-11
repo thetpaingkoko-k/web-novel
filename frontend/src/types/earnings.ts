@@ -17,17 +17,19 @@ export interface Earning {
 
 export interface Withdrawal {
   withdrawalId: number
+  authorId: number
   amount: number
-  payoutWalletProvider: WalletProviderChoice
-  payoutWalletNumber: string
+  payoutWalletProvider: WalletProviderChoice | null
+  payoutWalletNumber: string | null
   status: WithdrawalStatus
   requestedAt: string
   paidAt: string | null
   rejectionReason: string | null
 }
 
+/** Wallet fields are optional on the backend (falls back to the author's saved payout wallet). */
 export interface WithdrawalRequest {
   amount: number
-  payoutWalletProvider: WalletProviderChoice
-  payoutWalletNumber: string
+  payoutWalletProvider?: WalletProviderChoice
+  payoutWalletNumber?: string
 }

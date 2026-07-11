@@ -66,8 +66,8 @@ export function useReactivateUser() {
 export function usePendingChapters() {
   return useQuery({
     queryKey: ["admin", "chapters", "pending_review"] as const,
-    queryFn: () =>
-      getList<PendingChapterReview>("/admin/chapters", { params: { status: "pending_review" } }),
+    // The endpoint IS the pending_review queue; it takes no query params.
+    queryFn: () => getList<PendingChapterReview>("/admin/chapters"),
   })
 }
 
@@ -85,7 +85,7 @@ export function useRejectChapter() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ chapterId, reason }: { chapterId: number; reason: string }) => {
-      await apiClient.put(`/admin/chapters/${chapterId}/reject`, { rejectionReason: reason })
+      await apiClient.put(`/admin/chapters/${chapterId}/reject`, { reason })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "chapters"] }),
   })
@@ -115,7 +115,7 @@ export function useRejectPayment() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ submissionId, reason }: { submissionId: number; reason: string }) => {
-      await apiClient.put(`/admin/payment-submissions/${submissionId}/reject`, { rejectionReason: reason })
+      await apiClient.put(`/admin/payment-submissions/${submissionId}/reject`, { reason })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "payments"] }),
   })
@@ -155,7 +155,8 @@ export function useDeactivateWallet() {
 export function usePendingWithdrawals() {
   return useQuery({
     queryKey: ["admin", "withdrawals", "pending"] as const,
-    queryFn: () => getList<Withdrawal>("/admin/withdrawals", { params: { status: "pending" } }),
+    // Returns the pending queue; the endpoint takes no query params.
+    queryFn: () => getList<Withdrawal>("/admin/withdrawals"),
   })
 }
 
@@ -173,7 +174,7 @@ export function useRejectWithdrawal() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ withdrawalId, reason }: { withdrawalId: number; reason: string }) => {
-      await apiClient.put(`/admin/withdrawals/${withdrawalId}/reject`, { rejectionReason: reason })
+      await apiClient.put(`/admin/withdrawals/${withdrawalId}/reject`, { reason })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "withdrawals"] }),
   })

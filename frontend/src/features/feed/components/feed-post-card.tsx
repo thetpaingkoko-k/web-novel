@@ -10,7 +10,7 @@ export function FeedPostCard({ post }: { post: FeedPost }) {
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">{post.title}</CardTitle>
-          {post.isPremiumOnly && <Badge>{t("feed.premiumOnlyBadge")}</Badge>}
+          {post.premiumOnly && <Badge>{t("feed.premiumOnlyBadge")}</Badge>}
         </div>
         <p className="text-xs text-muted-foreground">
           {new Date(post.publishedAt).toLocaleDateString()}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { isAxiosError } from "axios"
 import { Heart, Lock } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -26,6 +26,10 @@ export function ChapterReaderPage() {
   const { data: chapter, isLoading, isError, error, refetch } = useChapter(id)
   const recordView = useRecordChapterView(id)
   const like = useLikeChapter(id)
+  // The backend doesn't expose "liked by me" on GET /chapters/{id}; the like
+  // endpoints return the new state, so track it locally per chapter.
+  const [liked, setLiked] = useState(false)
+  useEffect(() => setLiked(false), [id])
   const { data: book } = useBook(chapter?.bookId ?? Number.NaN)
   const updateProgress = useUpdateReadingProgress(chapter?.bookId ?? Number.NaN)
 
@@ -73,23 +77,27 @@ export function ChapterReaderPage() {
   if (isError) {
     if (isAxiosError<AccessDeniedError>(error) && error.response?.status === 403) {
       const denial = error.response.data
+      const authorId = denial.details?.authorId
+      const authorUsername = denial.details?.authorUsername ?? t("access.unknownAuthor")
       return (
         <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
           <Lock className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
           <h1 className="text-lg font-medium">{t("access.subscribeToUnlockTitle")}</h1>
           <p className="max-w-sm text-sm text-muted-foreground">
             {t(
-              denial.reason === "expired_subscription"
+              denial.code === "expired_subscription"
                 ? "access.expiredSubscriptionBody"
                 : "access.noSubscriptionBody",
-              { author: denial.authorUsername }
+              { author: authorUsername }
             )}
           </p>
-          <Button asChild>
-            <Link to={`/authors/${denial.authorId}/subscribe`}>
-              {t("access.subscribeAction", { author: denial.authorUsername })}
-            </Link>
-          </Button>
+          {authorId != null && (
+            <Button asChild>
+              <Link to={`/authors/${authorId}/subscribe`}>
+                {t("access.subscribeAction", { author: authorUsername })}
+              </Link>
+            </Button>
+          )}
         </div>
       )
     }
@@ -137,11 +145,13 @@ export function ChapterReaderPage() {
         <Button
           variant="outline"
           className="w-fit"
-          aria-pressed={chapter.likedByMe}
-          onClick={() => like.mutate(chapter.likedByMe)}
+          aria-pressed={liked}
+          onClick={() =>
+            like.mutate(liked, { onSuccess: (result) => setLiked(result.liked) })
+          }
           disabled={like.isPending}
         >
-          <Heart className={cn("h-4 w-4", chapter.likedByMe && "fill-current text-destructive")} />
+          <Heart className={cn("h-4 w-4", liked && "fill-current text-destructive")} />
           {chapter.likeCount}
         </Button>
       )}

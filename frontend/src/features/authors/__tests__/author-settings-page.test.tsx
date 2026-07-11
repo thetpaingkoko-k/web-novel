@@ -51,6 +51,8 @@ describe("AuthorSettingsPage", () => {
           monthlySubscriptionPrice: 5000,
           payoutWalletProvider: "KBZPay",
           payoutWalletNumber: "09123456789",
+          availableBalance: 40000,
+          totalEarned: 120000,
         })
       )
     )
@@ -78,6 +80,8 @@ describe("AuthorSettingsPage", () => {
           monthlySubscriptionPrice: null,
           payoutWalletProvider: null,
           payoutWalletNumber: null,
+          availableBalance: 0,
+          totalEarned: 0,
         })
       )
     )

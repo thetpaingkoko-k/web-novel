@@ -33,9 +33,6 @@ export function ChaptersQueuePage() {
                   {t("books.byAuthor", { author: chapter.authorUsername })}
                 </span>
               </div>
-              <p className="max-h-40 overflow-y-auto rounded-md bg-muted/50 p-3 text-sm whitespace-pre-wrap">
-                {chapter.content}
-              </p>
               <div className="flex gap-2">
                 <Button
                   size="sm"

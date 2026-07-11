@@ -43,9 +43,9 @@ export function CreateThreadDialog({ bookId }: { bookId: number }) {
       },
       onError: (error) => {
         if (isAxiosError<ThreadLimitError>(error) && error.response?.status === 409) {
-          const reason = error.response.data.reason
+          const code = error.response.data.code
           toast.error(
-            t(reason === "already_has_thread" ? "debates.alreadyHasThread" : "debates.bookWindowFull")
+            t(code === "already_has_thread" ? "debates.alreadyHasThread" : "debates.bookWindowFull")
           )
         } else {
           toast.error(t("common.genericError"))

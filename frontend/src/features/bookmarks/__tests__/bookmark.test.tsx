@@ -25,7 +25,6 @@ const READER: AuthUser = {
 
 const SAVED_BOOK: BookListItem = {
   bookId: 7,
-  authorId: 10,
   authorUsername: "moonlight_writer",
   title: "The Saved Tale",
   genre: "Fantasy",
@@ -33,6 +32,7 @@ const SAVED_BOOK: BookListItem = {
   status: "ongoing",
   isPremium: false,
   chapterCount: 2,
+  readChaptersCount: null,
 }
 
 function withProviders(ui: React.ReactNode) {

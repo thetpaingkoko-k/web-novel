@@ -1,6 +1,7 @@
 export type BookStatus = "draft" | "ongoing" | "completed" | "hiatus"
 export type ChapterStatus = "draft" | "pending_review" | "scheduled" | "published" | "rejected"
 
+/** `GET /books/{id}` — BookDetailResponse. */
 export interface Book {
   bookId: number
   authorId: number
@@ -15,9 +16,9 @@ export interface Book {
   chapters: ChapterSummary[]
 }
 
+/** `GET /books` row — BookListItem. */
 export interface BookListItem {
   bookId: number
-  authorId: number
   authorUsername: string
   title: string
   genre: string | null
@@ -26,17 +27,17 @@ export interface BookListItem {
   isPremium: boolean
   chapterCount: number
   /**
-   * Chapters this reader has completed in the book, if known — populated for an
-   * authenticated reader so listings can show a reading-progress ring. Absent
-   * for anonymous requests.
+   * Chapters this reader has completed in the book — populated for an
+   * authenticated reader so listings can show a reading-progress ring.
+   * `null` for anonymous requests.
    */
-  readChaptersCount?: number
+  readChaptersCount: number | null
 }
 
 export interface BookListParams {
   genre?: string
   status?: BookStatus
-  search?: string
+  /** Overrides the other filters on the backend. */
   authorId?: number
 }
 
@@ -49,9 +50,9 @@ export interface BookFormValues {
   isPremium: boolean
 }
 
+/** Chapter row inside BookDetailResponse — ChapterSummary. */
 export interface ChapterSummary {
   chapterId: number
-  bookId: number
   chapterNumber: number
   title: string
   status: ChapterStatus
@@ -59,25 +60,16 @@ export interface ChapterSummary {
   uniqueViewCount: number
   completionCount: number
   publishedAt: string | null
-  rejectionReason: string | null
 }
 
-export interface Chapter {
-  chapterId: number
+/** `GET /chapters/{id}` — ChapterResponse (= ChapterSummary + content fields). */
+export interface Chapter extends ChapterSummary {
   bookId: number
-  chapterNumber: number
-  title: string
   content: string
-  status: ChapterStatus
-  likeCount: number
-  uniqueViewCount: number
-  completionCount: number
-  publishedAt: string | null
-  scheduledFor: string | null
   rejectionReason: string | null
-  likedByMe: boolean
 }
 
+/** Editor form values. `scheduledFor` is form-only; it feeds `POST /chapters/{id}/publish`. */
 export interface ChapterFormValues {
   chapterNumber: number
   title: string
@@ -85,10 +77,18 @@ export interface ChapterFormValues {
   scheduledFor?: string
 }
 
-export type AccessDenialReason = "no_subscription" | "expired_subscription"
+export type AccessDenialCode = "no_subscription" | "expired_subscription"
 
+/**
+ * 403 error body when a premium chapter is gated. The standard error shape
+ * carries the code; `details` may carry the author reference when the backend
+ * provides it.
+ */
 export interface AccessDeniedError {
-  reason: AccessDenialReason
-  authorId: number
-  authorUsername: string
+  code: AccessDenialCode
+  message: string
+  details?: {
+    authorId?: number
+    authorUsername?: string
+  }
 }

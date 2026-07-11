@@ -38,7 +38,7 @@ export function AuditLogPage() {
             <TableBody>
               {actions.map((action) => (
                 <TableRow key={action.adminActionId}>
-                  <TableCell>{action.adminUsername}</TableCell>
+                  <TableCell>#{action.adminId}</TableCell>
                   <TableCell className="font-mono text-xs">{action.actionType}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {action.targetType} #{action.targetId}

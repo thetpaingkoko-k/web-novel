@@ -39,12 +39,15 @@ public class BookController {
         return bookService.update(SecurityUtils.requirePrincipal(), id, req);
     }
 
+    /** Browse/search. {@code authorId} overrides the other filters ({@code search} included). */
     @GetMapping
     public List<BookListItem> browse(
             @RequestParam(required = false) String genre,
             @RequestParam(required = false) BookStatus status,
+            @RequestParam(required = false) String search,
             @RequestParam(required = false) Long authorId) {
-        return authorId != null ? bookService.byAuthor(authorId) : bookService.browse(genre, status);
+        return authorId != null ? bookService.byAuthor(authorId)
+                : bookService.browse(genre, status, search);
     }
 
     @GetMapping("/{id}")

@@ -25,8 +25,7 @@ const pendingChapter = {
   authorUsername: "hobbyist1",
   chapterNumber: 2,
   title: "Ashfall",
-  content: "The ash kept falling.",
-  submittedAt: new Date(0).toISOString(),
+  status: "pending_review",
 }
 
 describe("ChaptersQueuePage", () => {
@@ -55,7 +54,7 @@ describe("ChaptersQueuePage", () => {
     server.use(
       http.get("/api/v1/admin/chapters", () => HttpResponse.json([pendingChapter])),
       http.put("/api/v1/admin/chapters/100/reject", async ({ request }) => {
-        rejectedReason = ((await request.json()) as { rejectionReason: string }).rejectionReason
+        rejectedReason = ((await request.json()) as { reason: string }).reason
         return new HttpResponse(null, { status: 204 })
       })
     )

@@ -1,45 +1,35 @@
 import type { UserRole, UserStatus } from "./auth"
 import type { WalletProvider } from "./subscriptions"
 
-export interface PendingUser {
-  userId: number
-  username: string
-  email: string
-  role: UserRole
-  status: UserStatus
-  /** Present when the user has applied for author/monetization status. */
-  careerStage: "hobbyist" | "professional" | null
-  createdAt: string
-}
-
-/** What an admin approval grants — verify the account, or enable monetization. */
-export type ApprovalKind = "verify_author" | "enable_monetization"
-
-/** A row in the full user-management list (any status), for FR-1.4. */
+/** Row from `GET /admin/users` (with or without filters). */
 export interface AdminUser {
   userId: number
   username: string
   email: string
   role: UserRole
   status: UserStatus
-  careerStage: "hobbyist" | "professional" | null
-  createdAt: string
 }
 
+/** `GET /admin/users?status=pending` returns the same row shape. */
+export type PendingUser = AdminUser
+
+/** What an admin approval grants — verify the account, or enable monetization. */
+export type ApprovalKind = "verify_author" | "enable_monetization"
+
+/** Row from `GET /admin/payment-submissions`. */
 export interface PaymentSubmissionReview {
   submissionId: number
   readerId: number
   readerUsername: string
-  authorId: number
-  authorUsername: string
+  subscriptionId: number
   amount: number
   last6Digits: string
   screenshotUrl: string
-  walletProvider: WalletProvider
   status: "pending" | "approved" | "rejected" | "flagged_duplicate"
   submittedAt: string
 }
 
+/** Row from `GET /admin/chapters` (pending_review queue). */
 export interface PendingChapterReview {
   chapterId: number
   bookId: number
@@ -47,15 +37,23 @@ export interface PendingChapterReview {
   authorUsername: string
   chapterNumber: number
   title: string
-  content: string
-  submittedAt: string | null
+  status: string
 }
 
+export type AdminActionType =
+  | "user_approval"
+  | "content_approval"
+  | "content_rejection"
+  | "content_removal"
+  | "ban"
+  | "report_resolution"
+  | "withdrawal_approval"
+
+/** Row from `GET /admin/actions`. */
 export interface AdminActionLog {
   adminActionId: number
   adminId: number
-  adminUsername: string
-  actionType: string
+  actionType: AdminActionType
   targetType: string
   targetId: number
   notes: string | null

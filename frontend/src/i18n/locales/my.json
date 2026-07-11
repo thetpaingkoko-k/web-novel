@@ -100,7 +100,8 @@
     "subscribeToUnlockTitle": "ဆက်ဖတ်ရန် စာရင်းသွင်းပါ",
     "noSubscriptionBody": "ဤသည်မှာ {{author}} ၏ ပရီမီယံစာအုပ်ဖြစ်သည်။ သူ၏ ထုတ်ဝေပြီးစာအုပ်အားလုံးကို ဖွင့်ရန် စာရင်းသွင်းပါ။",
     "expiredSubscriptionBody": "{{author}} အတွက် သင့်စာရင်းသွင်းမှု သက်တမ်းကုန်သွားပါပြီ။ ဆက်ဖတ်ရန် သက်တမ်းတိုးပါ။",
-    "subscribeAction": "{{author}} ကို စာရင်းသွင်းရန်"
+    "subscribeAction": "{{author}} ကို စာရင်းသွင်းရန်",
+    "unknownAuthor": "ဤစာရေးဆရာ"
   },
   "comments": {
     "title": "မှတ်ချက်များ",
@@ -349,7 +350,7 @@
     "chapterRejected": "အခန်း ပယ်ချပြီး",
     "rejectChapterTitle": "ဤအခန်းကို ပယ်ချရန်",
     "paymentsEmpty": "စိစစ်ရန် စောင့်ဆိုင်းနေသော ငွေပေးချေမှုများ မရှိပါ။",
-    "paymentSummary": "{{reader}} → {{author}}",
+    "paymentSummary": "{{reader}} ထံမှ ငွေပေးချေမှု",
     "viewScreenshot": "ငွေပေးချေမှု ဓာတ်ပုံကို ကြည့်ရန်",
     "flaggedDuplicate": "ထပ်နေနိုင်သည်",
     "paymentApproved": "ငွေပေးချေမှု အတည်ပြုပြီး စာရေးဆရာအား ခရက်ဒစ်ပေးပြီး",

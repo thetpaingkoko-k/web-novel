@@ -46,9 +46,11 @@ class ModerationAdminIT extends AuthTestSupport {
                         .content("""
                                 {"status":"dismissed","notes":"looks fine"}"""))
                 .andExpect(status().isOk());
+        String adminUsername = users.findByEmail("modadmin@webnovel.local").orElseThrow().getUsername();
         mvc.perform(get("/api/v1/admin/actions").header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
+                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$[0].adminUsername", is(adminUsername)));
     }
 
     @Test

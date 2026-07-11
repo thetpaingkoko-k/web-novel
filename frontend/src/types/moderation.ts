@@ -8,6 +8,20 @@ export interface ReportRequest {
   reason: string
 }
 
+/** Response of `POST /reports`. */
+export interface ReportCreated {
+  reportId: number
+  targetType: ReportTargetType
+  targetId: number
+  status: ReportStatus
+}
+
+/** Body for `PUT /admin/reports/{id}/resolve`. */
+export interface ResolveReportRequest {
+  status: ReportStatus
+  notes?: string
+}
+
 export interface Report {
   reportId: number
   reporterId: number

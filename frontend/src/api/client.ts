@@ -20,8 +20,9 @@ export const tokenStorage = {
   },
 }
 
+// Header-based JWT auth — no cookies, so no `withCredentials`.
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "/api/v1",
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1",
 })
 
 apiClient.interceptors.request.use((config) => {
@@ -52,6 +53,13 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
+    // A 401 from login/register/refresh means bad credentials, not an expired
+    // access token — refreshing would only loop.
+    const url = originalRequest.url ?? ""
+    if (/\/auth\/(login|register|refresh)$/.test(url)) {
+      return Promise.reject(error)
+    }
+
     const refreshToken = tokenStorage.getRefreshToken()
     if (!refreshToken) {
       tokenStorage.clearTokens()
@@ -74,6 +82,8 @@ apiClient.interceptors.response.use(
     isRefreshing = true
 
     try {
+      // Refresh tokens are single-use: the backend rotates the pair on every
+      // call, so always store BOTH tokens from the response.
       const { data } = await axios.post(`${apiClient.defaults.baseURL}/auth/refresh`, {
         refreshToken,
       })

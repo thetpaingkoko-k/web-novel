@@ -42,10 +42,10 @@ export function PaymentsQueuePage() {
                 </a>
                 <div className="flex flex-col gap-1 text-sm">
                   <span className="font-medium">
-                    {t("admin.paymentSummary", { reader: p.readerUsername, author: p.authorUsername })}
+                    {t("admin.paymentSummary", { reader: p.readerUsername })}
                   </span>
                   <span className="text-muted-foreground">
-                    {t("earnings.mmk", { amount: p.amount })} · {p.walletProvider} · …{p.last6Digits}
+                    {t("earnings.mmk", { amount: p.amount })} · …{p.last6Digits}
                   </span>
                   {p.status === "flagged_duplicate" && (
                     <Badge variant="destructive" className="w-fit">

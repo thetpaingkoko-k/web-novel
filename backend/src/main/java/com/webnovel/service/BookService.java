@@ -20,6 +20,7 @@ import com.webnovel.repository.ChapterRepository;
 import com.webnovel.repository.UserRepository;
 import com.webnovel.security.AppUserPrincipal;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -66,8 +67,23 @@ public class BookService {
     }
 
     @Transactional(readOnly = true)
-    public List<BookListItem> browse(String genre, BookStatus status) {
-        return books.browse(genre, status);
+    public List<BookListItem> browse(String genre, BookStatus status, String search) {
+        return books.browse(genre, status, toSearchPattern(search));
+    }
+
+    /**
+     * Blank → null (no filter); otherwise a lower-cased {@code %term%} LIKE pattern
+     * with wildcards escaped so the term matches as a literal substring.
+     */
+    static String toSearchPattern(String search) {
+        if (search == null || search.isBlank()) {
+            return null;
+        }
+        String escaped = search.trim().toLowerCase(Locale.ROOT)
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+        return "%" + escaped + "%";
     }
 
     @Transactional(readOnly = true)

@@ -30,9 +30,6 @@ public class AdminActionService {
     /** Most-recent audit rows for the admin log view (FR-13.7). */
     @Transactional(readOnly = true)
     public List<AdminActionRow> recent(int limit) {
-        return adminActions.findAllByOrderByCreatedAtDesc(PageRequest.of(0, Math.min(limit, 500)))
-                .map(a -> new AdminActionRow(a.getId(), a.getAdminId(), a.getActionType(),
-                        a.getTargetType(), a.getTargetId(), a.getNotes(), a.getCreatedAt()))
-                .getContent();
+        return adminActions.findRecentRows(PageRequest.of(0, Math.min(limit, 500)));
     }
 }

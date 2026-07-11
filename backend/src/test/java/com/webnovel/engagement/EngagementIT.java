@@ -69,11 +69,19 @@ class EngagementIT extends AuthTestSupport {
 
         // likes are idempotent
         String reader = registerAndGetToken("enreader", "enreader@example.com");
+        // before liking, the chapter read reports likedByMe=false (and false for anonymous)
+        mvc.perform(get("/api/v1/chapters/{id}", chapterId).header("Authorization", bearer(reader)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.likedByMe", is(false)));
         mvc.perform(post("/api/v1/chapters/{id}/like", chapterId).header("Authorization", bearer(reader)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.likeCount", is(1)))
                 .andExpect(jsonPath("$.liked", is(true)));
         mvc.perform(post("/api/v1/chapters/{id}/like", chapterId).header("Authorization", bearer(reader)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.likeCount", is(1)));
+        // after liking, the reader sees likedByMe=true; anonymous still sees false
+        mvc.perform(get("/api/v1/chapters/{id}", chapterId).header("Authorization", bearer(reader)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.likedByMe", is(true)));
+        mvc.perform(get("/api/v1/chapters/{id}", chapterId))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.likedByMe", is(false)));
 
         // reader comments on the chapter
         mvc.perform(post("/api/v1/chapters/{id}/comments", chapterId).header("Authorization", bearer(reader))

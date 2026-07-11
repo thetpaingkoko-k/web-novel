@@ -71,9 +71,9 @@ export function useReadingProgress(bookId: number, enabled: boolean) {
 export function useUpdateReadingProgress(bookId: number) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (lastChapterReadId: number) => {
+    mutationFn: async (chapterId: number) => {
       const { data } = await apiClient.put<ReadingProgress>(`/books/${bookId}/progress`, {
-        lastChapterReadId,
+        chapterId,
       })
       return data
     },

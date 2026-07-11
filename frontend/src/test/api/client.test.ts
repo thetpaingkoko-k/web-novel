@@ -13,11 +13,27 @@ describe("apiClient auth refresh", () => {
     server.use(
       http.get("/api/v1/users/me", () => {
         calls += 1
-        if (calls === 1) return HttpResponse.json({ message: "unauthorized" }, { status: 401 })
+        if (calls === 1)
+          return HttpResponse.json(
+            { code: "unauthorized", message: "Expired token", timestamp: new Date(0).toISOString() },
+            { status: 401 }
+          )
         return HttpResponse.json({ userId: 1, username: "reader1" })
       }),
+      // AuthResponse: the backend rotates and returns a full new pair + user.
       http.post("/api/v1/auth/refresh", () =>
-        HttpResponse.json({ accessToken: "new-token", refreshToken: "new-refresh" })
+        HttpResponse.json({
+          accessToken: "new-token",
+          refreshToken: "new-refresh",
+          user: {
+            userId: 1,
+            username: "reader1",
+            email: "reader@example.com",
+            role: "reader",
+            status: "approved",
+            isMonetizationEnabled: false,
+          },
+        })
       )
     )
 

@@ -27,11 +27,18 @@ export function BooksBrowsePage() {
   const [status, setStatus] = useState<BookStatus>()
   const deferredSearch = useDeferredValue(search)
 
-  const { data, isLoading, isError, refetch } = useBooks({
-    search: deferredSearch || undefined,
-    genre,
-    status,
-  })
+  const { data: allBooks, isLoading, isError, refetch } = useBooks({ genre, status })
+
+  // The backend list endpoint has no search parameter; filter client-side by
+  // title or author over the (already genre/status-filtered) result.
+  const query = deferredSearch.trim().toLowerCase()
+  const data = query
+    ? allBooks?.filter(
+        (book) =>
+          book.title.toLowerCase().includes(query) ||
+          book.authorUsername.toLowerCase().includes(query)
+      )
+    : allBooks
 
   const hasFilters = Boolean(deferredSearch || genre || status)
 

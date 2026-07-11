@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient, getList } from "@/api/client"
 import type { Chapter, ChapterFormValues } from "@/types/content"
-import type { Comment, PostCommentRequest } from "@/types/engagement"
+import type { Comment, LikeResponse, PostCommentRequest } from "@/types/engagement"
 
 export const chapterKeys = {
   detail: (chapterId: number) => ["chapters", "detail", chapterId] as const,
@@ -34,8 +34,10 @@ export function useLikeChapter(chapterId: number) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (liked: boolean) => {
-      if (liked) await apiClient.delete(`/chapters/${chapterId}/like`)
-      else await apiClient.post(`/chapters/${chapterId}/like`)
+      const { data } = liked
+        ? await apiClient.delete<LikeResponse>(`/chapters/${chapterId}/like`)
+        : await apiClient.post<LikeResponse>(`/chapters/${chapterId}/like`)
+      return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: chapterKeys.detail(chapterId) })
@@ -46,8 +48,12 @@ export function useLikeChapter(chapterId: number) {
 export function useCreateChapter(bookId: number) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (payload: ChapterFormValues) => {
-      const { data } = await apiClient.post<Chapter>(`/books/${bookId}/chapters`, payload)
+    mutationFn: async ({ chapterNumber, title, content }: ChapterFormValues) => {
+      const { data } = await apiClient.post<Chapter>(`/books/${bookId}/chapters`, {
+        chapterNumber,
+        title,
+        content,
+      })
       return data
     },
     onSuccess: () => {
@@ -59,8 +65,8 @@ export function useCreateChapter(bookId: number) {
 export function useUpdateChapter(chapterId: number) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (payload: ChapterFormValues) => {
-      const { data } = await apiClient.put<Chapter>(`/chapters/${chapterId}`, payload)
+    mutationFn: async ({ title, content }: ChapterFormValues) => {
+      const { data } = await apiClient.put<Chapter>(`/chapters/${chapterId}`, { title, content })
       return data
     },
     onSuccess: (data) => {

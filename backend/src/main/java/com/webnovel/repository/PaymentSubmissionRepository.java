@@ -17,13 +17,14 @@ public interface PaymentSubmissionRepository extends JpaRepository<PaymentSubmis
 
     List<PaymentSubmission> findByReaderIdOrderBySubmittedAtDesc(Long readerId);
 
-    /** Admin review queue with joined reader username (§4.1.1). */
+    /** Admin review queue with joined reader, target author, and wallet provider (§4.1.1). */
     @Query("""
             select new com.webnovel.dto.payment.AdminPaymentRow(
-                p.id, p.readerId, u.username, p.subscriptionId, p.amount, p.last6Digits,
-                p.screenshotUrl, p.status, p.submittedAt)
-            from PaymentSubmission p, User u
-            where u.id = p.readerId and p.status = :status
+                p.id, p.readerId, u.username, s.authorId, au.username, p.subscriptionId,
+                p.amount, p.last6Digits, w.provider, p.screenshotUrl, p.status, p.submittedAt)
+            from PaymentSubmission p, User u, Subscription s, User au, AdminWallet w
+            where u.id = p.readerId and s.id = p.subscriptionId and au.id = s.authorId
+              and w.id = p.walletId and p.status = :status
             order by p.submittedAt asc
             """)
     List<AdminPaymentRow> findQueueByStatus(@Param("status") PaymentStatus status);

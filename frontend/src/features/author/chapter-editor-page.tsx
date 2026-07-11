@@ -49,8 +49,9 @@ export function ChapterEditorPage() {
         chapterNumber: chapter.chapterNumber,
         title: chapter.title,
         content: chapter.content,
-        // ISO → the "YYYY-MM-DDTHH:mm" shape a datetime-local input expects.
-        scheduledFor: chapter.scheduledFor ? chapter.scheduledFor.slice(0, 16) : "",
+        // The backend doesn't echo a scheduled time back; the field only feeds
+        // the next publish request.
+        scheduledFor: "",
       })
     }
   }, [chapter, reset])
@@ -86,7 +87,12 @@ export function ChapterEditorPage() {
     const mutation = isEditMode ? updateChapter : createChapter
     mutation.mutate(values, {
       onSuccess: (saved) => {
-        submitForPublish.mutate(values.scheduledFor || undefined, {
+        // datetime-local gives "YYYY-MM-DDTHH:mm"; the backend expects an
+        // ISO-8601 offset datetime.
+        const scheduledFor = values.scheduledFor
+          ? new Date(values.scheduledFor).toISOString()
+          : undefined
+        submitForPublish.mutate(scheduledFor, {
           onSuccess: (published) => {
             toast.success(
               published.status === "scheduled"

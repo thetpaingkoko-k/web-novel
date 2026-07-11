@@ -49,9 +49,10 @@ export interface CreatePostRequest {
   parentPostId?: number
 }
 
-/** Machine-readable reason returned (HTTP 409) when thread creation is refused. */
-export type ThreadLimitReason = "already_has_thread" | "book_window_full"
+/** Machine-readable code returned (HTTP 409 error body) when thread creation is refused. */
+export type ThreadLimitCode = "already_has_thread" | "book_window_full"
 
 export interface ThreadLimitError {
-  reason: ThreadLimitReason
+  code: ThreadLimitCode
+  message: string
 }

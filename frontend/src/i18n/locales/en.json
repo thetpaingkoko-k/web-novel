@@ -100,7 +100,8 @@
     "subscribeToUnlockTitle": "Subscribe to keep reading",
     "noSubscriptionBody": "This is a premium book by {{author}}. Subscribe to unlock every book they've published.",
     "expiredSubscriptionBody": "Your subscription to {{author}} has expired. Renew to keep reading.",
-    "subscribeAction": "Subscribe to {{author}}"
+    "subscribeAction": "Subscribe to {{author}}",
+    "unknownAuthor": "this author"
   },
   "comments": {
     "title": "Comments",
@@ -349,7 +350,7 @@
     "chapterRejected": "Chapter rejected",
     "rejectChapterTitle": "Reject this chapter",
     "paymentsEmpty": "No payments awaiting review.",
-    "paymentSummary": "{{reader}} → {{author}}",
+    "paymentSummary": "Payment from {{reader}}",
     "viewScreenshot": "View payment screenshot",
     "flaggedDuplicate": "Possible duplicate",
     "paymentApproved": "Payment approved and author credited",

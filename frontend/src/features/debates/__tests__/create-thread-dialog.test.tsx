@@ -23,7 +23,10 @@ describe("CreateThreadDialog", () => {
     const user = userEvent.setup()
     server.use(
       http.post("/api/v1/books/1/debates", () =>
-        HttpResponse.json({ reason: "book_window_full" }, { status: 409 })
+        HttpResponse.json(
+          { code: "book_window_full", message: "Window full", timestamp: new Date(0).toISOString() },
+          { status: 409 }
+        )
       )
     )
 
@@ -40,7 +43,10 @@ describe("CreateThreadDialog", () => {
     const user = userEvent.setup()
     server.use(
       http.post("/api/v1/books/1/debates", () =>
-        HttpResponse.json({ reason: "already_has_thread" }, { status: 409 })
+        HttpResponse.json(
+          { code: "already_has_thread", message: "Already has a thread", timestamp: new Date(0).toISOString() },
+          { status: 409 }
+        )
       )
     )
 

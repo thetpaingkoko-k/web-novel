@@ -15,7 +15,9 @@ import com.webnovel.repository.AuthorProfileRepository;
 import com.webnovel.repository.UserRepository;
 import com.webnovel.security.SecurityUtils;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -67,7 +69,8 @@ public class AdminUserService {
 
     /**
      * User management (FR-1.4/13.1): the pending-approval queue ({@code status=pending}),
-     * a username/email search, or all users (no filter).
+     * a username/email search, or all users (no filter). Rows carry the author's
+     * {@code careerStage} ({@code null} for users without an author profile).
      */
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('ADMIN')")
@@ -81,9 +84,14 @@ public class AdminUserService {
         } else {
             found = users.findAllByOrderByIdDesc();
         }
+        Map<Long, CareerStage> stages = new HashMap<>();
+        if (!found.isEmpty()) {
+            authorProfiles.findByUserIdIn(found.stream().map(User::getId).toList())
+                    .forEach(p -> stages.put(p.getUserId(), p.getCareerStage()));
+        }
         return found.stream()
                 .map(u -> new AdminUserRow(u.getId(), u.getUsername(), u.getEmail(),
-                        u.getRole(), u.getStatus()))
+                        u.getRole(), u.getStatus(), stages.get(u.getId())))
                 .toList();
     }
 

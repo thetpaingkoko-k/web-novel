@@ -26,7 +26,7 @@ export function FeedComposer({ authorId }: { authorId: number }) {
     formState: { errors },
   } = useForm<FeedPostFormSchema>({
     resolver: zodResolver(schema),
-    defaultValues: { title: "", content: "", isPremiumOnly: false },
+    defaultValues: { title: "", content: "", premiumOnly: false },
   })
 
   const onSubmit = handleSubmit((values) => {
@@ -61,8 +61,8 @@ export function FeedComposer({ authorId }: { authorId: number }) {
               <FieldLabel htmlFor="feed-premium">{t("feed.premiumOnly")}</FieldLabel>
               <Switch
                 id="feed-premium"
-                checked={watch("isPremiumOnly")}
-                onCheckedChange={(checked) => setValue("isPremiumOnly", checked)}
+                checked={watch("premiumOnly")}
+                onCheckedChange={(checked) => setValue("premiumOnly", checked)}
               />
             </Field>
             <Button type="submit" className="w-fit" disabled={createPost.isPending}>

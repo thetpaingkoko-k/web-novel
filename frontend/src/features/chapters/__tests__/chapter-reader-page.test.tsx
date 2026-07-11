@@ -28,7 +28,12 @@ describe("ChapterReaderPage", () => {
     server.use(
       http.get("/api/v1/chapters/999", () =>
         HttpResponse.json(
-          { reason: "no_subscription", authorId: 42, authorUsername: "moonlight_writer" },
+          {
+            code: "no_subscription",
+            message: "Subscription required",
+            details: { authorId: 42, authorUsername: "moonlight_writer" },
+            timestamp: new Date(0).toISOString(),
+          },
           { status: 403 }
         )
       )
@@ -55,10 +60,9 @@ describe("ChapterReaderPage", () => {
           completionCount: 1,
           publishedAt: new Date(0).toISOString(),
           rejectionReason: null,
-          likedByMe: false,
         })
       ),
-      http.post("/api/v1/chapters/100/view", () => new HttpResponse(null, { status: 204 })),
+      http.post("/api/v1/chapters/100/view", () => HttpResponse.json({ unique: true })),
       http.get("/api/v1/chapters/100/comments", () => HttpResponse.json([])),
     )
 

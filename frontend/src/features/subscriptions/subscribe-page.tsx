@@ -72,7 +72,10 @@ export function SubscribePage() {
   }
 
   const onSubmit = handleSubmit((values) => {
-    submitPayment.mutate(values, { onSuccess: () => setSubmitted(true) })
+    submitPayment.mutate(
+      { ...values, walletId: wallet.walletId },
+      { onSuccess: () => setSubmitted(true) }
+    )
   })
 
   return (

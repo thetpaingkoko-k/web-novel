@@ -18,7 +18,10 @@ export interface Subscription {
   priceMmk: number
 }
 
+export type PaymentStatus = "pending" | "approved" | "rejected" | "flagged_duplicate"
+
 export interface PaymentSubmissionRequest {
+  walletId: number
   amount: number
   screenshotUrl: string
   last6Digits: string
@@ -26,5 +29,10 @@ export interface PaymentSubmissionRequest {
 
 export interface PaymentSubmissionResponse {
   submissionId: number
-  status: "pending" | "approved" | "rejected" | "flagged_duplicate"
+  subscriptionId: number
+  amount: number
+  last6Digits: string
+  status: PaymentStatus
+  rejectionReason: string | null
+  submittedAt: string
 }

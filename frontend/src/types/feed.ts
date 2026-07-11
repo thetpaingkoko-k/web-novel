@@ -3,12 +3,12 @@ export interface FeedPost {
   authorId: number
   title: string
   content: string
-  isPremiumOnly: boolean
+  premiumOnly: boolean
   publishedAt: string
 }
 
 export interface FeedPostRequest {
   title: string
   content: string
-  isPremiumOnly: boolean
+  premiumOnly: boolean
 }

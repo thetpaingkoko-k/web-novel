@@ -10,7 +10,7 @@ function comment(id: number, parentId: number | null): Comment {
     readerUsername: `reader${id}`,
     parentCommentId: parentId,
     content: `comment ${id}`,
-    isSpoilerFlagged: false,
+    spoilerFlagged: false,
     status: "visible",
     createdAt: new Date(0).toISOString(),
   }

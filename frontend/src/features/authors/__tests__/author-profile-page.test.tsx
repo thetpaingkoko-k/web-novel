@@ -35,7 +35,7 @@ describe("AuthorProfilePage", () => {
             authorId: 10,
             title: "New chapter soon",
             content: "Working on the next arc.",
-            isPremiumOnly: false,
+            premiumOnly: false,
             publishedAt: new Date(0).toISOString(),
           },
         ])

@@ -33,7 +33,7 @@ describe("AuthorFeedPage", () => {
             authorId: 10,
             title: "Chapter 12 is up early",
             content: "Thanks for reading!",
-            isPremiumOnly: true,
+            premiumOnly: true,
             publishedAt: new Date(0).toISOString(),
           },
         ])
