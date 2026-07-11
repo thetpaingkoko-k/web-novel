@@ -180,6 +180,16 @@ down, recorded here so the backend is built to match:
   `{ "reason": "already_has_thread" | "book_window_full" }` body so it can
   show the correct one of FR-9.1 (one-per-book) vs. FR-9.2 (10-per-5-days)
   messages. See `frontend/src/types/debates.ts`.
+- **Single-thread read + status body for the debate lock flow (FR-9.6).** The
+  thread page fetches the thread itself via `GET /debates/{id}` (returning the
+  `DebateThread` read model) so it can render the header, reflect
+  `open`/`locked`/`archived` status, and suppress the post composer on a
+  non-open thread. `PUT /debates/{id}/lock` takes a
+  `{ "status": "open" | "locked" | "archived" }` body — the one endpoint
+  covers lock, archive, and reopen — and is authorized for an admin **or the
+  thread's own creator** (FR-9.6), enforced server-side; the frontend only
+  shows the controls to those users as a UX convenience. See
+  `frontend/src/types/debates.ts`.
 - **Denormalized display fields on engagement/moderation/admin read models**
   — comments/debate posts carry `readerUsername`/`authorUsername` and the
   current reader's own like/vote state (`likedByMe`, `myVote`); admin queue
@@ -191,10 +201,65 @@ down, recorded here so the backend is built to match:
   "enable_monetization" }` so the single "approve/verify user, author, or
   monetization" endpoint (§10.2) covers both the author-verification and the
   monetization-enablement steps FR-1.5 distinguishes.
+- **`BookListItem` carries an optional `readChaptersCount`** — the number of
+  published chapters this reader has completed, populated only for an
+  authenticated reader — so book listings can render a circular reading-progress
+  ring. Absent for anonymous requests; the book detail page derives the same
+  ratio from `GET /books/{id}/progress` + the chapter list.
+- **Saved books / "My List" is a beyond-spec addition** (no `BOOKMARK` entity
+  in the SRS/ERD). A reader saves books they like with `POST /books/{id}/bookmark`
+  / `DELETE /books/{id}/bookmark`, and `GET /bookmarks/me` returns the saved
+  `BookListItem[]` for the "My List" page. Backend should model this as a
+  `BOOKMARK (reader_id, book_id)` table, unique per pair. Purely additive — it
+  touches no other FR.
 - **Spoiler-safe comment filtering (FR-8.3) is enforced server-side.** The
   frontend renders exactly the comments `GET /chapters/{id}/comments` returns
   and does not itself hide comments by reading progress — the reading-progress
   gate must live in the backend query, or spoilers leak via the API.
+- **Author application is a bio-only `POST /authors/apply`** (FR-1.2) that
+  returns the updated `USER` with `status = pending`. The applicant does not
+  pick a tier; an admin grants author status (`verify_author`) and, separately,
+  monetization (`enable_monetization`) via `PUT /admin/users/{id}/approve`.
+- **The signed-in author manages their own profile via `GET`/`PUT
+  /authors/me`** — a private read model that, unlike the public
+  `GET /authors/{id}`, includes the payout-wallet fields
+  (`payoutWalletProvider`, `payoutWalletNumber`). `PUT /authors/me` accepts
+  `{ bio, monthlySubscriptionPrice, payoutWalletProvider, payoutWalletNumber }`;
+  the backend ignores `monthlySubscriptionPrice` unless monetization is enabled
+  (FR-1.5). See `frontend/src/types/authors.ts`.
+- **`PUT /admin/users/{id}/suspend` takes `{ "ban": boolean }`** — `false`
+  suspends, `true` bans (FR-1.4). Both are confirmed in the admin UI and are
+  expected to be logged to `ADMIN_ACTION`.
+- **Full user management (FR-1.4) uses `GET /admin/users` with no status
+  filter** (optionally `?search=` by username/email), returning `AdminUser`
+  rows of any status — distinct from the `?status=pending` approval queue. A
+  suspended or banned account is restored with `PUT /admin/users/{id}/reactivate`
+  (→ `status = approved`), which is not in the original §10 table but is
+  required so suspend/ban can reach already-approved accounts, not only
+  applicants in the pending queue.
+- **`POST /chapters/{id}/publish` accepts an optional `{ scheduledFor }`**
+  (ISO-ish `datetime-local` string). When a professional author supplies it the
+  chapter goes `status = scheduled` with `published_at = scheduledFor`
+  (FR-2.6); otherwise it publishes now (professional) or enters `pending_review`
+  (hobbyist).
+- **View de-duplication signals (FR-5.1) are client-supplied.**
+  `POST /chapters/{id}/view` sends both `sessionId` and a device-stable
+  `deviceFingerprint` (persisted in `localStorage`) for the backend's 24h
+  dedup query.
+- **Reading progress is reported on completion, not on open (FR-5.5/FR-10.1).**
+  The chapter reader calls `PUT /books/{id}/progress` only once the reader
+  crosses a completion threshold (≥90% scroll, or a dwell time for chapters too
+  short to scroll), which also drives the spoiler-safe comment gate (FR-8.3).
+  The book detail page reads `GET /books/{id}/progress` back to offer
+  "Continue reading" from the last chapter.
+- **`ChapterSummary` carries `completionCount`** alongside `likeCount` and
+  `uniqueViewCount` (all denormalized) so the author's chapter list can show
+  basic per-chapter analytics — views, likes, completions (§11.2, and the
+  "View basic chapter analytics" use case).
+- **`PUT /users/me` updates the signed-in user's basic profile**
+  (`{ username, email }`) and returns the updated `USER`; the account page uses
+  it. Author-specific fields (bio, price, wallet) still go through
+  `PUT /authors/me`.
 
 The frontend is **feature-complete against the v2.0 functional requirements**
 (FR-1 through FR-13). Implemented, each with loading/error/empty states,
@@ -255,6 +320,74 @@ src/main/java/.../
 ```
 
 > **Note on Redis removal:** Redis was intentionally removed from the v2.0 stack. Unique-view de-duplication, previously reliant on short-TTL Redis keys, is now a plain PostgreSQL query against `CHAPTER_VIEW`. This trades a small amount of query cost for one fewer piece of infrastructure to run, operate, and pay for — appropriate for the platform's expected scale and a solo-developer maintenance timeline.
+
+#### 4.2.1 Backend Implementation Status & Decisions
+
+The backend is being built incrementally at `backend/` as a **standalone Maven
+project** — its own `pom.xml`, independently configured and deployed, not a
+module in a monorepo (mirroring the frontend decision in §4.1.1). It follows the
+`backend-starter` / `backend-developer` skills under `.claude/skills/`.
+
+**Status:** scaffolded and executed end to end — it compiles, boots against
+PostgreSQL with Flyway applying the schema, and passes its unit tests
+(service-layer §9 algorithms) plus Testcontainers integration tests (real
+Postgres) covering auth, premium access, hobbyist review, the debate engine, and
+engagement. Functional coverage spans FR-1 through FR-13 and the §10 endpoint
+table.
+
+Decisions made during implementation that this spec didn't previously pin down,
+recorded here so the contract stays authoritative:
+
+- **Uniform error envelope.** Every error response is a single
+  `ApiError { code, message, fieldErrors, details, timestamp }` shape. `code` is
+  a stable machine-readable enum (e.g. `no_subscription`, `expired_subscription`,
+  `already_has_thread`, `book_window_full`, `validation_failed`); `message` is
+  localized (EN/MY via `Accept-Language`); `fieldErrors` maps a field to its
+  validation message; `details` carries extra machine-readable context.
+- **This supersedes the two places §4.1.1 described a bespoke body.** The FR-4.4
+  403 delivers the author to subscribe to as `details.authorId` (not a bare
+  field), and the FR-9.1/9.2 409 delivers its discriminator as **`code`**
+  (`already_has_thread` | `book_window_full`) rather than a top-level `reason`.
+  The frontend's debate/access error handling should read `ApiError.code` (and
+  `details.authorId`). Values are unchanged; only the envelope key differs.
+- **JSON is camelCase; DB columns are snake_case** (as §4.1.1 assumed). DTO
+  records cross the controller boundary; JPA entities never do. Enums serialize
+  as their lowercase names, matching the SQL `CHECK` values.
+- **Refresh tokens are persisted and rotating (migration `V2`).** FR-1.3's
+  "refresh rotation + server-side revocation" is backed by a `refresh_tokens`
+  table storing a SHA-256 hash of each token; `/auth/refresh` rotates (old token
+  invalidated), `/auth/logout` revokes. The short-lived access token is verified
+  statelessly; `GET /users/me` is the boot-time token-verification path.
+- **Two additive debate read endpoints** the §10.5 table implied but didn't list:
+  `GET /api/v1/debates/{id}` (thread read model) and
+  `GET /api/v1/debates/{id}/posts` (score-ranked posts, each carrying the
+  caller's own `myVote`, per §4.1.1). `PUT /debates/{id}/lock` takes
+  `{ "status": "open"|"locked"|"archived" }` and is authorized for an admin **or
+  the thread's creator**, enforced server-side (FR-9.6).
+- **`POST /chapters/{id}/view` is anonymous-capable** (FR-5.1: `reader_id`
+  nullable) — free-book reads by unauthenticated users still record a view. It
+  takes `{ sessionId, deviceFingerprint }` for the 24h DB dedup (§9.2).
+- **Feed premium gating on read.** `GET /authors/{id}/feed` returns
+  `is_premium_only` posts only to the author, admins, and readers with an active
+  subscription to that author (FR-11.1/11.2), evaluated server-side.
+- **"Rate limiting" (§7.3) is satisfied by database-enforced caps**, consistent
+  with the PostgreSQL-only philosophy: the `UNIQUE` constraints, the 24-hour view
+  dedup, and the advisory-lock-guarded 10-per-5-day debate window. There is no
+  separate IP-based limiter at MVP.
+- **A subscription-expiry sweep** (`@Scheduled`) flips `active` subscriptions
+  past their `end_date` to `expired`, alongside the spec's renewal-reminder
+  (FR-6.6) and scheduled-chapter auto-publish (FR-2.6) jobs. Single-instance-safe
+  per §4.4; notification transport is stubbed (logged) as it is out of scope for
+  v2.0.
+- **`ddl-auto: validate` and `open-in-view: false`** are enforced: Flyway is the
+  sole schema authority, and response DTOs are assembled inside transactional
+  services rather than via lazy loading in controllers.
+- **Local/dev infrastructure:** the dev profile targets Postgres on
+  **`localhost:5442`** (to avoid colliding with a system Postgres on 5432) and
+  Testcontainers integration tests run against Podman as well as Docker. These
+  are environment choices, documented in `backend/README.md`, not contract.
+- **Spring Boot 3.5.x reached OSS end-of-life 2026-06-30.** Pinned per §2.2/§4.2;
+  a production deployment would schedule a move to Spring Boot 4.x.
 
 ### 4.3 High-Level Architecture
 

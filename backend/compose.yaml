@@ -1,0 +1,13 @@
+# Local dev Postgres. Spring Boot's docker-compose integration is disabled
+# (spring.docker.compose.enabled=false) because this environment has no Docker
+# daemon; run this with `podman compose up -d` (or `docker compose up -d`), or
+# run an equivalent container manually — see README.md.
+services:
+  postgres:
+    image: 'postgres:16'
+    environment:
+      - 'POSTGRES_DB=webnovel'
+      - 'POSTGRES_USER=webnovel'
+      - 'POSTGRES_PASSWORD=webnovel'
+    ports:
+      - '5442:5432'
