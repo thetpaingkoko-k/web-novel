@@ -6,15 +6,20 @@ Personal deployment of WebNovel:
 |---|---|---|
 | Postgres database | **Supabase** | free |
 | Image storage (covers, screenshots) | **Supabase Storage** | free (1 GB) |
-| Backend (Spring Boot) | **Render** (Docker web service) | free |
+| Backend (Spring Boot) | **PandaStack** (Docker container app) | free, no credit card |
 | Frontend (React/Vite SPA) | **Vercel** | free |
 
 Do the steps **in order** — the backend needs the database + storage to exist,
 and the frontend needs the backend URL.
 
-> **Free-tier note:** Render's free web service spins down after ~15 min idle;
-> the next request cold-starts in ~50 s (Spring Boot boot time). Fine for a
-> personal/portfolio site. The frontend and database do not sleep.
+> **Free-tier note:** PandaStack's free tier scales the backend to zero when
+> idle, so the first request after a quiet spell cold-starts in ~50 s (Spring
+> Boot boot time). Fine for a personal/portfolio site. The frontend and database
+> do not sleep.
+>
+> The repo also ships a [render.yaml](render.yaml) blueprint if you ever switch
+> to Render (it requires a credit card on signup, which is why we use PandaStack
+> here). The backend image is identical either way.
 
 ---
 
@@ -66,36 +71,41 @@ all tables. Nothing to import by hand.
 
 ---
 
-## 2. Render — backend
+## 2. PandaStack — backend
 
-The repo already contains everything Render needs: [backend/Dockerfile](backend/Dockerfile)
-and the [render.yaml](render.yaml) blueprint. Two ways to deploy:
+PandaStack runs your [backend/Dockerfile](backend/Dockerfile) as a container app.
+Free tier, no credit card. Docs: https://docs.pandastack.io
 
-### Option A — Blueprint (recommended)
-1. Push this repo to GitHub.
-2. Render → **New → Blueprint** → select the repo. It reads `render.yaml` and
-   creates the `webnovel-backend` service.
-3. It will prompt for the secrets marked `sync: false`. Fill them in (see the
-   env table below). `APP_JWT_SECRET` is auto-generated; `APP_STORAGE_TYPE` and
-   `SUPABASE_BUCKET` are preset.
-4. **Create** → first build takes a few minutes (Maven package inside Docker).
+### Create the container app
+1. Push this repo to GitHub (already done — branch `deploy`).
+2. Dashboard → **Add New Project** → toggle **Run as Container** → connect this
+   GitHub repo and pick the branch you pushed (`deploy`).
+3. Set the build fields so it finds the Dockerfile in the `backend/` subfolder:
 
-### Option B — Manual web service
-New → **Web Service** → connect repo → **Root Directory** = `backend`,
-**Runtime** = Docker, **Health Check Path** = `/actuator/health`, then add the
-env vars manually.
+   | Field | Value | Why |
+   |---|---|---|
+   | **Base Directory** | `backend` | the app root inside the repo |
+   | **Build Context** | `backend` | the Dockerfile's `COPY pom.xml .` / `COPY src` are relative to `backend/` |
+   | **Dockerfile Path** | `backend/Dockerfile` | (or just `Dockerfile` if the field is relative to the build context) |
+   | **Health Check Path** | `/actuator/health` | returns `{"status":"UP"}`; the default `/` returns 404 on this API |
+
+4. Add the environment variables below (**Environment Vars** field; put the
+   secrets like `SUPABASE_SERVICE_KEY` / `DB_PASSWORD` under **Advanced Settings →
+   Secrets** if you prefer).
+5. **Deploy.** First build takes a few minutes (Maven package inside Docker).
 
 ### Backend environment variables
 
 | Var | Value | Notes |
 |---|---|---|
-| `SPRING_PROFILES_ACTIVE` | `prod` | already set by Dockerfile/blueprint |
+| `PORT` | `8080` | PandaStack routes here; the app reads `server.port=${PORT}`. Without it PandaStack expects port 9999 and the probe fails. |
+| `SPRING_PROFILES_ACTIVE` | `prod` | also set by the Dockerfile; harmless to repeat |
 | `DB_URL` | `jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require` | from step 1b |
 | `DB_USERNAME` | `postgres.<project-ref>` | from step 1b |
 | `DB_PASSWORD` | *(your DB password)* | from step 1a |
-| `APP_JWT_SECRET` | *(random ≥ 32 bytes)* | Blueprint auto-generates; else `openssl rand -base64 48` |
+| `APP_JWT_SECRET` | *(random ≥ 32 bytes)* | generate with `openssl rand -base64 48` |
 | `APP_CORS_ORIGINS` | `https://<your-app>.vercel.app` | your Vercel URL, **no trailing slash**; comma-separate multiples |
-| `APP_STORAGE_TYPE` | `supabase` | switches image storage off the ephemeral disk |
+| `APP_STORAGE_TYPE` | `supabase` | store images in Supabase, not the container's ephemeral disk |
 | `SUPABASE_URL` | `https://<ref>.supabase.co` | from step 1c |
 | `SUPABASE_BUCKET` | `uploads` | must match the bucket name |
 | `SUPABASE_SERVICE_KEY` | *(service_role secret)* | from step 1c |
@@ -110,9 +120,16 @@ Optional: `APP_JWT_ACCESS_TTL` / `APP_JWT_REFRESH_TTL`, `APP_PLATFORM_FEE_PERCEN
 > exact origin — only the production domain will pass CORS, which is fine for a
 > personal site.
 
-When the deploy is green, note the URL, e.g. `https://webnovel-backend.onrender.com`,
-and confirm `https://webnovel-backend.onrender.com/actuator/health` returns
-`{"status":"UP"}`.
+When the deploy is green, note the app's public URL (e.g.
+`https://webnovel-backend.pandastack.app`) and confirm `<url>/actuator/health`
+returns `{"status":"UP"}`.
+
+> **Prefer to skip Supabase for the database?** PandaStack has managed Postgres
+> too (Dashboard → **Create New → PostgreSQL**), which auto-injects a connection
+> string and removes the pooler setup in step 1b. If you go that route you'd map
+> its injected values into `DB_URL` (jdbc form) / `DB_USERNAME` / `DB_PASSWORD` —
+> but you still need Supabase **Storage** for images, so this guide keeps Postgres
+> on Supabase for simplicity.
 
 > **No prod admin is seeded** (the dev-only admin seed is disabled outside the
 > `dev` profile). Register a normal account, then promote it to admin directly in
@@ -130,14 +147,14 @@ and confirm `https://webnovel-backend.onrender.com/actuator/health` returns
 
    | Var | Value |
    |---|---|
-   | `VITE_API_BASE_URL` | `https://webnovel-backend.onrender.com/api/v1` |
+   | `VITE_API_BASE_URL` | `https://<your-app>.pandastack.app/api/v1` |
 
-   Use your real Render URL, **keep the `/api/v1` suffix** (the app derives the
-   `/uploads` origin by stripping it). Vite reads `VITE_`-prefixed vars at build
-   time — no `.env.production` file is committed.
+   Use your real PandaStack backend URL, **keep the `/api/v1` suffix** (the app
+   derives the `/uploads` origin by stripping it). Vite reads `VITE_`-prefixed
+   vars at build time — no `.env.production` file is committed.
 4. **Deploy.** Copy the resulting `https://<your-app>.vercel.app`.
-5. Go back to **Render** → set `APP_CORS_ORIGINS` to that exact URL → the backend
-   redeploys. Done.
+5. Go back to **PandaStack** → set `APP_CORS_ORIGINS` to that exact URL → redeploy
+   the backend. Done.
 
 > If you later add a custom domain on Vercel, add it to `APP_CORS_ORIGINS`
 > (comma-separated) and redeploy the backend.
@@ -163,4 +180,8 @@ and confirm `https://webnovel-backend.onrender.com/actuator/health` returns
 - **Browser CORS error** — `APP_CORS_ORIGINS` doesn't exactly match the frontend
   origin (scheme, host, no trailing slash). Fix and redeploy the backend.
 - **Uploads return 500** — bad/missing `SUPABASE_SERVICE_KEY`, or the bucket
-  doesn't exist. Check the Render logs (`SupabaseImageStore` logs the failure).
+  doesn't exist. Check the PandaStack logs (`SupabaseImageStore` logs the failure).
+- **PandaStack build succeeds but the health check / readiness probe fails** —
+  `PORT` isn't set to `8080`. PandaStack routes to port 9999 by default; the app
+  listens on `$PORT`. Set `PORT=8080` and confirm **Health Check Path** is
+  `/actuator/health`, then redeploy.
