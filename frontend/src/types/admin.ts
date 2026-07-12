@@ -72,3 +72,13 @@ export interface NewWalletRequest {
   provider: WalletProvider
   walletNumber: string
 }
+
+/** Row from `GET /admin/authors/upgrade-requests` (hobbyists asking to go pro). */
+export interface UpgradeRequestRow {
+  userId: number
+  username: string
+  email: string
+  bio: string | null
+  careerStage: "hobbyist" | "professional"
+  requestedAt: string
+}

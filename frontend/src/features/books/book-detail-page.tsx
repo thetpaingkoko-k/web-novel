@@ -1,6 +1,7 @@
 import { BookOpen, ListX } from "lucide-react"
 import { Trans, useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
+import { resolveUploadUrl } from "@/api/uploads"
 import { EmptyState } from "@/components/empty-state"
 import { ProgressRing } from "@/components/progress-ring"
 import { QueryError } from "@/components/query-error"
@@ -51,7 +52,7 @@ export function BookDetailPage() {
       <div className="grid gap-6 sm:grid-cols-[200px_1fr]">
         <div className="aspect-[2/3] w-full max-w-[200px] overflow-hidden rounded-lg border bg-muted">
           {book.coverImageUrl ? (
-            <img src={book.coverImageUrl} alt="" className="h-full w-full object-cover" />
+            <img src={resolveUploadUrl(book.coverImageUrl)} alt="" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
               <BookOpen className="h-10 w-10 text-muted-foreground" aria-hidden="true" />

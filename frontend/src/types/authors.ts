@@ -25,6 +25,10 @@ export interface MyAuthorProfile extends AuthorProfile {
   payoutWalletNumber: string | null
   availableBalance: number
   totalEarned: number
+  /** True once a hobbyist has asked to be upgraded to professional (FR upgrade). */
+  professionalRequested: boolean
+  /** ISO timestamp of the upgrade request, or `null` if never requested. */
+  professionalRequestedAt: string | null
 }
 
 /**

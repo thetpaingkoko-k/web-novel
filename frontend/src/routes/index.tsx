@@ -5,6 +5,7 @@ import { AuditLogPage } from "@/features/admin/pages/audit-log-page"
 import { ChaptersQueuePage } from "@/features/admin/pages/chapters-queue-page"
 import { PaymentsQueuePage } from "@/features/admin/pages/payments-queue-page"
 import { ReportsQueuePage } from "@/features/admin/pages/reports-queue-page"
+import { UpgradeRequestsPage } from "@/features/admin/pages/upgrade-requests-page"
 import { UsersManagementPage } from "@/features/admin/pages/users-management-page"
 import { UsersQueuePage } from "@/features/admin/pages/users-queue-page"
 import { WalletsPage } from "@/features/admin/pages/wallets-page"
@@ -82,6 +83,7 @@ export const router = createBrowserRouter([
               { index: true, element: <UsersQueuePage /> },
               { path: "users", element: <UsersQueuePage /> },
               { path: "manage-users", element: <UsersManagementPage /> },
+              { path: "upgrade-requests", element: <UpgradeRequestsPage /> },
               { path: "chapters", element: <ChaptersQueuePage /> },
               { path: "payments", element: <PaymentsQueuePage /> },
               { path: "withdrawals", element: <WithdrawalsQueuePage /> },

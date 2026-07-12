@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
 import { EmptyState } from "@/components/empty-state"
+import { ImageUploadField } from "@/components/image-upload-field"
 import { QueryError } from "@/components/query-error"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -123,8 +124,12 @@ export function BookEditorPage() {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="book-cover">{t("author.bookCoverUrl")}</FieldLabel>
-                <Input id="book-cover" type="url" {...register("coverImageUrl")} />
+                <FieldLabel htmlFor="book-cover">{t("author.bookCover")}</FieldLabel>
+                <ImageUploadField
+                  id="book-cover"
+                  value={watch("coverImageUrl")}
+                  onChange={(url) => setValue("coverImageUrl", url, { shouldDirty: true })}
+                />
               </Field>
 
               <Field>

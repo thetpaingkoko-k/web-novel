@@ -33,7 +33,8 @@ describe("SubscribePage", () => {
 
     await screen.findByText(/5000 MMK/i)
     await user.type(screen.getByLabelText(/last 6 digits/i), "123456")
-    await user.type(screen.getByLabelText(/screenshot url/i), "https://example.com/receipt.png")
+    const file = new File(["receipt"], "receipt.png", { type: "image/png" })
+    await user.upload(screen.getByLabelText(/payment screenshot/i), file)
     await user.click(screen.getByRole("button", { name: /submit/i }))
 
     expect(await screen.findByText(/awaiting admin review/i)).toBeInTheDocument()

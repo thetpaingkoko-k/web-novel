@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router"
 import { EmptyState } from "@/components/empty-state"
+import { ImageUploadField } from "@/components/image-upload-field"
 import { QueryError } from "@/components/query-error"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,6 +33,8 @@ export function SubscribePage() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<PaymentFormSchema>({
     resolver: zodResolver(schema),
@@ -118,12 +121,14 @@ export function SubscribePage() {
               </Field>
 
               <Field data-invalid={!!errors.screenshotUrl}>
-                <FieldLabel htmlFor="payment-screenshot">{t("subscribe.screenshotUrl")}</FieldLabel>
-                <Input
+                <FieldLabel htmlFor="payment-screenshot">{t("subscribe.screenshot")}</FieldLabel>
+                <ImageUploadField
                   id="payment-screenshot"
-                  type="url"
                   aria-invalid={!!errors.screenshotUrl}
-                  {...register("screenshotUrl")}
+                  value={watch("screenshotUrl")}
+                  onChange={(url) =>
+                    setValue("screenshotUrl", url, { shouldValidate: true, shouldDirty: true })
+                  }
                 />
                 <FieldError errors={[errors.screenshotUrl]} />
               </Field>

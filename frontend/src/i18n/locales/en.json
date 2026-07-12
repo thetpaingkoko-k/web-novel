@@ -222,12 +222,17 @@
     "editBook": "Edit book",
     "bookTitle": "Title",
     "bookGenre": "Genre",
-    "bookCoverUrl": "Cover image URL",
+    "bookCover": "Cover image",
     "bookSynopsis": "Synopsis",
     "bookStatus": "Status",
     "bookIsPremium": "Premium book",
     "premiumHint": "Readers need an active subscription to you to read it.",
     "premiumDisabledHint": "Enable monetization on your profile to publish premium books.",
+    "upgradeTitle": "Become a professional author",
+    "upgradeDescription": "Professional authors can enable monetization and earn from paid subscriptions.",
+    "upgradeCta": "Request upgrade",
+    "upgradePending": "Your upgrade request is pending admin review.",
+    "upgradeRequested": "Upgrade request submitted",
     "bookSaved": "Book saved",
     "addChapter": "Add chapter",
     "viewsCount": "{{count}} views",
@@ -255,6 +260,12 @@
       "rejected": "Rejected"
     }
   },
+  "imageUpload": {
+    "choose": "Choose image",
+    "change": "Change image",
+    "hint": "PNG, JPEG, WebP or GIF, up to 5 MB.",
+    "error": "Upload failed. Please try another image."
+  },
   "subscribe": {
     "title": "Subscribe to {{author}}",
     "priceLabel": "{{price}} MMK / month",
@@ -262,7 +273,7 @@
     "amount": "Amount transferred (MMK)",
     "last6Digits": "Last 6 digits of the transaction",
     "last6DigitsInvalid": "Enter exactly 6 digits",
-    "screenshotUrl": "Screenshot URL",
+    "screenshot": "Payment screenshot",
     "pendingReview": "Your payment to {{author}} was submitted and is awaiting admin review.",
     "noSubscriptionsYet": "You haven't subscribed to any authors yet.",
     "expiresOn": "Expires {{date}}",
@@ -304,6 +315,7 @@
     "tabs": {
       "users": "Approvals",
       "manageUsers": "Users",
+      "upgradeRequests": "Upgrade requests",
       "chapters": "Chapter review",
       "payments": "Payments",
       "withdrawals": "Withdrawals",
@@ -313,6 +325,10 @@
     },
     "searchUsers": "Search by username or email",
     "noUsersFound": "No users match your search.",
+    "upgradeRequestsEmpty": "No pending upgrade requests.",
+    "upgradeRequestedAt": "Requested {{date}}",
+    "approveAsProfessional": "Approve as professional",
+    "upgradeApproved": "Author upgraded to professional",
     "reactivate": "Reactivate",
     "userReactivated": "User reactivated",
     "role": {

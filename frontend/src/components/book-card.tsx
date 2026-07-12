@@ -1,6 +1,7 @@
 import { BookOpen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
+import { resolveUploadUrl } from "@/api/uploads"
 import { ProgressRing } from "@/components/progress-ring"
 import { Badge } from "@/components/ui/badge"
 import type { BookListItem } from "@/types/content"
@@ -18,7 +19,7 @@ export function BookCard({ book, to }: { book: BookListItem; to?: string }) {
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-muted">
         {book.coverImageUrl ? (
           <img
-            src={book.coverImageUrl}
+            src={resolveUploadUrl(book.coverImageUrl)}
             alt=""
             className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
           />

@@ -1,6 +1,7 @@
 import { Wallet } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { resolveUploadUrl } from "@/api/uploads"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useApprovePayment, usePendingPayments, useRejectPayment } from "../api"
@@ -28,14 +29,14 @@ export function PaymentsQueuePage() {
             <li key={p.submissionId} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex gap-3">
                 <a
-                  href={p.screenshotUrl}
+                  href={resolveUploadUrl(p.screenshotUrl)}
                   target="_blank"
                   rel="noreferrer"
                   className="shrink-0"
                   aria-label={t("admin.viewScreenshot")}
                 >
                   <img
-                    src={p.screenshotUrl}
+                    src={resolveUploadUrl(p.screenshotUrl)}
                     alt=""
                     className="h-20 w-20 rounded-md border object-cover"
                   />

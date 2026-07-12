@@ -8,6 +8,7 @@ import type {
   PaymentSubmissionReview,
   PendingChapterReview,
   PendingUser,
+  UpgradeRequestRow,
 } from "@/types/admin"
 import type { AdminWallet } from "@/types/subscriptions"
 import type { Withdrawal } from "@/types/earnings"
@@ -58,6 +59,33 @@ export function useReactivateUser() {
       await apiClient.put(`/admin/users/${userId}/reactivate`)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
+  })
+}
+
+// ---- Hobbyist → professional upgrade requests ----
+
+export function useUpgradeRequests() {
+  return useQuery({
+    queryKey: ["admin", "upgrade-requests"] as const,
+    queryFn: () => getList<UpgradeRequestRow>("/admin/authors/upgrade-requests"),
+  })
+}
+
+/**
+ * Approve an upgrade request via the shared user-approval endpoint. The backend
+ * enables monetization AND clears `professionalRequested`, so refresh both the
+ * upgrade-requests queue and the user lists.
+ */
+export function useApproveUpgradeRequest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (userId: number) => {
+      await apiClient.put(`/admin/users/${userId}/approve`, { kind: "enable_monetization" })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "upgrade-requests"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] })
+    },
   })
 }
 

@@ -103,6 +103,46 @@ export const handlers = [
     )
   ),
 
+  // Image upload — returns a backend-root-relative path (see the contract).
+  http.post("/api/v1/uploads/images", () =>
+    HttpResponse.json(
+      { url: "/uploads/images/test-image.png", filename: "test-image.png" },
+      { status: 201 }
+    )
+  ),
+
+  // Hobbyist → professional upgrade (author self-service).
+  http.post("/api/v1/authors/upgrade-request", () =>
+    HttpResponse.json({
+      authorId: 10,
+      username: "hobbyist1",
+      bio: "Aspiring writer.",
+      careerStage: "hobbyist",
+      isMonetizationEnabled: false,
+      monthlySubscriptionPrice: null,
+      payoutWalletProvider: null,
+      payoutWalletNumber: null,
+      availableBalance: 0,
+      totalEarned: 0,
+      professionalRequested: true,
+      professionalRequestedAt: new Date(0).toISOString(),
+    })
+  ),
+
+  // Admin upgrade-requests queue.
+  http.get("/api/v1/admin/authors/upgrade-requests", () =>
+    HttpResponse.json([
+      {
+        userId: 42,
+        username: "hobbyist1",
+        email: "hobbyist@example.com",
+        bio: "Aspiring writer.",
+        careerStage: "hobbyist",
+        requestedAt: new Date(0).toISOString(),
+      },
+    ])
+  ),
+
   http.get("/api/v1/authors/:authorId/feed", () => HttpResponse.json([])),
 
   http.get("/api/v1/authors/:authorId/balance", () =>
