@@ -26,10 +26,10 @@ export function ChapterReaderPage() {
   const { data: chapter, isLoading, isError, error, refetch } = useChapter(id)
   const recordView = useRecordChapterView(id)
   const like = useLikeChapter(id)
-  // The backend doesn't expose "liked by me" on GET /chapters/{id}; the like
-  // endpoints return the new state, so track it locally per chapter.
+  // Initialize from `likedByMe` on GET /chapters/{id}; the like endpoints then
+  // return the new state, which we track locally per chapter.
   const [liked, setLiked] = useState(false)
-  useEffect(() => setLiked(false), [id])
+  useEffect(() => setLiked(chapter?.likedByMe ?? false), [id, chapter?.likedByMe])
   const { data: book } = useBook(chapter?.bookId ?? Number.NaN)
   const updateProgress = useUpdateReadingProgress(chapter?.bookId ?? Number.NaN)
 

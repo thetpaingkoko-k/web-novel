@@ -82,6 +82,9 @@ export function UsersManagementPage() {
                 <span className="text-xs text-muted-foreground">{u.email}</span>
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
                   <Badge variant="outline">{t("admin.role." + u.role)}</Badge>
+                  {u.careerStage && (
+                    <Badge variant="secondary">{t("admin.careerStage." + u.careerStage)}</Badge>
+                  )}
                   <Badge variant={STATUS_VARIANT[u.status]}>{t("admin.status." + u.status)}</Badge>
                 </div>
               </div>

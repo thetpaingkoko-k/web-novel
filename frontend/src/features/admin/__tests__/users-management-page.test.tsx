@@ -23,8 +23,9 @@ const users = [
     userId: 1,
     username: "reader_rin",
     email: "reader@example.com",
-    role: "reader",
+    role: "professional_author",
     status: "approved",
+    careerStage: "professional",
   },
   {
     userId: 5,
@@ -32,6 +33,7 @@ const users = [
     email: "bob@example.com",
     role: "reader",
     status: "banned",
+    careerStage: null,
   },
 ]
 
@@ -49,6 +51,8 @@ describe("UsersManagementPage", () => {
 
     renderPage()
 
+    // The professional author's career-stage badge is rendered from `careerStage`.
+    expect(await screen.findByText(/^Professional$/)).toBeInTheDocument()
     await user.click(await screen.findByRole("button", { name: /reactivate/i }))
 
     await waitFor(() => expect(reactivated).toBe(true))

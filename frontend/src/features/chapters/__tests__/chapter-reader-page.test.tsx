@@ -2,11 +2,47 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { MemoryRouter, Route, Routes } from "react-router"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import { AuthProvider } from "@/features/auth/auth-context"
 import { ChapterReaderPage } from "@/features/chapters/chapter-reader-page"
 import "@/i18n"
 import { server } from "@/test/mocks/server"
+
+/** Sign a reader in for tests that need the authenticated like control. */
+function authenticateReader() {
+  localStorage.setItem("webnovel_access_token", "test-access-token")
+  localStorage.setItem("webnovel_refresh_token", "test-refresh-token")
+  server.use(
+    http.get("/api/v1/users/me", () =>
+      HttpResponse.json({
+        userId: 1,
+        username: "reader1",
+        email: "reader@example.com",
+        role: "reader",
+        status: "approved",
+        isMonetizationEnabled: false,
+      })
+    )
+  )
+}
+
+function chapterResponse(overrides: Record<string, unknown> = {}) {
+  return {
+    chapterId: 100,
+    bookId: 1,
+    chapterNumber: 1,
+    title: "Sparks",
+    content: "The ember caught.",
+    status: "published",
+    likeCount: 2,
+    uniqueViewCount: 10,
+    completionCount: 1,
+    publishedAt: new Date(0).toISOString(),
+    rejectionReason: null,
+    likedByMe: false,
+    ...overrides,
+  }
+}
 
 function renderChapterReader(chapterId: number) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -24,6 +60,8 @@ function renderChapterReader(chapterId: number) {
 }
 
 describe("ChapterReaderPage", () => {
+  afterEach(() => localStorage.clear())
+
   it("shows a subscribe prompt naming the author on a 403 no_subscription response", async () => {
     server.use(
       http.get("/api/v1/chapters/999", () =>
@@ -47,21 +85,7 @@ describe("ChapterReaderPage", () => {
 
   it("renders chapter content and the comments section for an accessible chapter", async () => {
     server.use(
-      http.get("/api/v1/chapters/100", () =>
-        HttpResponse.json({
-          chapterId: 100,
-          bookId: 1,
-          chapterNumber: 1,
-          title: "Sparks",
-          content: "The ember caught.",
-          status: "published",
-          likeCount: 2,
-          uniqueViewCount: 10,
-          completionCount: 1,
-          publishedAt: new Date(0).toISOString(),
-          rejectionReason: null,
-        })
-      ),
+      http.get("/api/v1/chapters/100", () => HttpResponse.json(chapterResponse())),
       http.post("/api/v1/chapters/100/view", () => HttpResponse.json({ unique: true })),
       http.get("/api/v1/chapters/100/comments", () => HttpResponse.json([])),
     )
@@ -70,5 +94,22 @@ describe("ChapterReaderPage", () => {
 
     expect(await screen.findByText(/the ember caught/i)).toBeInTheDocument()
     expect(await screen.findByText(/no comments yet/i)).toBeInTheDocument()
+  })
+
+  it("initializes the like control as pressed when likedByMe is true", async () => {
+    authenticateReader()
+    server.use(
+      http.get("/api/v1/chapters/100", () =>
+        HttpResponse.json(chapterResponse({ likedByMe: true }))
+      ),
+      http.post("/api/v1/chapters/100/view", () => HttpResponse.json({ unique: true })),
+      http.get("/api/v1/chapters/100/comments", () => HttpResponse.json([])),
+    )
+
+    renderChapterReader(100)
+
+    expect(await screen.findByText(/the ember caught/i)).toBeInTheDocument()
+    const likeButton = await screen.findByRole("button", { pressed: true })
+    expect(likeButton).toBeInTheDocument()
   })
 })

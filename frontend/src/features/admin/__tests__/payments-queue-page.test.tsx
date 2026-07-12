@@ -22,9 +22,12 @@ const pendingPayment = {
   submissionId: 7,
   readerId: 1,
   readerUsername: "reader1",
+  authorId: 10,
+  authorUsername: "moonlight_writer",
   subscriptionId: 3,
   amount: 5000,
   last6Digits: "123456",
+  walletProvider: "KBZPay",
   screenshotUrl: "https://example.com/receipt.png",
   status: "pending",
   submittedAt: new Date(0).toISOString(),
@@ -45,6 +48,7 @@ describe("PaymentsQueuePage", () => {
     renderQueue()
 
     expect(await screen.findByText(/payment from reader1/i)).toBeInTheDocument()
+    expect(screen.getByText(/moonlight_writer · KBZPay/i)).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /^approve$/i }))
 
     await waitFor(() => expect(approvedId).toBe(7))

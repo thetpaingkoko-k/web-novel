@@ -45,6 +45,12 @@ export function PaymentsQueuePage() {
                     {t("admin.paymentSummary", { reader: p.readerUsername })}
                   </span>
                   <span className="text-muted-foreground">
+                    {t("admin.paymentTarget", {
+                      author: p.authorUsername,
+                      provider: p.walletProvider,
+                    })}
+                  </span>
+                  <span className="text-muted-foreground">
                     {t("earnings.mmk", { amount: p.amount })} · …{p.last6Digits}
                   </span>
                   {p.status === "flagged_duplicate" && (

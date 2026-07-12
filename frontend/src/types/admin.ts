@@ -8,6 +8,8 @@ export interface AdminUser {
   email: string
   role: UserRole
   status: UserStatus
+  /** `null` for users without an author profile (plain readers, admins). */
+  careerStage: "hobbyist" | "professional" | null
 }
 
 /** `GET /admin/users?status=pending` returns the same row shape. */
@@ -21,9 +23,14 @@ export interface PaymentSubmissionReview {
   submissionId: number
   readerId: number
   readerUsername: string
+  /** The author whose subscription this payment targets. */
+  authorId: number
+  authorUsername: string
   subscriptionId: number
   amount: number
   last6Digits: string
+  /** Provider of the platform wallet the reader paid into. */
+  walletProvider: WalletProvider
   screenshotUrl: string
   status: "pending" | "approved" | "rejected" | "flagged_duplicate"
   submittedAt: string
@@ -53,6 +60,7 @@ export type AdminActionType =
 export interface AdminActionLog {
   adminActionId: number
   adminId: number
+  adminUsername: string
   actionType: AdminActionType
   targetType: string
   targetId: number

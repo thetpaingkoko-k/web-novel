@@ -37,6 +37,11 @@ export interface BookListItem {
 export interface BookListParams {
   genre?: string
   status?: BookStatus
+  /**
+   * Case-insensitive substring match on title or author username, ANDed with
+   * `genre`/`status`. Ignored when `authorId` is present.
+   */
+  search?: string
   /** Overrides the other filters on the backend. */
   authorId?: number
 }
@@ -67,6 +72,12 @@ export interface Chapter extends ChapterSummary {
   bookId: number
   content: string
   rejectionReason: string | null
+  /**
+   * Whether the authenticated caller has liked this chapter. Populated only by
+   * the reader endpoint `GET /chapters/{id}`; `false` for anonymous callers and
+   * on authoring/admin responses (create/update/publish/approve/reject).
+   */
+  likedByMe: boolean
 }
 
 /** Editor form values. `scheduledFor` is form-only; it feeds `POST /chapters/{id}/publish`. */

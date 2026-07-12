@@ -24,6 +24,7 @@ const pendingUser = {
   email: "novice@example.com",
   role: "reader",
   status: "pending",
+  careerStage: null,
 }
 
 describe("UsersQueuePage", () => {

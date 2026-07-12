@@ -49,9 +49,16 @@ export function UsersQueuePage() {
               <div className="flex flex-col gap-1">
                 <span className="text-sm font-medium">{user.username}</span>
                 <span className="text-xs text-muted-foreground">{user.email}</span>
-                <Badge variant="outline" className="w-fit">
-                  {t("admin.role." + user.role)}
-                </Badge>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline" className="w-fit">
+                    {t("admin.role." + user.role)}
+                  </Badge>
+                  {user.careerStage && (
+                    <Badge variant="secondary" className="w-fit">
+                      {t("admin.careerStage." + user.careerStage)}
+                    </Badge>
+                  )}
+                </div>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
                 <Button size="sm" onClick={() => onApprove(user.userId, "verify_author")} disabled={approve.isPending}>

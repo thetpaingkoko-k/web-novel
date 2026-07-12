@@ -48,6 +48,39 @@ describe("ChaptersQueuePage", () => {
     expect(await screen.findByText(/chapter approved/i)).toBeInTheDocument()
   })
 
+  it("lazily loads chapter content for review via GET /chapters/{id}", async () => {
+    const user = userEvent.setup()
+    let detailRequested = false
+    server.use(
+      http.get("/api/v1/admin/chapters", () => HttpResponse.json([pendingChapter])),
+      http.get("/api/v1/chapters/100", () => {
+        detailRequested = true
+        return HttpResponse.json({
+          chapterId: 100,
+          bookId: 1,
+          chapterNumber: 2,
+          title: "Ashfall",
+          content: "Ash rained over the valley.",
+          status: "pending_review",
+          likeCount: 0,
+          uniqueViewCount: 0,
+          completionCount: 0,
+          publishedAt: null,
+          rejectionReason: null,
+          likedByMe: false,
+        })
+      })
+    )
+
+    renderQueue()
+
+    // Content is not fetched until the review dialog is opened.
+    await user.click(await screen.findByRole("button", { name: /review content/i }))
+
+    expect(await screen.findByText(/ash rained over the valley/i)).toBeInTheDocument()
+    expect(detailRequested).toBe(true)
+  })
+
   it("rejects a chapter with a required reason (FR-3.3)", async () => {
     const user = userEvent.setup()
     let rejectedReason: string | undefined
