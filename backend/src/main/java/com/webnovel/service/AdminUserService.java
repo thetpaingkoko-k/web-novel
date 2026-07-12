@@ -8,6 +8,7 @@ import com.webnovel.domain.enums.Role;
 import com.webnovel.domain.enums.UserStatus;
 import com.webnovel.dto.admin.AdminUserRow;
 import com.webnovel.dto.admin.ApproveRequest;
+import com.webnovel.dto.admin.UpgradeRequestRow;
 import com.webnovel.dto.user.UserResponse;
 import com.webnovel.exception.BadRequestException;
 import com.webnovel.exception.NotFoundException;
@@ -57,6 +58,7 @@ public class AdminUserService {
                 profile.setMonetizationEnabled(true);
                 profile.setCareerStage(CareerStage.professional);
                 profile.setApprovedAt(OffsetDateTime.now());
+                profile.setProfessionalRequested(false); // clear the upgrade-request queue entry
                 user.setRole(Role.professional_author);
                 user.setStatus(UserStatus.approved);
             }
@@ -93,6 +95,13 @@ public class AdminUserService {
                 .map(u -> new AdminUserRow(u.getId(), u.getUsername(), u.getEmail(),
                         u.getRole(), u.getStatus(), stages.get(u.getId())))
                 .toList();
+    }
+
+    /** Pending hobbyist→professional upgrade requests, oldest first (§4.1.1). */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UpgradeRequestRow> upgradeRequests() {
+        return authorProfiles.findUpgradeRequests();
     }
 
     /** Suspend ({@code ban=false}) or ban ({@code ban=true}) a user (FR-1.4). Audited. */

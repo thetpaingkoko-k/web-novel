@@ -10,9 +10,11 @@ import com.webnovel.dto.author.AuthorProfileResponse;
 import com.webnovel.dto.author.AuthorUpdateRequest;
 import com.webnovel.dto.author.SubscriptionPriceResponse;
 import com.webnovel.dto.user.UserResponse;
+import com.webnovel.exception.BadRequestException;
 import com.webnovel.exception.NotFoundException;
 import com.webnovel.repository.AuthorProfileRepository;
 import com.webnovel.repository.UserRepository;
+import java.time.OffsetDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,6 +79,22 @@ public class AuthorService {
         return toMe(userId, profile);
     }
 
+    /**
+     * Hobbyist author requests promotion to professional (FR-1.5 / §4.1.1). Idempotent:
+     * already-professional or already-monetized authors are rejected; otherwise the
+     * request flag + timestamp are set for the admin review queue.
+     */
+    @Transactional
+    public AuthorMeResponse requestUpgrade(Long userId) {
+        AuthorProfile profile = requireProfile(userId);
+        if (profile.getCareerStage() == CareerStage.professional || profile.isMonetizationEnabled()) {
+            throw new BadRequestException("author.already_professional");
+        }
+        profile.setProfessionalRequested(true);
+        profile.setProfessionalRequestedAt(OffsetDateTime.now());
+        return toMe(userId, profile);
+    }
+
     private AuthorProfile requireProfile(Long userId) {
         return authorProfiles.findByUserId(userId)
                 .orElseThrow(() -> new NotFoundException("content.not_author"));
@@ -87,6 +105,7 @@ public class AuthorService {
         return new AuthorMeResponse(userId, username, p.getBio(), p.getCareerStage(),
                 p.isMonetizationEnabled(), p.getMonthlySubscriptionPrice(),
                 p.getPayoutWalletProvider(), p.getPayoutWalletNumber(),
-                p.getAvailableBalance(), p.getTotalEarned());
+                p.getAvailableBalance(), p.getTotalEarned(),
+                p.isProfessionalRequested(), p.getProfessionalRequestedAt());
     }
 }

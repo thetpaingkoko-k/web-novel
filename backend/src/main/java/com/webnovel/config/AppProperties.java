@@ -12,9 +12,13 @@ public record AppProperties(
         BigDecimal platformFeePercent,
         BigDecimal minWithdrawalMmk,
         int subscriptionDays,
-        Cors cors) {
+        Cors cors,
+        Uploads uploads) {
 
     public record Jwt(String secret, Duration accessTtl, Duration refreshTtl) {}
 
     public record Cors(List<String> allowedOrigins) {}
+
+    /** Filesystem location for user-uploaded images (relative to the working dir, or absolute). */
+    public record Uploads(String dir) {}
 }

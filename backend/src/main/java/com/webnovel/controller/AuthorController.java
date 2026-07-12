@@ -37,6 +37,11 @@ public class AuthorController {
         return authorService.updateMe(SecurityUtils.currentUserId(), req);
     }
 
+    @PostMapping("/upgrade-request")
+    public AuthorMeResponse requestUpgrade() {
+        return authorService.requestUpgrade(SecurityUtils.currentUserId());
+    }
+
     @GetMapping("/{id}")
     public AuthorProfileResponse profile(@PathVariable Long id) {
         return authorService.getPublicProfile(id);

@@ -51,4 +51,10 @@ public class AuthorProfile {
 
     @Column(name = "approved_at")
     private OffsetDateTime approvedAt;
+
+    @Column(name = "professional_requested", nullable = false)
+    private boolean professionalRequested = false;
+
+    @Column(name = "professional_requested_at")
+    private OffsetDateTime professionalRequestedAt;
 }

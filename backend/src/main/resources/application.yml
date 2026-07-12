@@ -21,9 +21,13 @@ spring:
     basename: messages
     encoding: UTF-8
     fallback-to-system-locale: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
 
 server:
-  port: 8080
+  port: ${PORT:8080}          # Render (and other PaaS) inject the listen port via $PORT
 
 springdoc:
   swagger-ui:
@@ -39,3 +43,13 @@ app:
   subscription-days: ${APP_SUBSCRIPTION_DAYS:30}
   cors:
     allowed-origins: ${APP_CORS_ORIGINS:http://localhost:5173}
+  uploads:
+    dir: ${APP_UPLOADS_DIR:images}
+  storage:
+    # `local` = filesystem served at /uploads/** (dev). `supabase` = Supabase Storage
+    # (prod; survives ephemeral-host restarts). Supabase fields required when type=supabase.
+    type: ${APP_STORAGE_TYPE:local}
+    supabase:
+      url: ${SUPABASE_URL:}
+      bucket: ${SUPABASE_BUCKET:uploads}
+      service-key: ${SUPABASE_SERVICE_KEY:}

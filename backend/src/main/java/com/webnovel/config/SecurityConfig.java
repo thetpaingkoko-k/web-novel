@@ -40,6 +40,8 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Uploaded images are served publicly; POST /api/v1/uploads/** stays authenticated
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         // Public reads (access control for premium content is enforced in the service layer)
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/books/**",

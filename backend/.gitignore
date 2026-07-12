@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Uploaded images (runtime) ###
+/images/*
+!/images/.gitkeep

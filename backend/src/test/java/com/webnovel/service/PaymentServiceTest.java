@@ -43,7 +43,8 @@ class PaymentServiceTest {
             new AppProperties.Jwt("unit-test-secret-value-at-least-32-bytes!!",
                     java.time.Duration.ofMinutes(15), java.time.Duration.ofDays(30)),
             new BigDecimal("20"), new BigDecimal("5000"), 30,
-            new AppProperties.Cors(List.of("http://localhost:5173")));
+            new AppProperties.Cors(List.of("http://localhost:5173")),
+            new AppProperties.Uploads("images"));
 
     private PaymentService service() {
         return new PaymentService(submissions, subscriptions, wallets, authorProfiles, earnings, props);
