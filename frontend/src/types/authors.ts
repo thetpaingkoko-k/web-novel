@@ -32,12 +32,11 @@ export interface MyAuthorProfile extends AuthorProfile {
 }
 
 /**
- * Body for `PUT /authors/me`. `monthlySubscriptionPrice` is only honored once
- * the account is monetization-enabled (FR-1.5); the backend is the authority.
+ * Body for `PUT /authors/me`. The subscription price is NOT here: it is a system
+ * baseline set when monetization is enabled and adjustable only by an admin (FR-1.5).
  */
 export interface UpdateAuthorProfileRequest {
   bio: string
-  monthlySubscriptionPrice: number | null
   payoutWalletProvider: WalletProvider | null
   payoutWalletNumber: string | null
 }

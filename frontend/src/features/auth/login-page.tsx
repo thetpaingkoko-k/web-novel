@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
-import { Link, useNavigate } from "react-router"
+import { Link, useLocation, useNavigate } from "react-router"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,8 +14,14 @@ import { buildLoginSchema, type LoginFormValues } from "./schemas"
 export function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
   const { login } = useAuth()
   const schema = useMemo(() => buildLoginSchema(t), [t])
+
+  // Return to the page the user was sent from (e.g. a subscribe link) after login,
+  // falling back to the home page. ProtectedRoute stashes it in location.state.from.
+  const from = (location.state as { from?: Location })?.from
+  const redirectTo = from ? `${from.pathname}${from.search}${from.hash}` : "/"
 
   const {
     register,
@@ -28,7 +34,7 @@ export function LoginPage() {
 
   const onSubmit = handleSubmit((values) => {
     login.mutate(values, {
-      onSuccess: () => navigate("/"),
+      onSuccess: () => navigate(redirectTo, { replace: true }),
       onError: () => toast.error(t("auth.invalidCredentials")),
     })
   })

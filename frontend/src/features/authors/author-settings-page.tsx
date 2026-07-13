@@ -43,7 +43,6 @@ export function AuthorSettingsPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       bio: "",
-      monthlySubscriptionPrice: null,
       payoutWalletProvider: null,
       payoutWalletNumber: "",
     },
@@ -53,7 +52,6 @@ export function AuthorSettingsPage() {
     if (profile) {
       reset({
         bio: profile.bio ?? "",
-        monthlySubscriptionPrice: profile.monthlySubscriptionPrice,
         payoutWalletProvider: profile.payoutWalletProvider,
         payoutWalletNumber: profile.payoutWalletNumber ?? "",
       })
@@ -73,13 +71,10 @@ export function AuthorSettingsPage() {
     )
   }
 
-  const canSetPrice = profile.isMonetizationEnabled
-
   const onSubmit = handleSubmit((values) => {
     update.mutate(
       {
         bio: values.bio,
-        monthlySubscriptionPrice: canSetPrice ? values.monthlySubscriptionPrice : null,
         payoutWalletProvider: values.payoutWalletProvider,
         payoutWalletNumber: values.payoutWalletNumber || null,
       },
@@ -105,23 +100,15 @@ export function AuthorSettingsPage() {
                 <FieldError errors={[errors.bio]} />
               </Field>
 
-              <Field data-invalid={!!errors.monthlySubscriptionPrice}>
-                <FieldLabel htmlFor="settings-price">{t("authors.priceLabel")}</FieldLabel>
-                <Input
-                  id="settings-price"
-                  type="number"
-                  min={0}
-                  disabled={!canSetPrice}
-                  aria-invalid={!!errors.monthlySubscriptionPrice}
-                  {...register("monthlySubscriptionPrice", {
-                    setValueAs: (v) => (v === "" || v === null ? null : Number(v)),
-                  })}
-                />
-                <FieldDescription>
-                  {canSetPrice ? t("authors.priceHint") : t("authors.priceLockedHint")}
-                </FieldDescription>
-                <FieldError errors={[errors.monthlySubscriptionPrice]} />
-              </Field>
+              {profile.isMonetizationEnabled && (
+                <Field>
+                  <FieldLabel>{t("authors.priceLabel")}</FieldLabel>
+                  <p className="text-sm font-medium">
+                    {t("subscribe.priceLabel", { price: profile.monthlySubscriptionPrice ?? 0 })}
+                  </p>
+                  <FieldDescription>{t("authors.priceLockedHint")}</FieldDescription>
+                </Field>
+              )}
 
               <Field>
                 <FieldLabel htmlFor="settings-wallet-provider">

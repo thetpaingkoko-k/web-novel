@@ -3,7 +3,9 @@ package com.webnovel.controller;
 import com.webnovel.domain.enums.UserStatus;
 import com.webnovel.dto.admin.AdminUserRow;
 import com.webnovel.dto.admin.ApproveRequest;
+import com.webnovel.dto.admin.SetSubscriptionPriceRequest;
 import com.webnovel.dto.admin.SuspendRequest;
+import com.webnovel.dto.author.SubscriptionPriceResponse;
 import com.webnovel.dto.user.UserResponse;
 import com.webnovel.service.AdminUserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,5 +46,12 @@ public class AdminUserController {
     @PutMapping("/{id}/reactivate")
     public UserResponse reactivate(@PathVariable Long id) {
         return adminUserService.reactivate(id);
+    }
+
+    /** Adjust a monetized author's monthly subscription price (FR-1.5). */
+    @PutMapping("/{id}/subscription-price")
+    public SubscriptionPriceResponse setSubscriptionPrice(
+            @PathVariable Long id, @Valid @RequestBody SetSubscriptionPriceRequest req) {
+        return adminUserService.setSubscriptionPrice(id, req.priceMmk());
     }
 }

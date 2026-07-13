@@ -171,7 +171,7 @@
     "settingsSaved": "ဆက်တင်များ သိမ်းဆည်းပြီးပါပြီ။",
     "priceLabel": "လစဉ် စာရင်းသွင်းခ (MMK)",
     "priceHint": "သင့်ပရီမီယံ စာအုပ်များကို ဖွင့်ရန် စာဖတ်သူများသည် လစဉ် ဤပမာဏကို ပေးချေရသည်။",
-    "priceLockedHint": "အက်ဒမင်မှ ငွေရှာဖွေမှု ဖွင့်ပေးပြီးမှ စျေးနှုန်း သတ်မှတ်နိုင်ပါသည်။",
+    "priceLockedHint": "သင်၏ subscription စျေးနှုန်းကို အက်ဒမင်မှ သတ်မှတ်ပြီး ဤနေရာတွင် ပြောင်းလဲ၍မရပါ။",
     "priceInvalid": "မှန်ကန်သော စျေးနှုန်း ထည့်ပါ",
     "payoutWalletProvider": "ငွေထုတ် ပိုက်ဆံအိတ် ဝန်ဆောင်မှု",
     "payoutWalletNumber": "ငွေထုတ် ပိုက်ဆံအိတ် နံပါတ်",
@@ -331,6 +331,10 @@
     "upgradeApproved": "စာရေးဆရာကို ပရော်ဖက်ရှင်နယ်အဖြစ် အဆင့်မြှင့်ပြီး",
     "reactivate": "ပြန်လည် ဖွင့်ရန်",
     "userReactivated": "အသုံးပြုသူ ပြန်လည် ဖွင့်ပြီး",
+    "setPrice": "စျေးနှုန်း သတ်မှတ်ရန်",
+    "setPriceTitle": "{{user}} ၏ subscription စျေးနှုန်း",
+    "setPriceDescription": "ဤစာရေးသူကို subscribe လုပ်ရန် စာဖတ်သူများ လစဉ်ပေးရသော စျေးနှုန်း။ မူလ baseline 5000 MMK ဖြစ်ပြီး ဤနေရာတွင် ချိန်ညှိနိုင်သည်။",
+    "priceUpdated": "Subscription စျေးနှုန်း အပ်ဒိတ်လုပ်ပြီး",
     "role": {
       "reader": "စာဖတ်သူ",
       "hobbyist_author": "ဝါသနာအရ စာရေးဆရာ",
@@ -392,6 +396,25 @@
     "auditAdmin": "အက်ဒမင်",
     "auditAction": "လုပ်ဆောင်ချက်",
     "auditTarget": "ပစ်မှတ်",
-    "auditWhen": "အချိန်"
+    "auditWhen": "အချိန်",
+    "auditActionTypes": {
+      "user_approval": "အသုံးပြုသူ အတည်ပြုမှု",
+      "content_approval": "အကြောင်းအရာ အတည်ပြုပြီး",
+      "content_rejection": "အကြောင်းအရာ ပယ်ချပြီး",
+      "content_removal": "အကြောင်းအရာ ဖယ်ရှားပြီး",
+      "ban": "ပိတ်ပင်/ဆိုင်းငံ့မှု",
+      "report_resolution": "တိုင်ကြားချက် ဖြေရှင်းပြီး",
+      "withdrawal_approval": "ငွေထုတ်ယူမှု အတည်ပြုပြီး",
+      "subscription_price_update": "Subscription စျေးနှုန်း သတ်မှတ်ပြီး"
+    },
+    "auditTargetTypes": {
+      "user": "အသုံးပြုသူ",
+      "book": "စာအုပ်",
+      "chapter": "အခန်း",
+      "chapter_comment": "မှတ်ချက်",
+      "debate_post": "ဆွေးနွေးမှု ပို့စ်",
+      "withdrawal": "ငွေထုတ်ယူမှု",
+      "report": "တိုင်ကြားချက်"
+    }
   }
 }

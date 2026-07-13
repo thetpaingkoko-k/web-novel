@@ -11,11 +11,6 @@ export type ApplicationFormSchema = z.infer<ReturnType<typeof buildApplicationSc
 export function buildAuthorSettingsSchema(t: TFunction) {
   return z.object({
     bio: z.string().max(1000, t("authors.bioTooLong")),
-    monthlySubscriptionPrice: z
-      .number({ message: t("validation.required") })
-      .int()
-      .min(0, t("authors.priceInvalid"))
-      .nullable(),
     payoutWalletProvider: z.enum(["KBZPay", "WavePay", "AYAPay", "other"]).nullable(),
     payoutWalletNumber: z.string().max(30, t("authors.walletTooLong")),
   })

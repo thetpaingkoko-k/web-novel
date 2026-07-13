@@ -40,6 +40,7 @@ app:
     refresh-ttl: ${APP_JWT_REFRESH_TTL:P30D}
   platform-fee-percent: ${APP_PLATFORM_FEE_PERCENT:20}
   min-withdrawal-mmk: ${APP_MIN_WITHDRAWAL_MMK:5000}
+  base-subscription-price-mmk: ${APP_BASE_SUBSCRIPTION_PRICE_MMK:5000}   # system baseline; not author-set, admin-adjustable
   subscription-days: ${APP_SUBSCRIPTION_DAYS:30}
   cors:
     allowed-origins: ${APP_CORS_ORIGINS:http://localhost:5173}

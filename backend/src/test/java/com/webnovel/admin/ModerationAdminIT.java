@@ -50,7 +50,9 @@ class ModerationAdminIT extends AuthTestSupport {
         mvc.perform(get("/api/v1/admin/actions").header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))))
-                .andExpect(jsonPath("$[0].adminUsername", is(adminUsername)));
+                .andExpect(jsonPath("$[0].adminUsername", is(adminUsername)))
+                .andExpect(jsonPath("$[0].targetType", is("report")))
+                .andExpect(jsonPath("$[0].targetLabel", is("spam"))); // the report's reason, not "report #N"
     }
 
     @Test

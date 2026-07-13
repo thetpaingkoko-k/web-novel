@@ -23,27 +23,14 @@ class PaymentQueueIT extends AuthTestSupport {
                 .andExpect(status().isOk());
     }
 
-    private String relogin(String email) throws Exception {
-        String body = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"" + email + "\",\"password\":\"password123\"}"))
-                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(body).get("accessToken").asText();
-    }
-
     @Test
     void paymentQueueRows_carryAuthorAndWalletProvider() throws Exception {
         registerAndGetToken("payauthor", "payauthor@example.com");
         long authorId = userIdOf("payauthor@example.com");
         String adminToken = seedAdminAndGetToken("payadmin@webnovel.local");
         approve(adminToken, authorId, ApproveRequest.Kind.verify_author);
+        // enabling monetization applies the 5000 MMK baseline price automatically (FR-1.5)
         approve(adminToken, authorId, ApproveRequest.Kind.enable_monetization);
-        String author = relogin("payauthor@example.com");
-
-        // author sets a subscription price
-        mvc.perform(put("/api/v1/authors/me").header("Authorization", bearer(author))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"monthlySubscriptionPrice\":5000}"))
-                .andExpect(status().isOk());
 
         // admin creates the platform wallet the reader pays into
         String wallet = mvc.perform(post("/api/v1/admin/wallets").header("Authorization", bearer(adminToken))
@@ -83,5 +70,44 @@ class PaymentQueueIT extends AuthTestSupport {
         mvc.perform(get("/api/v1/admin/users?search=payreader").header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].careerStage", nullValue()));
+    }
+
+    @Test
+    void monetization_appliesBaselinePrice_andAdminCanAdjustIt() throws Exception {
+        registerAndGetToken("baseauthor", "baseauthor@example.com");
+        long authorId = userIdOf("baseauthor@example.com");
+        String adminToken = seedAdminAndGetToken("baseadmin@webnovel.local");
+        approve(adminToken, authorId, ApproveRequest.Kind.verify_author);
+        approve(adminToken, authorId, ApproveRequest.Kind.enable_monetization);
+
+        // enabling monetization applies the 5000 MMK baseline automatically — no author step,
+        // so the author is immediately subscribable (the reader's Subscribe button appears).
+        mvc.perform(get("/api/v1/admin/users?search=baseauthor").header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].monetizationEnabled", is(true)))
+                .andExpect(jsonPath("$[0].monthlySubscriptionPrice", is(5000.0)));
+        mvc.perform(get("/api/v1/authors/{id}", authorId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.monthlySubscriptionPrice", is(5000.0)));
+
+        // admin adjusts the price; it is reflected on the public profile and audited
+        mvc.perform(put("/api/v1/admin/users/{id}/subscription-price", authorId)
+                        .header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"priceMmk\":8000}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/authors/{id}", authorId))
+                .andExpect(jsonPath("$.monthlySubscriptionPrice", is(8000.0)));
+        mvc.perform(get("/api/v1/admin/actions").header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].actionType", is("subscription_price_update")))
+                .andExpect(jsonPath("$[0].targetLabel", is("baseauthor")));
+
+        // a non-monetized user (no author profile) cannot have a price set
+        registerAndGetToken("plainreader", "plainreader@example.com");
+        long readerId = userIdOf("plainreader@example.com");
+        mvc.perform(put("/api/v1/admin/users/{id}/subscription-price", readerId)
+                        .header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"priceMmk\":8000}"))
+                .andExpect(status().isBadRequest());
     }
 }

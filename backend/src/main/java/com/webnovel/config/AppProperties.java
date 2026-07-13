@@ -11,6 +11,7 @@ public record AppProperties(
         Jwt jwt,
         BigDecimal platformFeePercent,
         BigDecimal minWithdrawalMmk,
+        BigDecimal baseSubscriptionPriceMmk,
         int subscriptionDays,
         Cors cors,
         Uploads uploads) {

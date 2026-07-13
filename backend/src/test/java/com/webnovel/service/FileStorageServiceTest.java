@@ -26,7 +26,7 @@ class FileStorageServiceTest {
         AppProperties props = new AppProperties(
                 new AppProperties.Jwt("unit-test-secret-value-at-least-32-bytes!!",
                         Duration.ofMinutes(15), Duration.ofDays(30)),
-                new BigDecimal("20"), new BigDecimal("5000"), 30,
+                new BigDecimal("20"), new BigDecimal("5000"), new BigDecimal("5000"), 30,
                 new AppProperties.Cors(List.of("http://localhost:5173")),
                 new AppProperties.Uploads(tempDir.toString()));
         return new FileStorageService(new LocalImageStore(props));

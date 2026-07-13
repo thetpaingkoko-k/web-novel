@@ -9,8 +9,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { AdminUser } from "@/types/admin"
-import { useAllUsers, useReactivateUser, useSuspendUser } from "../api"
+import {
+  useAllUsers,
+  useReactivateUser,
+  useSetSubscriptionPrice,
+  useSuspendUser,
+} from "../api"
 import { ConfirmDialog } from "../components/confirm-dialog"
+import { SetPriceDialog } from "../components/set-price-dialog"
 
 const STATUS_VARIANT: Record<AdminUser["status"], "default" | "secondary" | "destructive"> = {
   approved: "default",
@@ -26,6 +32,17 @@ export function UsersManagementPage() {
   const { data, isLoading, isError, refetch } = useAllUsers(deferredSearch)
   const suspend = useSuspendUser()
   const reactivate = useReactivateUser()
+  const setPrice = useSetSubscriptionPrice()
+
+  function onSetPrice(userId: number, priceMmk: number) {
+    setPrice.mutate(
+      { userId, priceMmk },
+      {
+        onSuccess: () => toast.success(t("admin.priceUpdated")),
+        onError: () => toast.error(t("common.genericError")),
+      }
+    )
+  }
 
   function onSuspend(userId: number, ban: boolean) {
     suspend.mutate(
@@ -44,7 +61,7 @@ export function UsersManagementPage() {
     })
   }
 
-  const busy = suspend.isPending || reactivate.isPending
+  const busy = suspend.isPending || reactivate.isPending || setPrice.isPending
 
   return (
     <div className="flex flex-col gap-4">
@@ -86,9 +103,27 @@ export function UsersManagementPage() {
                     <Badge variant="secondary">{t("admin.careerStage." + u.careerStage)}</Badge>
                   )}
                   <Badge variant={STATUS_VARIANT[u.status]}>{t("admin.status." + u.status)}</Badge>
+                  {u.monetizationEnabled && (
+                    <Badge variant="outline">
+                      {t("subscribe.priceLabel", { price: u.monthlySubscriptionPrice ?? 0 })}
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
+                {u.monetizationEnabled && (
+                  <SetPriceDialog
+                    trigger={
+                      <Button size="sm" variant="outline" disabled={busy}>
+                        {t("admin.setPrice")}
+                      </Button>
+                    }
+                    username={u.username}
+                    currentPrice={u.monthlySubscriptionPrice}
+                    busy={busy}
+                    onSubmit={(priceMmk) => onSetPrice(u.userId, priceMmk)}
+                  />
+                )}
                 {u.status !== "banned" && (
                   <ConfirmDialog
                     trigger={

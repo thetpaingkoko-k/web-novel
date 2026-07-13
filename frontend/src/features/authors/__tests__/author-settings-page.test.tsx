@@ -37,7 +37,7 @@ function renderPage() {
 describe("AuthorSettingsPage", () => {
   afterEach(() => tokenStorage.clearTokens())
 
-  it("lets a monetization-enabled author edit their price", async () => {
+  it("shows a monetized author their admin-set price read-only", async () => {
     tokenStorage.setTokens("access", "refresh")
     server.use(
       http.get("/api/v1/users/me", () => HttpResponse.json(PRO)),
@@ -59,12 +59,13 @@ describe("AuthorSettingsPage", () => {
 
     renderPage()
 
-    const price = (await screen.findByLabelText(/subscription price/i)) as HTMLInputElement
-    expect(price).not.toBeDisabled()
-    expect(price.value).toBe("5000")
+    // The price is shown as read-only text, not an editable input.
+    expect(await screen.findByText(/5000 MMK/i)).toBeInTheDocument()
+    expect(screen.getByText(/set by an administrator/i)).toBeInTheDocument()
+    expect(screen.queryByRole("spinbutton", { name: /subscription price/i })).not.toBeInTheDocument()
   })
 
-  it("locks the price field until monetization is enabled", async () => {
+  it("hides the price entirely until monetization is enabled", async () => {
     tokenStorage.setTokens("access", "refresh")
     server.use(
       http.get("/api/v1/users/me", () =>
@@ -88,7 +89,8 @@ describe("AuthorSettingsPage", () => {
 
     renderPage()
 
-    expect(await screen.findByLabelText(/subscription price/i)).toBeDisabled()
-    expect(screen.getByText(/once an admin enables monetization/i)).toBeInTheDocument()
+    // Wait for the form to load (Save button), then assert no price section is present.
+    expect(await screen.findByRole("button", { name: /save/i })).toBeInTheDocument()
+    expect(screen.queryByText(/subscription price/i)).not.toBeInTheDocument()
   })
 })

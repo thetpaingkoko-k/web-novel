@@ -62,6 +62,17 @@ export function useReactivateUser() {
   })
 }
 
+/** Adjust a monetized author's monthly subscription price (baseline is admin-set, FR-1.5). */
+export function useSetSubscriptionPrice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, priceMmk }: { userId: number; priceMmk: number }) => {
+      await apiClient.put(`/admin/users/${userId}/subscription-price`, { priceMmk })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
+  })
+}
+
 // ---- Hobbyist → professional upgrade requests ----
 
 export function useUpgradeRequests() {

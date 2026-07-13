@@ -66,14 +66,14 @@ public class AuthorService {
         return toMe(userId, requireProfile(userId));
     }
 
-    /** Author self-update; price is ignored unless monetization is enabled (FR-1.5). */
+    /**
+     * Author self-update. The subscription price is intentionally NOT accepted here — it is a
+     * system baseline set when monetization is enabled and adjustable only by an admin (FR-1.5).
+     */
     @Transactional
     public AuthorMeResponse updateMe(Long userId, AuthorUpdateRequest req) {
         AuthorProfile profile = requireProfile(userId);
         profile.setBio(req.bio());
-        if (profile.isMonetizationEnabled() && req.monthlySubscriptionPrice() != null) {
-            profile.setMonthlySubscriptionPrice(req.monthlySubscriptionPrice());
-        }
         profile.setPayoutWalletProvider(req.payoutWalletProvider());
         profile.setPayoutWalletNumber(req.payoutWalletNumber());
         return toMe(userId, profile);

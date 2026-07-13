@@ -39,9 +39,20 @@ export function AuditLogPage() {
               {actions.map((action) => (
                 <TableRow key={action.adminActionId}>
                   <TableCell>{action.adminUsername}</TableCell>
-                  <TableCell className="font-mono text-xs">{action.actionType}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {action.targetType} #{action.targetId}
+                  <TableCell>
+                    <div className="font-medium">
+                      {t(`admin.auditActionTypes.${action.actionType}`, action.actionType)}
+                    </div>
+                    {action.notes && (
+                      <div className="text-xs text-muted-foreground">{action.notes}</div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div>{action.targetLabel ?? `#${action.targetId}`}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {t(`admin.auditTargetTypes.${action.targetType}`, action.targetType)} #
+                      {action.targetId}
+                    </div>
                   </TableCell>
                   <TableCell>{new Date(action.createdAt).toLocaleString()}</TableCell>
                 </TableRow>

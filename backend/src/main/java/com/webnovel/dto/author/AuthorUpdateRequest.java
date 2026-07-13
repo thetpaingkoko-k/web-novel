@@ -1,14 +1,15 @@
 package com.webnovel.dto.author;
 
 import com.webnovel.domain.enums.WalletProvider;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
 
-/** Author self-update. {@code monthlySubscriptionPrice} is ignored unless monetization is enabled (FR-1.5). */
+/**
+ * Author self-update. The subscription price is NOT author-set: it is a system baseline
+ * ({@code app.base-subscription-price-mmk}) applied when monetization is enabled, and only
+ * an admin may adjust it (FR-1.5, §9.3).
+ */
 public record AuthorUpdateRequest(
         @Size(max = 2000) String bio,
-        @DecimalMin(value = "0.0") BigDecimal monthlySubscriptionPrice,
         WalletProvider payoutWalletProvider,
         @Size(max = 50) String payoutWalletNumber) {
 }

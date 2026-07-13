@@ -8,5 +8,6 @@ public enum AdminActionType {
     content_removal,
     ban,
     report_resolution,
-    withdrawal_approval
+    withdrawal_approval,
+    subscription_price_update
 }

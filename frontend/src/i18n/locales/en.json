@@ -171,7 +171,7 @@
     "settingsSaved": "Settings saved.",
     "priceLabel": "Monthly subscription price (MMK)",
     "priceHint": "Readers pay this each month to unlock your premium books.",
-    "priceLockedHint": "Set a price once an admin enables monetization on your account.",
+    "priceLockedHint": "Your subscription price is set by an administrator and cannot be changed here.",
     "priceInvalid": "Enter a valid price",
     "payoutWalletProvider": "Payout wallet provider",
     "payoutWalletNumber": "Payout wallet number",
@@ -331,6 +331,10 @@
     "upgradeApproved": "Author upgraded to professional",
     "reactivate": "Reactivate",
     "userReactivated": "User reactivated",
+    "setPrice": "Set price",
+    "setPriceTitle": "Subscription price for {{user}}",
+    "setPriceDescription": "The monthly price readers pay to subscribe to this author. Defaults to the 5000 MMK baseline; you can adjust it here.",
+    "priceUpdated": "Subscription price updated",
     "role": {
       "reader": "Reader",
       "hobbyist_author": "Hobbyist author",
@@ -392,6 +396,25 @@
     "auditAdmin": "Admin",
     "auditAction": "Action",
     "auditTarget": "Target",
-    "auditWhen": "When"
+    "auditWhen": "When",
+    "auditActionTypes": {
+      "user_approval": "User approval",
+      "content_approval": "Content approved",
+      "content_rejection": "Content rejected",
+      "content_removal": "Content removed",
+      "ban": "Ban / suspension",
+      "report_resolution": "Report resolved",
+      "withdrawal_approval": "Withdrawal approved",
+      "subscription_price_update": "Subscription price set"
+    },
+    "auditTargetTypes": {
+      "user": "User",
+      "book": "Book",
+      "chapter": "Chapter",
+      "chapter_comment": "Comment",
+      "debate_post": "Debate post",
+      "withdrawal": "Withdrawal",
+      "report": "Report"
+    }
   }
 }

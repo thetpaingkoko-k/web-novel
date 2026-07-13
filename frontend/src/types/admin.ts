@@ -10,6 +10,10 @@ export interface AdminUser {
   status: UserStatus
   /** `null` for users without an author profile (plain readers, admins). */
   careerStage: "hobbyist" | "professional" | null
+  /** `false` for non-authors and non-monetized authors. */
+  monetizationEnabled: boolean
+  /** System-baseline subscription price; admin-adjustable. `null` when not monetized. */
+  monthlySubscriptionPrice: number | null
 }
 
 /** `GET /admin/users?status=pending` returns the same row shape. */
@@ -64,6 +68,8 @@ export interface AdminActionLog {
   actionType: AdminActionType
   targetType: string
   targetId: number
+  /** Human-readable target (username, book/chapter title, excerpt…); null if the target was deleted. */
+  targetLabel: string | null
   notes: string | null
   createdAt: string
 }

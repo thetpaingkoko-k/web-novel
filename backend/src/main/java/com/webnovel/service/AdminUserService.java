@@ -1,5 +1,6 @@
 package com.webnovel.service;
 
+import com.webnovel.config.AppProperties;
 import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.User;
 import com.webnovel.domain.enums.AdminActionType;
@@ -9,12 +10,14 @@ import com.webnovel.domain.enums.UserStatus;
 import com.webnovel.dto.admin.AdminUserRow;
 import com.webnovel.dto.admin.ApproveRequest;
 import com.webnovel.dto.admin.UpgradeRequestRow;
+import com.webnovel.dto.author.SubscriptionPriceResponse;
 import com.webnovel.dto.user.UserResponse;
 import com.webnovel.exception.BadRequestException;
 import com.webnovel.exception.NotFoundException;
 import com.webnovel.repository.AuthorProfileRepository;
 import com.webnovel.repository.UserRepository;
 import com.webnovel.security.SecurityUtils;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +36,7 @@ public class AdminUserService {
     private final AuthorProfileRepository authorProfiles;
     private final UserService userService;
     private final AdminActionService adminActions;
+    private final AppProperties props;
 
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
@@ -57,6 +61,11 @@ public class AdminUserService {
                 }
                 profile.setMonetizationEnabled(true);
                 profile.setCareerStage(CareerStage.professional);
+                if (profile.getMonthlySubscriptionPrice() == null) {
+                    // Apply the system baseline so the author is immediately subscribable; an
+                    // admin can adjust it later via setSubscriptionPrice (FR-1.5).
+                    profile.setMonthlySubscriptionPrice(props.baseSubscriptionPriceMmk());
+                }
                 profile.setApprovedAt(OffsetDateTime.now());
                 profile.setProfessionalRequested(false); // clear the upgrade-request queue entry
                 user.setRole(Role.professional_author);
@@ -86,15 +95,39 @@ public class AdminUserService {
         } else {
             found = users.findAllByOrderByIdDesc();
         }
-        Map<Long, CareerStage> stages = new HashMap<>();
+        Map<Long, AuthorProfile> profiles = new HashMap<>();
         if (!found.isEmpty()) {
             authorProfiles.findByUserIdIn(found.stream().map(User::getId).toList())
-                    .forEach(p -> stages.put(p.getUserId(), p.getCareerStage()));
+                    .forEach(p -> profiles.put(p.getUserId(), p));
         }
         return found.stream()
-                .map(u -> new AdminUserRow(u.getId(), u.getUsername(), u.getEmail(),
-                        u.getRole(), u.getStatus(), stages.get(u.getId())))
+                .map(u -> {
+                    AuthorProfile p = profiles.get(u.getId());
+                    return new AdminUserRow(u.getId(), u.getUsername(), u.getEmail(),
+                            u.getRole(), u.getStatus(),
+                            p == null ? null : p.getCareerStage(),
+                            p != null && p.isMonetizationEnabled(),
+                            p == null ? null : p.getMonthlySubscriptionPrice());
+                })
                 .toList();
+    }
+
+    /**
+     * Admin sets a monetized author's monthly subscription price (FR-1.5, §9.3). The price is a
+     * system baseline by default and is never author-set; only an admin adjusts it here. Audited.
+     */
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public SubscriptionPriceResponse setSubscriptionPrice(Long userId, BigDecimal priceMmk) {
+        AuthorProfile profile = authorProfiles.findByUserId(userId)
+                .orElseThrow(() -> new BadRequestException("author.not_monetized"));
+        if (!profile.isMonetizationEnabled()) {
+            throw new BadRequestException("author.not_monetized");
+        }
+        profile.setMonthlySubscriptionPrice(priceMmk);
+        adminActions.log(SecurityUtils.currentUserId(), AdminActionType.subscription_price_update,
+                "user", userId, priceMmk.stripTrailingZeros().toPlainString());
+        return new SubscriptionPriceResponse(userId, priceMmk);
     }
 
     /** Pending hobbyist→professional upgrade requests, oldest first (§4.1.1). */
