@@ -48,7 +48,8 @@ class PaymentServiceTest {
                     java.time.Duration.ofMinutes(15), java.time.Duration.ofDays(30)),
             new BigDecimal("20"), new BigDecimal("5000"), new BigDecimal("5000"), 30,
             new AppProperties.Cors(List.of("http://localhost:5173")),
-            new AppProperties.Uploads("images"));
+            new AppProperties.Uploads("images"),
+            new AppProperties.Google(""));
 
     private PaymentService service() {
         return new PaymentService(submissions, subscriptions, wallets, authorProfiles, earnings,

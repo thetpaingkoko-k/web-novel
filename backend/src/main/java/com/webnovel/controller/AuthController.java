@@ -1,6 +1,7 @@
 package com.webnovel.controller;
 
 import com.webnovel.dto.auth.AuthResponse;
+import com.webnovel.dto.auth.GoogleLoginRequest;
 import com.webnovel.dto.auth.LoginRequest;
 import com.webnovel.dto.auth.RefreshRequest;
 import com.webnovel.dto.auth.RegisterRequest;
@@ -30,6 +31,12 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest req) {
         return authService.login(req);
+    }
+
+    /** Google Sign-In: verify the Google ID token, then create-or-login (rule B). */
+    @PostMapping("/google")
+    public AuthResponse google(@Valid @RequestBody GoogleLoginRequest req) {
+        return authService.loginWithGoogle(req);
     }
 
     @PostMapping("/refresh")

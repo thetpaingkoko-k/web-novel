@@ -14,9 +14,14 @@ public record AppProperties(
         BigDecimal baseSubscriptionPriceMmk,
         int subscriptionDays,
         Cors cors,
-        Uploads uploads) {
+        Uploads uploads,
+        Google google) {
 
     public record Jwt(String secret, Duration accessTtl, Duration refreshTtl) {}
+
+    /** Google Sign-In. {@code clientId} is the OAuth Web client ID; tokens whose
+     *  audience differs are rejected. Blank disables the {@code /auth/google} endpoint. */
+    public record Google(String clientId) {}
 
     public record Cors(List<String> allowedOrigins) {}
 

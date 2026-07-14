@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient, tokenStorage } from "@/api/client"
 import type {
   AuthUser,
+  GoogleLoginRequest,
+  GoogleLoginResponse,
   LoginRequest,
   LoginResponse,
   RegisterRequest,
@@ -28,6 +30,20 @@ export function useLogin() {
   return useMutation({
     mutationFn: async (payload: LoginRequest) => {
       const { data } = await apiClient.post<LoginResponse>("/auth/login", payload)
+      return data
+    },
+    onSuccess: (data) => {
+      tokenStorage.setTokens(data.accessToken, data.refreshToken)
+      queryClient.setQueryData(authKeys.currentUser, data.user)
+    },
+  })
+}
+
+export function useGoogleLogin() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: GoogleLoginRequest) => {
+      const { data } = await apiClient.post<GoogleLoginResponse>("/auth/google", payload)
       return data
     },
     onSuccess: (data) => {

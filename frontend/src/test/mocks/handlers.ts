@@ -67,6 +67,33 @@ export const handlers = [
     return HttpResponse.json(errorBody("unauthorized", "Bad credentials"), { status: 401 })
   }),
 
+  // Google Sign-In. idToken "collision" simulates rule B (email already a password
+  // account → 409); any other token creates-or-logs-in and returns a token pair.
+  http.post("/api/v1/auth/google", async ({ request }) => {
+    const body = (await request.json()) as { idToken?: string }
+    if (!body.idToken) {
+      return HttpResponse.json(errorBody("validation_failed", "idToken required"), { status: 400 })
+    }
+    if (body.idToken === "collision") {
+      return HttpResponse.json(
+        errorBody("email_registered_with_password", "Already registered with a password"),
+        { status: 409 }
+      )
+    }
+    return HttpResponse.json({
+      accessToken: "google-access-token",
+      refreshToken: "google-refresh-token",
+      user: {
+        userId: 7,
+        username: "googler",
+        email: "googler@gmail.com",
+        role: "reader",
+        status: "approved",
+        isMonetizationEnabled: false,
+      },
+    })
+  }),
+
   http.get("/api/v1/books", () => HttpResponse.json(mockBookList)),
   http.get("/api/v1/books/:bookId", () => HttpResponse.json(mockBookDetail)),
 

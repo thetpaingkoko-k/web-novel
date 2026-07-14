@@ -8,6 +8,7 @@ import { Lock, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "./auth-context"
 import { AuthShell } from "./components/auth-shell"
+import { GoogleAuthSection } from "./components/google-auth-section"
 import { IconInput } from "./components/icon-input"
 import { buildLoginSchema, type LoginFormValues } from "./schemas"
 
@@ -75,6 +76,7 @@ export function LoginPage() {
           {t("auth.loginSubmit")}
         </Button>
       </form>
+      <GoogleAuthSection onSuccess={() => navigate(redirectTo, { replace: true })} />
     </AuthShell>
   )
 }

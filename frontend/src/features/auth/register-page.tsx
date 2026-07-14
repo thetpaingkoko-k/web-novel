@@ -8,6 +8,7 @@ import { Lock, Mail, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "./auth-context"
 import { AuthShell } from "./components/auth-shell"
+import { GoogleAuthSection } from "./components/google-auth-section"
 import { IconInput } from "./components/icon-input"
 import { buildRegisterSchema, type RegisterFormValues } from "./schemas"
 
@@ -77,6 +78,7 @@ export function RegisterPage() {
           {t("auth.registerSubmit")}
         </Button>
       </form>
+      <GoogleAuthSection onSuccess={() => navigate("/")} />
     </AuthShell>
   )
 }

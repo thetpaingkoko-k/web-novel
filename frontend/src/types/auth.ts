@@ -33,5 +33,11 @@ export interface UpdateProfileRequest {
   email: string
 }
 
+/** Body for `POST /auth/google` — the ID token ("credential") from Google Identity Services. */
+export interface GoogleLoginRequest {
+  idToken: string
+}
+
 export type LoginResponse = AuthTokens & { user: AuthUser }
 export type RegisterResponse = AuthTokens & { user: AuthUser }
+export type GoogleLoginResponse = LoginResponse

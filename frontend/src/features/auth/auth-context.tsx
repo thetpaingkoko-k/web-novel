@@ -1,13 +1,14 @@
 import { createContext, useContext, useMemo } from "react"
 import { tokenStorage } from "@/api/client"
 import type { AuthUser } from "@/types/auth"
-import { useCurrentUser, useLogin, useLogout, useRegister } from "./api"
+import { useCurrentUser, useGoogleLogin, useLogin, useLogout, useRegister } from "./api"
 
 type AuthContextValue = {
   user: AuthUser | null | undefined
   isLoading: boolean
   isAuthenticated: boolean
   login: ReturnType<typeof useLogin>
+  googleLogin: ReturnType<typeof useGoogleLogin>
   register: ReturnType<typeof useRegister>
   logout: ReturnType<typeof useLogout>
 }
@@ -18,6 +19,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const hasToken = Boolean(tokenStorage.getAccessToken())
   const { data: user, isLoading } = useCurrentUser(hasToken)
   const login = useLogin()
+  const googleLogin = useGoogleLogin()
   const register = useRegister()
   const logout = useLogout()
 
@@ -27,10 +29,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading: hasToken && isLoading,
       isAuthenticated: Boolean(user),
       login,
+      googleLogin,
       register,
       logout,
     }),
-    [user, isLoading, hasToken, login, register, logout]
+    [user, isLoading, hasToken, login, googleLogin, register, logout]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
