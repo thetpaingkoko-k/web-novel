@@ -240,9 +240,21 @@
     font-size: 1.1875rem;
     line-height: 1.85;
     letter-spacing: 0.003em;
+    text-wrap: pretty;
+    overflow-wrap: break-word;
   }
   .reading-prose p + p {
     margin-top: 1.4em;
+  }
+
+  /* Copy deterrent for the reading surface only. This is a soft deterrent, NOT
+     DRM — the text still ships to the browser and a determined reader can
+     extract it. It just discourages casual copy/paste scraping of chapter text.
+     Selection stays enabled everywhere else (title, nav, comments). */
+  .reading-guard {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
   }
 }
 

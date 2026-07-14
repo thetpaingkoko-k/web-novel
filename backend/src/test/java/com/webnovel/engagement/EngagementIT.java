@@ -154,4 +154,63 @@ class EngagementIT extends AuthTestSupport {
                 .andExpect(jsonPath("$[0].commentId", is((int) commentId)))
                 .andExpect(jsonPath("$[0].status", is("removed")));
     }
+
+    /** FR-13.6: an admin may hide and later restore a comment; hidden comments drop out of the thread. */
+    @Test
+    void adminHideAndUnhideComment() throws Exception {
+        registerAndGetToken("hideauthor", "hideauthor@example.com");
+        long authorId = userIdOf("hideauthor@example.com");
+        String adminToken = seedAdminAndGetToken("hideadmin@webnovel.local");
+        approve(adminToken, authorId, ApproveRequest.Kind.verify_author);
+        approve(adminToken, authorId, ApproveRequest.Kind.enable_monetization);
+        String author = relogin("hideauthor@example.com");
+        long chapterId = publishedFreeChapter(author);
+
+        String reader = registerAndGetToken("hidereader", "hidereader@example.com");
+        long bookId = objectMapper.readTree(
+                        mvc.perform(get("/api/v1/chapters/{id}", chapterId).header("Authorization", bearer(reader)))
+                                .andReturn().getResponse().getContentAsString())
+                .get("bookId").asLong();
+        mvc.perform(put("/api/v1/books/{id}/progress", bookId).header("Authorization", bearer(reader))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"chapterId\":" + chapterId + "}"))
+                .andExpect(status().isOk());
+
+        String commentBody = mvc.perform(post("/api/v1/chapters/{id}/comments", chapterId)
+                        .header("Authorization", bearer(reader))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"spammy\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long commentId = objectMapper.readTree(commentBody).get("commentId").asLong();
+
+        // a non-admin cannot hide → 403
+        mvc.perform(put("/api/v1/admin/comments/{id}/hide", commentId).header("Authorization", bearer(reader)))
+                .andExpect(status().isForbidden());
+
+        // admin hides it → 200 with status = hidden
+        mvc.perform(put("/api/v1/admin/comments/{id}/hide", commentId).header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.commentId", is((int) commentId)))
+                .andExpect(jsonPath("$.status", is("hidden")));
+
+        // hidden comments drop out of the non-privileged reader's thread view
+        mvc.perform(get("/api/v1/chapters/{id}/comments", chapterId).header("Authorization", bearer(reader)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(0)));
+
+        // but an admin (privileged) still sees the hidden comment in the thread
+        mvc.perform(get("/api/v1/chapters/{id}/comments", chapterId).header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].commentId", is((int) commentId)))
+                .andExpect(jsonPath("$[0].status", is("hidden")));
+
+        // hiding a non-existent comment → 404
+        mvc.perform(put("/api/v1/admin/comments/{id}/hide", 999999L).header("Authorization", bearer(adminToken)))
+                .andExpect(status().isNotFound());
+
+        // admin restores it → status = visible and it reappears in the thread
+        mvc.perform(put("/api/v1/admin/comments/{id}/unhide", commentId).header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status", is("visible")));
+        mvc.perform(get("/api/v1/chapters/{id}/comments", chapterId).header("Authorization", bearer(reader)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)));
+    }
 }

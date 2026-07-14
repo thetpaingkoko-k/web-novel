@@ -5,7 +5,6 @@ import { BookCard } from "@/components/book-card"
 import { BookCardSkeleton } from "@/components/book-card-skeleton"
 import { EmptyState } from "@/components/empty-state"
 import { QueryError } from "@/components/query-error"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/features/auth/auth-context"
@@ -14,6 +13,7 @@ import { useAuthorFeed } from "@/features/feed/api"
 import { FeedPostCard } from "@/features/feed/components/feed-post-card"
 import { ReportDialog } from "@/features/moderation/report-dialog"
 import { useAuthorProfile } from "./api"
+import { AuthorBadge } from "./author-badge"
 
 export function AuthorProfilePage() {
   const { t } = useTranslation()
@@ -58,9 +58,7 @@ export function AuthorProfilePage() {
             </span>
             <div className="flex flex-col gap-1.5">
               <h1 className="font-display text-3xl font-bold tracking-tight">{author.username}</h1>
-              <Badge variant="secondary" className="w-fit">
-                {t("authors.careerStage." + author.careerStage)}
-              </Badge>
+              <AuthorBadge careerStage={author.careerStage} className="w-fit" />
               <Link
                 to={`/authors/${authorId}/feed`}
                 className="text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline"

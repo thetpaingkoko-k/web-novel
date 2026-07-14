@@ -10,6 +10,7 @@ export const mockBookList: BookListItem[] = [
   {
     bookId: 1,
     authorUsername: "moonlight_writer",
+    careerStage: "professional",
     title: "The Last Ember",
     genres: ["Fantasy"],
     coverImageUrl: null,
@@ -24,6 +25,7 @@ export const mockBookDetail: Book = {
   bookId: 1,
   authorId: 10,
   authorUsername: "moonlight_writer",
+  careerStage: "professional",
   title: "The Last Ember",
   synopsis: "A hobbyist tale of embers and ash.",
   genres: ["Fantasy"],

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useMySubscriptions } from "./api"
+import { ExpiryCountdown } from "./expiry-countdown"
 
 export function MySubscriptionsPage() {
   const { t } = useTranslation()
@@ -64,11 +65,7 @@ export function MySubscriptionsPage() {
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{sub.authorUsername}</p>
-                  {sub.endDate && (
-                    <p className="text-xs text-muted-foreground">
-                      {t("subscribe.expiresOn", { date: new Date(sub.endDate).toLocaleDateString() })}
-                    </p>
-                  )}
+                  {sub.endDate && <ExpiryCountdown endDate={sub.endDate} className="mt-0.5" />}
                 </div>
               </div>
               <Badge variant={sub.status === "active" ? "default" : "secondary"}>

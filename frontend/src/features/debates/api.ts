@@ -68,9 +68,8 @@ export function useCreatePost(threadId: number) {
 }
 
 /**
- * Lock, archive, or reopen a thread (FR-9.6). Allowed for an admin or the
- * thread's creator; the backend enforces authorization and returns the
- * updated thread.
+ * Lock or reopen a thread (FR-9.6). Allowed for an admin or the thread's
+ * creator; the backend enforces authorization and returns the updated thread.
  */
 export function useSetThreadStatus(threadId: number) {
   const queryClient = useQueryClient()

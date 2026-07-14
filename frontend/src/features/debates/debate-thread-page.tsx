@@ -1,11 +1,4 @@
-import {
-  Archive,
-  ChevronLeft,
-  Lock,
-  LockOpen,
-  MessageSquare,
-  MessageSquarePlus,
-} from "lucide-react"
+import { ChevronLeft, Lock, LockOpen, MessageSquare, MessageSquarePlus } from "lucide-react"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
@@ -16,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/features/auth/auth-context"
+import { AuthorBadge } from "@/features/authors/author-badge"
 import { buildPostTree } from "@/lib/post-tree"
 import type { ThreadStatus } from "@/types/debates"
 import { useDebatePosts, useDebateThread, useSetThreadStatus } from "./api"
@@ -58,7 +52,6 @@ export function DebateThreadPage() {
 
   const canModerate = user?.role === "admin" || user?.userId === thread.creatorId
   const isOpen = thread.status === "open"
-  const StatusIcon = thread.status === "archived" ? Archive : Lock
 
   function changeStatus(status: ThreadStatus) {
     setStatus.mutate(
@@ -88,7 +81,7 @@ export function DebateThreadPage() {
           </h1>
           {!isOpen && (
             <Badge variant="secondary" className="gap-1">
-              <StatusIcon className="h-3 w-3" aria-hidden="true" />
+              <Lock className="h-3 w-3" aria-hidden="true" />
               {t("debates.status." + thread.status)}
             </Badge>
           )}
@@ -96,6 +89,7 @@ export function DebateThreadPage() {
 
         <div className="relative flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
           <span>{t("debates.startedBy", { author: thread.creatorUsername })}</span>
+          <AuthorBadge careerStage={thread.careerStage} />
           <span aria-hidden="true">·</span>
           <span className="inline-flex items-center gap-1">
             <MessageSquare className="h-3 w-3" aria-hidden="true" />
@@ -106,26 +100,15 @@ export function DebateThreadPage() {
         {canModerate && (
           <div className="relative flex flex-wrap gap-2 border-t pt-3">
             {isOpen ? (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={setStatus.isPending}
-                  onClick={() => changeStatus("locked")}
-                >
-                  <Lock className="h-4 w-4" />
-                  {t("debates.lock")}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={setStatus.isPending}
-                  onClick={() => changeStatus("archived")}
-                >
-                  <Archive className="h-4 w-4" />
-                  {t("debates.archive")}
-                </Button>
-              </>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={setStatus.isPending}
+                onClick={() => changeStatus("locked")}
+              >
+                <Lock className="h-4 w-4" />
+                {t("debates.lock")}
+              </Button>
             ) : (
               <Button
                 variant="outline"
@@ -148,12 +131,8 @@ export function DebateThreadPage() {
           </div>
         ) : (
           <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">
-            <StatusIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>
-              {thread.status === "archived"
-                ? t("debates.archivedNotice")
-                : t("debates.lockedNotice")}
-            </span>
+            <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{t("debates.lockedNotice")}</span>
           </div>
         ))}
 

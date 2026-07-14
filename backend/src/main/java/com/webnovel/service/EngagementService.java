@@ -5,6 +5,7 @@ import com.webnovel.domain.entity.Chapter;
 import com.webnovel.domain.entity.ChapterComment;
 import com.webnovel.domain.entity.ChapterLike;
 import com.webnovel.domain.entity.ReadingProgress;
+import com.webnovel.domain.enums.AdminActionType;
 import com.webnovel.domain.enums.CommentStatus;
 import com.webnovel.dto.engagement.CommentRequest;
 import com.webnovel.dto.engagement.CommentResponse;
@@ -37,6 +38,7 @@ public class EngagementService {
     private final ChapterCommentRepository comments;
     private final ReadingProgressRepository progress;
     private final BookRepository books;
+    private final AdminActionService adminActions;
 
     // --- likes (FR-8.1, once each; like_count denormalized) ---
 
@@ -106,8 +108,10 @@ public class EngagementService {
             if (lastRead == null || lastRead < chapter.getChapterNumber()) {
                 return List.of();
             }
+            return comments.findThreadByChapter(chapterId);
         }
-        return comments.findThreadByChapter(chapterId);
+        // Admins and the book's author also see moderator-hidden comments (FR-13.6).
+        return comments.findThreadByChapterIncludingHidden(chapterId);
     }
 
     /**
@@ -124,6 +128,25 @@ public class EngagementService {
         }
         comment.setStatus(CommentStatus.removed);
         comments.save(comment);
+    }
+
+    /**
+     * Admin moderation: hides ({@link CommentStatus#hidden}) or restores
+     * ({@link CommentStatus#visible}) a comment and writes an audit entry (§7.3, FR-13.6).
+     * Hidden comments are dropped from the non-privileged reader thread listing, but
+     * remain visible to admins and the book's author (FR-13.6).
+     * 404 if the comment does not exist.
+     */
+    @Transactional
+    public CommentResponse setCommentHidden(Long adminId, Long commentId, boolean hidden) {
+        ChapterComment comment = comments.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("comment.not_found"));
+        comment.setStatus(hidden ? CommentStatus.hidden : CommentStatus.visible);
+        comments.save(comment);
+        adminActions.log(adminId,
+                hidden ? AdminActionType.content_removal : AdminActionType.content_approval,
+                "chapter_comment", commentId, hidden ? "Comment hidden" : "Comment unhidden");
+        return comments.findCommentView(commentId).orElseThrow();
     }
 
     // --- reading progress (FR-10) ---

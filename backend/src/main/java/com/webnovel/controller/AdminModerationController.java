@@ -1,11 +1,13 @@
 package com.webnovel.controller;
 
 import com.webnovel.domain.enums.ReportStatus;
+import com.webnovel.dto.engagement.CommentResponse;
 import com.webnovel.dto.moderation.AdminActionRow;
 import com.webnovel.dto.moderation.AdminReportRow;
 import com.webnovel.dto.moderation.ResolveReportRequest;
 import com.webnovel.security.SecurityUtils;
 import com.webnovel.service.AdminActionService;
+import com.webnovel.service.EngagementService;
 import com.webnovel.service.ReportService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -24,6 +26,7 @@ public class AdminModerationController {
 
     private final ReportService reports;
     private final AdminActionService adminActions;
+    private final EngagementService engagement;
 
     @GetMapping("/reports")
     public List<AdminReportRow> queue(
@@ -39,5 +42,17 @@ public class AdminModerationController {
     @GetMapping("/actions")
     public List<AdminActionRow> auditLog(@RequestParam(defaultValue = "100") int limit) {
         return adminActions.recent(limit);
+    }
+
+    /** Hide a comment (sets status {@code hidden}); audited. Returns the updated comment. */
+    @PutMapping("/comments/{commentId}/hide")
+    public CommentResponse hideComment(@PathVariable Long commentId) {
+        return engagement.setCommentHidden(SecurityUtils.currentUserId(), commentId, true);
+    }
+
+    /** Restore a hidden comment (sets status {@code visible}); audited. Returns the updated comment. */
+    @PutMapping("/comments/{commentId}/unhide")
+    public CommentResponse unhideComment(@PathVariable Long commentId) {
+        return engagement.setCommentHidden(SecurityUtils.currentUserId(), commentId, false);
     }
 }

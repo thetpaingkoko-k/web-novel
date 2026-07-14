@@ -1,5 +1,7 @@
 {
-  "app": { "name": "WebNovel" },
+  "app": {
+    "name": "WebNovel"
+  },
   "nav": {
     "browse": "Browse",
     "home": "Home",
@@ -20,8 +22,15 @@
     "admin": "Admin",
     "dashboard": "Dashboard"
   },
-  "theme": { "toggle": "Toggle theme", "light": "Light", "dark": "Dark", "system": "System" },
-  "language": { "toggle": "Language" },
+  "theme": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "language": {
+    "toggle": "Language"
+  },
   "account": {
     "title": "Account",
     "subtitle": "Manage your profile and account details.",
@@ -150,7 +159,8 @@
     "themeLight": "Light",
     "themeDim": "Dim",
     "themeDark": "Dark",
-    "resetPreferences": "Reset to default"
+    "resetPreferences": "Reset to default",
+    "scheduledFor": "Scheduled for {{date}}"
   },
   "access": {
     "subscribeToUnlockTitle": "Subscribe to keep reading",
@@ -172,7 +182,14 @@
     "deleteBody": "This removes your comment. Any replies to it are kept.",
     "deleted": "Comment deleted",
     "deletedPlaceholder": "[deleted]",
-    "tooLong": "Comments can be at most 2000 characters"
+    "tooLong": "Comments can be at most 2000 characters",
+    "hide": "Hide",
+    "hideTitle": "Hide this comment?",
+    "hideBody": "This removes the comment from the thread for all readers. Replies are kept.",
+    "hidden": "Comment hidden",
+    "hiddenByModerator": "Hidden by moderator",
+    "unhide": "Unhide",
+    "unhidden": "Comment restored"
   },
   "genres": {
     "Fantasy": "Fantasy",
@@ -209,10 +226,8 @@
     "threadNotFound": "This discussion could not be found.",
     "backToDiscussions": "Back to discussions",
     "lock": "Lock",
-    "archive": "Archive",
     "reopen": "Reopen",
     "lockedNotice": "This discussion is locked. New posts are disabled.",
-    "archivedNotice": "This discussion is archived. New posts are disabled.",
     "statusUpdated": "Discussion updated.",
     "postPlaceholder": "Add to the discussion…",
     "replyPlaceholder": "Write a reply…",
@@ -224,8 +239,7 @@
     "downvote": "Downvote",
     "status": {
       "open": "Open",
-      "locked": "Locked",
-      "archived": "Archived"
+      "locked": "Locked"
     }
   },
   "authors": {
@@ -267,6 +281,12 @@
     "careerStage": {
       "hobbyist": "Hobbyist author",
       "professional": "Professional author"
+    },
+    "badge": {
+      "professional": "Professional",
+      "hobbyist": "Hobbyist",
+      "professionalTitle": "Verified professional author",
+      "hobbyistTitle": "Hobbyist author"
     }
   },
   "feed": {
@@ -300,7 +320,26 @@
     "reportedBy": "reported by {{reporter}}",
     "takeAction": "Take action",
     "dismiss": "Dismiss",
-    "resolved": "Report resolved"
+    "resolved": "Report resolved",
+    "presetRequired": "Please choose a reason",
+    "detailsRequired": "Please add a few details",
+    "presetPlaceholder": "Choose a reason…",
+    "detailsLabel": "Additional details (optional)",
+    "presets": {
+      "spam": "Spam",
+      "harassment": "Harassment or hate",
+      "explicit": "Sexually explicit",
+      "spoilers": "Untagged spoilers",
+      "offtopic": "Off-topic",
+      "plagiarism": "Plagiarism / stolen content",
+      "inappropriate": "Inappropriate content",
+      "miscategorized": "Miscategorized",
+      "copyright": "Copyright infringement",
+      "impersonation": "Impersonation",
+      "scam": "Spam or scam",
+      "inappropriate_profile": "Inappropriate profile",
+      "other": "Other"
+    }
   },
   "author": {
     "studioEyebrow": "Author studio",
@@ -393,6 +432,15 @@
     "pendingReview": "Your payment to {{author}} was submitted and is awaiting admin review.",
     "noSubscriptionsYet": "You haven't subscribed to any authors yet.",
     "expiresOn": "Expires {{date}}",
+    "expired": "Expired",
+    "expiresInDays_one": "Expires in {{count}} day",
+    "expiresInDays_other": "Expires in {{count}} days",
+    "expiresInHours_one": "{{count}} hour left",
+    "expiresInHours_other": "{{count}} hours left",
+    "expiresInMinutes_one": "{{count}} minute left",
+    "expiresInMinutes_other": "{{count}} minutes left",
+    "expiresInSeconds_one": "{{count}} second left",
+    "expiresInSeconds_other": "{{count}} seconds left",
     "perMonth": "per month",
     "planHeading": "Monthly subscription",
     "benefitsTitle": "What you'll get",
@@ -518,7 +566,10 @@
     "confirmReject": "Reject",
     "reason": "Reason",
     "reasonPlaceholder": "Explain the reason…",
-    "careerStage": { "hobbyist": "Hobbyist", "professional": "Professional" },
+    "careerStage": {
+      "hobbyist": "Hobbyist",
+      "professional": "Professional"
+    },
     "verifyAuthor": "Verify author",
     "enableMonetization": "Enable monetization",
     "userApproved": "User approved",
@@ -591,6 +642,19 @@
       "debate_post": "Debate post",
       "withdrawal": "Withdrawal",
       "report": "Report"
+    },
+    "checkPayment": "Check payment",
+    "paymentDetailTitle": "Payment review",
+    "openFullScreenshot": "Open full image",
+    "field": {
+      "reader": "Reader",
+      "targetAuthor": "Subscribing to",
+      "provider": "Wallet provider",
+      "amount": "Amount",
+      "last6": "Last 6 digits",
+      "subscriptionId": "Subscription",
+      "submitted": "Submitted",
+      "status": "Status"
     }
   }
 }

@@ -1,3 +1,5 @@
+import type { CareerStage } from "./authors"
+
 export type BookStatus = "draft" | "ongoing" | "completed" | "hiatus"
 export type ChapterStatus = "draft" | "pending_review" | "scheduled" | "published" | "rejected"
 
@@ -6,6 +8,8 @@ export interface Book {
   bookId: number
   authorId: number
   authorUsername: string
+  /** Author's career stage; rendered as an {@link AuthorBadge} when present. */
+  careerStage?: CareerStage | null
   title: string
   synopsis: string | null
   /** Canonical genre enum names (see `lib/genres.ts`). */
@@ -28,6 +32,8 @@ export interface Book {
 export interface BookListItem {
   bookId: number
   authorUsername: string
+  /** Author's career stage; rendered as an {@link AuthorBadge} when present. */
+  careerStage?: CareerStage | null
   title: string
   /** Canonical genre enum names (see `lib/genres.ts`). */
   genres: string[]

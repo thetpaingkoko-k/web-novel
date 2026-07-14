@@ -4,6 +4,7 @@ import { Link } from "react-router"
 import { resolveUploadUrl } from "@/api/uploads"
 import { ProgressRing } from "@/components/progress-ring"
 import { genreLabelKey } from "@/lib/genres"
+import { AuthorBadge } from "@/features/authors/author-badge"
 import type { BookListItem } from "@/types/content"
 
 export function BookCard({ book, to }: { book: BookListItem; to?: string }) {
@@ -52,8 +53,9 @@ export function BookCard({ book, to }: { book: BookListItem; to?: string }) {
         <h3 className="line-clamp-2 text-sm leading-snug font-semibold transition-colors group-hover:text-primary">
           {book.title}
         </h3>
-        <p className="text-xs text-muted-foreground">
-          {t("books.byAuthor", { author: book.authorUsername })}
+        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+          <span className="truncate">{t("books.byAuthor", { author: book.authorUsername })}</span>
+          <AuthorBadge careerStage={book.careerStage} />
         </p>
         <div className="mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-0.5 pt-1 text-xs text-muted-foreground">
           {primaryGenre && (

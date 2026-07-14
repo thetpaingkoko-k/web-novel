@@ -19,7 +19,7 @@ function renderReportDialog() {
 }
 
 describe("ReportDialog", () => {
-  it("files a report and confirms via toast", async () => {
+  it("composes a report from a preset reason plus details", async () => {
     const user = userEvent.setup()
     let received: unknown
     server.use(
@@ -32,24 +32,39 @@ describe("ReportDialog", () => {
     renderReportDialog()
 
     await user.click(screen.getByRole("button", { name: /report/i }))
-    await user.type(screen.getByLabelText(/reason/i), "Spoilers without warning")
+    // Pick the "Untagged spoilers" preset from the reason select.
+    await user.click(screen.getByRole("combobox"))
+    await user.click(await screen.findByRole("option", { name: /untagged spoilers/i }))
+    await user.type(screen.getByLabelText(/additional details/i), "chapter 12 twist")
     await user.click(screen.getByRole("button", { name: /submit report/i }))
 
     expect(await screen.findByText(/report submitted/i)).toBeInTheDocument()
     expect(received).toEqual({
       targetType: "chapter_comment",
       targetId: 5,
-      reason: "Spoilers without warning",
+      reason: "Untagged spoilers: chapter 12 twist",
     })
   })
 
-  it("validates that a reason is required", async () => {
+  it("requires a preset reason to be selected", async () => {
     const user = userEvent.setup()
     renderReportDialog()
 
     await user.click(screen.getByRole("button", { name: /report/i }))
     await user.click(screen.getByRole("button", { name: /submit report/i }))
 
-    expect(await screen.findByText(/required/i)).toBeInTheDocument()
+    expect(await screen.findByText(/please choose a reason/i)).toBeInTheDocument()
+  })
+
+  it("requires details when 'Other' is chosen", async () => {
+    const user = userEvent.setup()
+    renderReportDialog()
+
+    await user.click(screen.getByRole("button", { name: /report/i }))
+    await user.click(screen.getByRole("combobox"))
+    await user.click(await screen.findByRole("option", { name: /^other$/i }))
+    await user.click(screen.getByRole("button", { name: /submit report/i }))
+
+    expect(await screen.findByText(/add a few details/i)).toBeInTheDocument()
   })
 })

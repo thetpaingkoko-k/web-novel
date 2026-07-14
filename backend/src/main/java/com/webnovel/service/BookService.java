@@ -1,9 +1,11 @@
 package com.webnovel.service;
 
+import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.Book;
 import com.webnovel.domain.entity.Chapter;
 import com.webnovel.domain.entity.User;
 import com.webnovel.domain.enums.BookStatus;
+import com.webnovel.domain.enums.CareerStage;
 import com.webnovel.domain.enums.ChapterStatus;
 import com.webnovel.domain.enums.Genre;
 import com.webnovel.domain.enums.Role;
@@ -158,8 +160,10 @@ public class BookService {
 
     private BookDetailResponse toDetail(Book book, List<ChapterSummary> chapterSummaries) {
         String username = users.findById(book.getAuthorId()).map(User::getUsername).orElse(null);
+        CareerStage careerStage = authorProfiles.findByUserId(book.getAuthorId())
+                .map(AuthorProfile::getCareerStage).orElse(null);
         return new BookDetailResponse(
-                book.getId(), book.getAuthorId(), username, book.getTitle(), book.getSynopsis(),
+                book.getId(), book.getAuthorId(), username, careerStage, book.getTitle(), book.getSynopsis(),
                 new ArrayList<>(book.getGenres()), book.getCoverImageUrl(), book.getStatus(), book.isPremium(),
                 book.getCreatedAt(), chapterSummaries);
     }

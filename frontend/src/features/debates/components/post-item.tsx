@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/features/auth/auth-context"
+import { AuthorBadge } from "@/features/authors/author-badge"
 import { ReportDialog } from "@/features/moderation/report-dialog"
 import type { DebatePostWithReplies } from "@/types/debates"
 import { useVotePost } from "../api"
@@ -51,9 +52,10 @@ export function PostItem({ post, threadId, locked, depth = 0 }: PostItemProps) {
         </div>
 
         <div className="flex flex-1 flex-col gap-1">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{post.authorUsername}</span>
-            <span>·</span>
+            <AuthorBadge careerStage={post.careerStage} />
+            <span aria-hidden="true">·</span>
             <span>{new Date(post.createdAt).toLocaleDateString()}</span>
           </div>
           <p className="text-sm whitespace-pre-wrap">{post.content}</p>

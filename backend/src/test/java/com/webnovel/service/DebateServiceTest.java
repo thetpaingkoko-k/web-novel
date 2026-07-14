@@ -10,7 +10,9 @@ import static org.mockito.Mockito.when;
 
 import com.webnovel.domain.entity.DebateThread;
 import com.webnovel.domain.enums.Role;
+import com.webnovel.domain.enums.ThreadStatus;
 import com.webnovel.dto.debate.CreateThreadRequest;
+import com.webnovel.dto.debate.ThreadResponse;
 import com.webnovel.exception.ConflictException;
 import com.webnovel.exception.ErrorCode;
 import com.webnovel.repository.BookRepository;
@@ -19,6 +21,7 @@ import com.webnovel.repository.DebateThreadRepository;
 import com.webnovel.repository.DebateVoteRepository;
 import com.webnovel.security.AppUserPrincipal;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -73,6 +76,8 @@ class DebateServiceTest {
             t.setId(42L);
             return t;
         });
+        when(threads.findThreadView(42L)).thenReturn(Optional.of(new ThreadResponse(
+                42L, 1L, 7L, "reader", null, "Great book", ThreadStatus.open, 0, OffsetDateTime.now())));
 
         var res = service.createThread(reader, 1L, new CreateThreadRequest("Great book"));
 

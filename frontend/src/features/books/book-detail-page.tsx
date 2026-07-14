@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/features/auth/auth-context"
+import { AuthorBadge } from "@/features/authors/author-badge"
 import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button"
 import { ReportDialog } from "@/features/moderation/report-dialog"
 import { useBook, useReadingProgress } from "./api"
@@ -103,7 +104,7 @@ export function BookDetailPage() {
               <h1 className="font-display text-3xl font-bold text-balance sm:text-4xl">
                 {book.title}
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                 <Trans
                   i18nKey="books.byAuthorLink"
                   values={{ author: book.authorUsername }}
@@ -116,6 +117,7 @@ export function BookDetailPage() {
                     ),
                   }}
                 />
+                <AuthorBadge careerStage={book.careerStage} />
               </p>
             </div>
 

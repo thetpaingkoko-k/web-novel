@@ -24,11 +24,12 @@ public interface BookRepository extends JpaRepository<Book, Long> {
      */
     @Query("""
             select new com.webnovel.dto.content.BookListItem(
-                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username,
+                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, ap.careerStage,
                 (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published))
-            from Book b, User u
-            where u.id = b.authorId
-              and b.status <> com.webnovel.domain.enums.BookStatus.draft
+            from Book b
+                join User u on u.id = b.authorId
+                left join AuthorProfile ap on ap.userId = b.authorId
+            where b.status <> com.webnovel.domain.enums.BookStatus.draft
               and (:genre is null or :genre member of b.genres)
               and (:status is null or b.status = :status)
               and (:searchPattern is null
@@ -42,10 +43,12 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     /** Books authored by a given user (for the author's own dashboard / public profile). */
     @Query("""
             select new com.webnovel.dto.content.BookListItem(
-                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username,
+                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, ap.careerStage,
                 (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published))
-            from Book b, User u
-            where u.id = b.authorId and b.authorId = :authorId
+            from Book b
+                join User u on u.id = b.authorId
+                left join AuthorProfile ap on ap.userId = b.authorId
+            where b.authorId = :authorId
             order by b.createdAt desc
             """)
     List<BookListItem> findByAuthor(@Param("authorId") Long authorId);

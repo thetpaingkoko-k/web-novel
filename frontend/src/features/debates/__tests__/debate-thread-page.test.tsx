@@ -67,7 +67,6 @@ describe("DebateThreadPage", () => {
 
     expect(await screen.findByRole("heading", { name: /what is the tea shop/i })).toBeInTheDocument()
     expect(await screen.findByRole("button", { name: /lock/i })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /archive/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/your post/i)).toBeInTheDocument()
   })
 

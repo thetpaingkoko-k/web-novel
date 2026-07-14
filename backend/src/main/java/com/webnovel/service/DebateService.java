@@ -69,8 +69,7 @@ public class DebateService {
         thread.setPostCount(0);
         thread.setCreatedAt(OffsetDateTime.now());
         threads.save(thread);
-        return new ThreadResponse(thread.getId(), bookId, reader.getId(), reader.getUsername(),
-                thread.getTitle(), thread.getStatus(), 0, thread.getCreatedAt());
+        return threads.findThreadView(thread.getId()).orElseThrow();
     }
 
     @Transactional(readOnly = true)
@@ -84,7 +83,7 @@ public class DebateService {
                 .orElseThrow(() -> new NotFoundException("debate.thread_not_found"));
     }
 
-    /** Lock/archive/reopen — admin or the thread's own creator (FR-9.6). */
+    /** Lock/reopen — admin or the thread's own creator (FR-9.6). */
     @Transactional
     public ThreadResponse setStatus(AppUserPrincipal principal, Long threadId, LockRequest req) {
         DebateThread thread = threads.findById(threadId)
@@ -117,9 +116,7 @@ public class DebateService {
         post.setCreatedAt(OffsetDateTime.now());
         posts.save(post);
         thread.setPostCount(thread.getPostCount() + 1);
-        return new PostResponse(post.getId(), threadId, author.getId(), author.getUsername(),
-                post.getParentPostId(), post.getContent(), 0, 0, post.getStatus(),
-                post.getCreatedAt(), null);
+        return posts.findPostView(post.getId(), author.getId()).orElseThrow();
     }
 
     @Transactional(readOnly = true)

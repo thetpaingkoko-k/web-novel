@@ -1,6 +1,7 @@
 package com.webnovel.dto.content;
 
 import com.webnovel.domain.enums.BookStatus;
+import com.webnovel.domain.enums.CareerStage;
 import com.webnovel.domain.enums.Genre;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -10,6 +11,7 @@ public record BookDetailResponse(
         Long bookId,
         Long authorId,
         String authorUsername,
+        CareerStage careerStage,
         String title,
         String synopsis,
         List<Genre> genres,

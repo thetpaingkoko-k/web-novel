@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { BookText, CheckCircle2, Eye, Heart, Image as ImageIcon, ListPlus, PenLine, Rocket, Sparkles } from "lucide-react"
+import { BookText, CalendarClock, CheckCircle2, Eye, Heart, Image as ImageIcon, ListPlus, PenLine, Rocket, Sparkles } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
@@ -60,7 +60,7 @@ function SectionHeading({
 }
 
 export function BookEditorPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { user } = useAuth()
   const { bookId: bookIdParam } = useParams<{ bookId: string }>()
@@ -345,6 +345,17 @@ export function BookEditorPage() {
                               {t("author.completionsCount", { count: chapter.completionCount })}
                             </span>
                           </div>
+                        )}
+                        {chapter.status === "scheduled" && chapter.publishedAt && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />
+                            {t("chapters.scheduledFor", {
+                              date: new Date(chapter.publishedAt).toLocaleString(i18n.language, {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              }),
+                            })}
+                          </span>
                         )}
                       </div>
                     </div>

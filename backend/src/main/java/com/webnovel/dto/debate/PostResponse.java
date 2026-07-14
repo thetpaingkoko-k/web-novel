@@ -1,5 +1,6 @@
 package com.webnovel.dto.debate;
 
+import com.webnovel.domain.enums.CareerStage;
 import com.webnovel.domain.enums.CommentStatus;
 import com.webnovel.domain.enums.VoteType;
 import java.time.OffsetDateTime;
@@ -10,6 +11,7 @@ public record PostResponse(
         Long threadId,
         Long authorId,
         String authorUsername,
+        CareerStage careerStage,
         Long parentPostId,
         String content,
         int upvoteCount,

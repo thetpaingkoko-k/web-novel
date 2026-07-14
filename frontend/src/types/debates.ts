@@ -1,4 +1,6 @@
-export type ThreadStatus = "open" | "locked" | "archived"
+import type { CareerStage } from "./authors"
+
+export type ThreadStatus = "open" | "locked"
 export type VoteType = "up" | "down"
 
 export interface DebateThread {
@@ -6,6 +8,8 @@ export interface DebateThread {
   bookId: number
   creatorId: number
   creatorUsername: string
+  /** Creator's career stage; rendered as an {@link AuthorBadge} when present. */
+  careerStage?: CareerStage | null
   title: string
   status: ThreadStatus
   postCount: number
@@ -17,6 +21,8 @@ export interface DebatePost {
   threadId: number
   authorId: number
   authorUsername: string
+  /** Author's career stage; rendered as an {@link AuthorBadge} when present. */
+  careerStage?: CareerStage | null
   parentPostId: number | null
   content: string
   upvoteCount: number
@@ -37,8 +43,8 @@ export interface CreateThreadRequest {
 
 /**
  * Body for `PUT /debates/{id}/lock` (FR-9.6). Carries the target lifecycle
- * state so the one endpoint covers lock, archive, and reopen. Permitted for
- * an admin or the thread's own creator; the backend is the authority.
+ * state so the one endpoint covers lock and reopen. Permitted for an admin or
+ * the thread's own creator; the backend is the authority.
  */
 export interface SetThreadStatusRequest {
   status: ThreadStatus

@@ -40,6 +40,11 @@ function estimateReadingMinutes(content: string): number {
   return Math.max(1, Math.round(words / WORDS_PER_MINUTE))
 }
 
+/** Soft copy deterrent for the reading surface — blocks copy/cut/right-click. */
+function blockCopy(event: React.SyntheticEvent) {
+  event.preventDefault()
+}
+
 /**
  * A thin scroll-linked progress bar pinned to the top of the viewport. Purely
  * decorative (aria-hidden) and self-contained: it drives an element's transform
@@ -78,7 +83,7 @@ function ReadingProgress() {
 
 export function ChapterReaderPage() {
   const { chapterId } = useParams<{ chapterId: string }>()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { isAuthenticated } = useAuth()
   const id = Number(chapterId)
   const { data: chapter, isLoading, isError, error, refetch } = useChapter(id)
@@ -222,26 +227,33 @@ export function ChapterReaderPage() {
     // The outer column is wide enough for the widest reading setting (60rem);
     // the header/like/nav/comments each re-center themselves in a narrower
     // column so only the reading surface grows with `reader.maxWidthValue`.
-    <div className="mx-auto flex w-full max-w-[64rem] flex-col gap-8">
+    <div className="mx-auto flex w-full max-w-[64rem] flex-col gap-6 sm:gap-8">
       <ReadingProgress />
 
-      {/* Chapter header — mesh-accented card with breadcrumb + reader settings */}
+      {/* Sticky, unobtrusive reader bar — back nav, chapter label, and settings
+          stay reachable while scrolling (Webtoon/Webnovel-style). */}
+      <div className="sticky top-2 z-40 mx-auto flex w-full max-w-2xl items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
+        <Link
+          to={`/books/${chapter.bookId}`}
+          className="inline-flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <Library className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="max-w-[38vw] truncate sm:max-w-xs">
+            {book?.title ?? t("chapters.backToBook")}
+          </span>
+        </Link>
+        <span className="mx-auto hidden shrink-0 text-xs font-medium text-muted-foreground sm:block">
+          {t("chapters.chapterLabel", { number: chapter.chapterNumber })}
+        </span>
+        <div className="ml-auto shrink-0 sm:ml-0">
+          <ReaderControls controller={reader} />
+        </div>
+      </div>
+
+      {/* Chapter header — mesh-accented hero with the chapter title + meta */}
       <header className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border bg-card">
         <div className="bg-mesh pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden="true" />
         <div className="relative flex flex-col gap-5 p-6 sm:p-8">
-          <div className="flex items-center justify-between gap-3">
-            <Link
-              to={`/books/${chapter.bookId}`}
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <Library className="h-4 w-4" aria-hidden="true" />
-              <span className="max-w-48 truncate">
-                {book?.title ?? t("chapters.backToBook")}
-              </span>
-            </Link>
-            <ReaderControls controller={reader} />
-          </div>
-
           <div className="flex flex-col gap-3">
             <span className="brand-gradient inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide text-primary-foreground uppercase">
               {t("chapters.chapterLabel", { number: chapter.chapterNumber })}
@@ -258,9 +270,17 @@ export function ChapterReaderPage() {
                 <>
                   <span aria-hidden="true">·</span>
                   <span>
-                    {t("chapters.publishedOn", {
-                      date: new Date(chapter.publishedAt).toLocaleDateString(),
-                    })}
+                    {t(
+                      chapter.status === "scheduled"
+                        ? "chapters.scheduledFor"
+                        : "chapters.publishedOn",
+                      {
+                        date: new Date(chapter.publishedAt).toLocaleString(i18n.language, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }),
+                      }
+                    )}
                   </span>
                 </>
               )}
@@ -269,12 +289,20 @@ export function ChapterReaderPage() {
         </div>
       </header>
 
-      {/* Immersive reading surface — reader-themed, width- and size-tuned */}
+      {/* Immersive reading surface — reader-themed, width- and size-tuned.
+          Copy/cut/context-menu are blocked here only (a soft deterrent, not DRM;
+          see `.reading-guard` in index.css). Selection elsewhere is untouched. */}
       <div
-        className="mx-auto w-full rounded-2xl border px-6 py-8 shadow-sm transition-colors sm:px-10 sm:py-12"
+        className="mx-auto w-full rounded-2xl border px-5 py-8 shadow-sm transition-colors sm:px-10 sm:py-12"
         style={{ maxWidth: reader.maxWidthValue, ...reader.surface.style }}
       >
-        <div className="reading-prose" style={{ fontSize: reader.fontSizeValue }}>
+        <div
+          className="reading-guard reading-prose"
+          style={{ fontSize: reader.fontSizeValue }}
+          onCopy={blockCopy}
+          onCut={blockCopy}
+          onContextMenu={blockCopy}
+        >
           {paragraphs.map((paragraph, i) => (
             <p key={i} className="whitespace-pre-line">
               {paragraph}

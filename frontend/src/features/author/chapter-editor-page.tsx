@@ -23,6 +23,19 @@ function countWords(text: string) {
   return trimmed ? trimmed.split(/\s+/).length : 0
 }
 
+/**
+ * Convert an ISO-8601 instant into the local "YYYY-MM-DDTHH:mm" string a
+ * `datetime-local` input expects, so a scheduled time round-trips into the
+ * editor. Returns "" when there's no usable value.
+ */
+function toDatetimeLocal(iso: string | null | undefined): string {
+  if (!iso) return ""
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ""
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return local.toISOString().slice(0, 16)
+}
+
 export function ChapterEditorPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -58,9 +71,9 @@ export function ChapterEditorPage() {
       reset({
         title: chapter.title,
         content: chapter.content,
-        // The backend doesn't echo a scheduled time back; the field only feeds
-        // the next publish request.
-        scheduledFor: "",
+        // A scheduled chapter carries its target instant in `publishedAt`; echo
+        // it back into the datetime-local input so the author can see/adjust it.
+        scheduledFor: chapter.status === "scheduled" ? toDatetimeLocal(chapter.publishedAt) : "",
       })
     }
   }, [chapter, reset])

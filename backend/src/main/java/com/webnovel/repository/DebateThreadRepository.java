@@ -26,18 +26,22 @@ public interface DebateThreadRepository extends JpaRepository<DebateThread, Long
 
     @Query("""
             select new com.webnovel.dto.debate.ThreadResponse(
-                t.id, t.bookId, t.creatorId, u.username, t.title, t.status, t.postCount, t.createdAt)
-            from DebateThread t, User u
-            where t.creatorId = u.id and t.bookId = :bookId
+                t.id, t.bookId, t.creatorId, u.username, ap.careerStage, t.title, t.status, t.postCount, t.createdAt)
+            from DebateThread t
+                join User u on u.id = t.creatorId
+                left join AuthorProfile ap on ap.userId = t.creatorId
+            where t.bookId = :bookId
             order by t.createdAt desc
             """)
     List<ThreadResponse> findThreadsByBook(@Param("bookId") Long bookId);
 
     @Query("""
             select new com.webnovel.dto.debate.ThreadResponse(
-                t.id, t.bookId, t.creatorId, u.username, t.title, t.status, t.postCount, t.createdAt)
-            from DebateThread t, User u
-            where t.creatorId = u.id and t.id = :threadId
+                t.id, t.bookId, t.creatorId, u.username, ap.careerStage, t.title, t.status, t.postCount, t.createdAt)
+            from DebateThread t
+                join User u on u.id = t.creatorId
+                left join AuthorProfile ap on ap.userId = t.creatorId
+            where t.id = :threadId
             """)
     Optional<ThreadResponse> findThreadView(@Param("threadId") Long threadId);
 }

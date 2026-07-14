@@ -126,6 +126,45 @@ export function useDeleteComment(chapterId: number) {
   })
 }
 
+/**
+ * Admin moderation: hide a visible comment. `PUT /admin/comments/{id}/hide`
+ * takes no body and returns the updated CommentResponse (status "hidden").
+ * The chapter-comments listing filters hidden comments out for everyone, so we
+ * refetch and the comment drops from the thread. (An `/unhide` endpoint exists
+ * but is driven from the reports/audit flow, not the reader thread.)
+ */
+export function useHideComment(chapterId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (commentId: number) => {
+      const { data } = await apiClient.put<Comment>(`/admin/comments/${commentId}/hide`)
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["chapters", "comments", chapterId] })
+    },
+  })
+}
+
+/**
+ * Admin moderation: unhide a previously hidden comment. `PUT
+ * /admin/comments/{id}/unhide` takes no body and returns the updated
+ * CommentResponse (status "visible"). Refetch so it flips back to a normal
+ * visible comment in the thread.
+ */
+export function useUnhideComment(chapterId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (commentId: number) => {
+      const { data } = await apiClient.put<Comment>(`/admin/comments/${commentId}/unhide`)
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["chapters", "comments", chapterId] })
+    },
+  })
+}
+
 export function usePostComment(chapterId: number) {
   const queryClient = useQueryClient()
   return useMutation({

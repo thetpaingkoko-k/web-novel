@@ -12,7 +12,8 @@ import { CommentItem } from "./comment-item"
 
 export function CommentThread({ chapterId }: { chapterId: number }) {
   const { t } = useTranslation()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
+  const isAdmin = user?.role === "admin"
   const { data, isLoading, isError, refetch } = useChapterComments(chapterId)
 
   const tree = useMemo(() => (data ? buildCommentTree(data) : []), [data])
@@ -33,7 +34,8 @@ export function CommentThread({ chapterId }: { chapterId: number }) {
         )}
       </h2>
 
-      {isAuthenticated && <CommentComposer chapterId={chapterId} />}
+      {/* Admins moderate the thread (read-only + hide); they don't post. */}
+      {isAuthenticated && !isAdmin && <CommentComposer chapterId={chapterId} />}
 
       {isError && <QueryError onRetry={() => refetch()} />}
 

@@ -9,6 +9,7 @@ import {
   AdminStatStrip,
   StatusPill,
 } from "../components/admin-primitives"
+import { PaymentDetailDialog } from "../components/payment-detail-dialog"
 import { QueueShell } from "../components/queue-shell"
 import { RejectWithReasonDialog } from "../components/reject-with-reason-dialog"
 
@@ -104,6 +105,7 @@ export function PaymentsQueuePage() {
                 </div>
               </div>
               <div className="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-border/60 bg-muted/30 px-4 py-3">
+                <PaymentDetailDialog payment={p} />
                 <Button
                   size="sm"
                   variant="success"
