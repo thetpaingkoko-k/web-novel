@@ -1,4 +1,11 @@
-import { Archive, Lock, LockOpen, MessageSquarePlus } from "lucide-react"
+import {
+  Archive,
+  ChevronLeft,
+  Lock,
+  LockOpen,
+  MessageSquare,
+  MessageSquarePlus,
+} from "lucide-react"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
@@ -64,16 +71,21 @@ export function DebateThreadPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <div className="flex flex-col gap-3 border-b pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-xl font-semibold">{thread.title}</h1>
-            <p className="text-xs text-muted-foreground">
-              {t("debates.startedBy", { author: thread.creatorUsername })} ·{" "}
-              {t("debates.postCount", { count: thread.postCount })}
-            </p>
-          </div>
+    <div className="mx-auto flex max-w-2xl flex-col gap-5">
+      <Link
+        to={`/books/${thread.bookId}/debates`}
+        className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        {t("debates.backToDiscussions")}
+      </Link>
+
+      <div className="relative flex flex-col gap-3 overflow-hidden rounded-2xl border bg-card p-5 sm:p-6">
+        <div className="bg-mesh pointer-events-none absolute inset-0 opacity-30" aria-hidden="true" />
+        <div className="relative flex flex-wrap items-start justify-between gap-2">
+          <h1 className="font-display text-xl font-semibold tracking-tight text-balance sm:text-2xl">
+            {thread.title}
+          </h1>
           {!isOpen && (
             <Badge variant="secondary" className="gap-1">
               <StatusIcon className="h-3 w-3" aria-hidden="true" />
@@ -82,15 +94,17 @@ export function DebateThreadPage() {
           )}
         </div>
 
-        <Link
-          to={`/books/${thread.bookId}/debates`}
-          className="w-fit text-sm text-muted-foreground underline underline-offset-4"
-        >
-          {t("debates.backToDiscussions")}
-        </Link>
+        <div className="relative flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+          <span>{t("debates.startedBy", { author: thread.creatorUsername })}</span>
+          <span aria-hidden="true">·</span>
+          <span className="inline-flex items-center gap-1">
+            <MessageSquare className="h-3 w-3" aria-hidden="true" />
+            {t("debates.postCount", { count: thread.postCount })}
+          </span>
+        </div>
 
         {canModerate && (
-          <div className="flex flex-wrap gap-2">
+          <div className="relative flex flex-wrap gap-2 border-t pt-3">
             {isOpen ? (
               <>
                 <Button
@@ -129,7 +143,7 @@ export function DebateThreadPage() {
 
       {isAuthenticated &&
         (isOpen ? (
-          <div className="rounded-lg border p-4">
+          <div className="rounded-xl border bg-card p-4">
             <PostComposer threadId={threadId} />
           </div>
         ) : (

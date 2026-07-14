@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { Ban } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -57,9 +59,17 @@ export function RejectWithReasonDialog({
           {triggerLabel ?? t("admin.reject")}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="rounded-2xl">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <div className="flex items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+              <Ban className="size-5" aria-hidden />
+            </span>
+            <div className="space-y-1">
+              <DialogTitle>{title}</DialogTitle>
+              <DialogDescription>{t("admin.rejectDialogHint")}</DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
           <Field data-invalid={!!errors.reason}>

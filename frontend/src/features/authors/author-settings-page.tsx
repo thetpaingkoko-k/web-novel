@@ -1,11 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { Settings2, UserRound, Wallet } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { QueryError } from "@/components/query-error"
+import { StudioHero } from "@/components/studio-hero"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
@@ -15,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import type { WalletProvider } from "@/types/subscriptions"
@@ -23,6 +27,31 @@ import { useMyAuthorProfile, useUpdateAuthorProfile } from "./api"
 import { buildAuthorSettingsSchema, type AuthorSettingsFormSchema } from "./schemas"
 
 const WALLET_PROVIDERS: WalletProvider[] = ["KBZPay", "WavePay", "AYAPay", "other"]
+
+function SectionHeading({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: LucideIcon
+  title: string
+  description?: string
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+        aria-hidden="true"
+      >
+        <Icon className="size-4.5" />
+      </span>
+      <div className="flex flex-col gap-0.5">
+        <h2 className="font-display text-sm font-semibold">{title}</h2>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </div>
+    </div>
+  )
+}
 
 export function AuthorSettingsPage() {
   const { t } = useTranslation()
@@ -64,9 +93,9 @@ export function AuthorSettingsPage() {
 
   if (isLoading || !profile) {
     return (
-      <div className="mx-auto flex max-w-lg flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
         <Skeleton className="h-8 w-1/2" />
-        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-80 w-full rounded-xl" />
       </div>
     )
   }
@@ -86,17 +115,24 @@ export function AuthorSettingsPage() {
   })
 
   return (
-    <div className="mx-auto flex max-w-lg flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
+      <StudioHero
+        eyebrow={t("authors.studioEyebrow")}
+        icon={Settings2}
+        title={t("authors.settingsTitle")}
+        subtitle={t("authors.settingsSubtitle")}
+      />
+
       <Card>
-        <CardHeader>
-          <CardTitle>{t("authors.settingsTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-2">
           <form onSubmit={onSubmit} noValidate>
             <FieldGroup>
+              <SectionHeading icon={UserRound} title={t("authors.profileSection")} />
+
               <Field data-invalid={!!errors.bio}>
                 <FieldLabel htmlFor="settings-bio">{t("authors.bioLabel")}</FieldLabel>
                 <Textarea id="settings-bio" rows={4} aria-invalid={!!errors.bio} {...register("bio")} />
+                <FieldDescription>{t("authors.bioHint")}</FieldDescription>
                 <FieldError errors={[errors.bio]} />
               </Field>
 
@@ -110,6 +146,14 @@ export function AuthorSettingsPage() {
                 </Field>
               )}
 
+              <Separator />
+
+              <SectionHeading
+                icon={Wallet}
+                title={t("authors.payoutSection")}
+                description={t("authors.payoutHint")}
+              />
+
               <Field>
                 <FieldLabel htmlFor="settings-wallet-provider">
                   {t("authors.payoutWalletProvider")}
@@ -118,7 +162,7 @@ export function AuthorSettingsPage() {
                   value={watch("payoutWalletProvider") ?? undefined}
                   onValueChange={(v) => setValue("payoutWalletProvider", v as WalletProvider)}
                 >
-                  <SelectTrigger id="settings-wallet-provider">
+                  <SelectTrigger id="settings-wallet-provider" className="max-w-xs">
                     <SelectValue placeholder={t("authors.selectProvider")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -131,7 +175,7 @@ export function AuthorSettingsPage() {
                 </Select>
               </Field>
 
-              <Field data-invalid={!!errors.payoutWalletNumber}>
+              <Field data-invalid={!!errors.payoutWalletNumber} className="max-w-xs">
                 <FieldLabel htmlFor="settings-wallet-number">
                   {t("authors.payoutWalletNumber")}
                 </FieldLabel>
@@ -144,7 +188,9 @@ export function AuthorSettingsPage() {
                 <FieldError errors={[errors.payoutWalletNumber]} />
               </Field>
 
-              <Button type="submit" className="w-fit" disabled={update.isPending}>
+              <Separator />
+
+              <Button type="submit" className="glow-brand-hover w-fit" disabled={update.isPending}>
                 {t("common.save")}
               </Button>
             </FieldGroup>

@@ -1,5 +1,5 @@
+import { BookText, Check, Clock, Eye, FileCheck } from "lucide-react"
 import { useState } from "react"
-import { FileCheck } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { useChapter } from "@/features/chapters/api"
 import { useApproveChapter, usePendingChapters, useRejectChapter } from "../api"
+import {
+  AdminStat,
+  AdminStatStrip,
+  StatusPill,
+} from "../components/admin-primitives"
 import { QueueShell } from "../components/queue-shell"
 import { RejectWithReasonDialog } from "../components/reject-with-reason-dialog"
 
@@ -29,11 +34,12 @@ function ReviewContentDialog({ chapterId, title }: { chapterId: number; title: s
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
+        <Button size="sm" variant="info">
+          <Eye />
           {t("admin.reviewContent")}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto rounded-2xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -61,32 +67,61 @@ export function ChaptersQueuePage() {
 
   return (
     <QueueShell
+      title={t("admin.tabs.chapters")}
+      description={t("admin.desc.chapters")}
       isLoading={isLoading}
       isError={isError}
       onRetry={() => refetch()}
       data={data}
       emptyIcon={FileCheck}
       emptyMessage={t("admin.chaptersEmpty")}
+      summary={(chapters) => (
+        <AdminStatStrip>
+          <AdminStat
+            label={t("admin.stat.awaitingReview")}
+            value={chapters.length}
+            icon={Clock}
+            tone="warning"
+          />
+        </AdminStatStrip>
+      )}
     >
       {(chapters) => (
-        <ul className="flex flex-col gap-3">
+        <ul className="grid gap-3 xl:grid-cols-2">
           {chapters.map((chapter) => (
-            <li key={chapter.chapterId} className="flex flex-col gap-3 rounded-lg border p-4">
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium">
-                  {chapter.bookTitle} · {t("chapters.chapterLabel", { number: chapter.chapterNumber })}: {chapter.title}
+            <li
+              key={chapter.chapterId}
+              className="group hover-lift flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-colors hover:border-primary/30"
+            >
+              <div className="flex items-start gap-3.5 p-4">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <BookText className="size-5" aria-hidden />
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {t("books.byAuthor", { author: chapter.authorUsername })}
-                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="line-clamp-2 text-sm font-semibold">
+                      {t("chapters.chapterLabel", { number: chapter.chapterNumber })}: {chapter.title}
+                    </span>
+                    <StatusPill tone="warning" icon={Clock} className="shrink-0">
+                      {t("admin.status.pending")}
+                    </StatusPill>
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground" title={chapter.bookTitle}>
+                    {chapter.bookTitle}
+                  </p>
+                  <p className="mt-1.5 truncate text-xs text-muted-foreground">
+                    {t("books.byAuthor", { author: chapter.authorUsername })}
+                  </p>
+                </div>
               </div>
-              <div className="flex gap-2">
+              <div className="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-border/60 bg-muted/30 px-4 py-3">
                 <ReviewContentDialog
                   chapterId={chapter.chapterId}
                   title={`${t("chapters.chapterLabel", { number: chapter.chapterNumber })}: ${chapter.title}`}
                 />
                 <Button
                   size="sm"
+                  variant="success"
                   disabled={approve.isPending}
                   onClick={() =>
                     approve.mutate(chapter.chapterId, {
@@ -95,6 +130,7 @@ export function ChaptersQueuePage() {
                     })
                   }
                 >
+                  <Check />
                   {t("admin.approve")}
                 </Button>
                 <RejectWithReasonDialog

@@ -1,3 +1,4 @@
+import { Coins } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
@@ -38,10 +39,17 @@ export function SetPriceDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="rounded-2xl">
         <DialogHeader>
-          <DialogTitle>{t("admin.setPriceTitle", { user: username })}</DialogTitle>
-          <DialogDescription>{t("admin.setPriceDescription")}</DialogDescription>
+          <div className="flex items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-info/10 text-info">
+              <Coins className="size-5" aria-hidden />
+            </span>
+            <div className="space-y-1">
+              <DialogTitle>{t("admin.setPriceTitle", { user: username })}</DialogTitle>
+              <DialogDescription>{t("admin.setPriceDescription")}</DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         <Field>
           <FieldLabel htmlFor="admin-set-price">{t("authors.priceLabel")}</FieldLabel>

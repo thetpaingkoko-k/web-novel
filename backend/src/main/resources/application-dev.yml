@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/webnovel}
-    username: ${DB_USERNAME:webnovel}
-    password: ${DB_PASSWORD:webnovel}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:root}
   jpa:
     properties:
       hibernate:
