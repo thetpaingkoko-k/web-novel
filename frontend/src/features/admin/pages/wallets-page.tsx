@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { CheckCircle2, Plus, PowerOff, WalletCards } from "lucide-react"
 import { useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -16,7 +17,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -31,6 +31,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import type { WalletProvider } from "@/types/subscriptions"
 import { useAddWallet, useAdminWallets, useDeactivateWallet } from "../api"
+import { AdminPageHeader } from "../components/admin-page-header"
+import { StatusPill } from "../components/admin-primitives"
 
 const PROVIDERS: WalletProvider[] = ["KBZPay", "WavePay", "AYAPay", "other"]
 
@@ -74,9 +76,18 @@ export function WalletsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card>
+      <AdminPageHeader
+        title={t("admin.tabs.wallets")}
+        description={t("admin.desc.wallets")}
+        icon={WalletCards}
+      />
+
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle>{t("admin.addWallet")}</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Plus className="size-4 text-primary" aria-hidden />
+            {t("admin.addWallet")}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} noValidate>
@@ -105,6 +116,7 @@ export function WalletsPage() {
                 <FieldError errors={[errors.walletNumber]} />
               </Field>
               <Button type="submit" className="w-fit" disabled={addWallet.isPending}>
+                <Plus />
                 {t("admin.addWallet")}
               </Button>
             </FieldGroup>
@@ -114,34 +126,55 @@ export function WalletsPage() {
 
       {isError && <QueryError onRetry={() => refetch()} />}
 
-      {isLoading && <Skeleton className="h-24 w-full" />}
+      {isLoading && <Skeleton className="h-24 w-full rounded-2xl" />}
 
       {!isError && !isLoading && data && (
         <ul className="flex flex-col gap-2">
           {data.map((wallet) => (
-            <li key={wallet.walletId} className="flex items-center justify-between gap-3 rounded-lg border p-4">
-              <div className="flex items-center gap-3 text-sm">
-                <span className="font-medium">{wallet.provider}</span>
-                <span className="text-muted-foreground">{wallet.walletNumber}</span>
-                <Badge variant={wallet.isActive ? "default" : "secondary"}>
+            <li
+              key={wallet.walletId}
+              className="hover-lift flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-sm"
+            >
+              <div className="flex min-w-0 items-center gap-3 text-sm">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <WalletCards className="size-5" aria-hidden />
+                </span>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="font-medium">{wallet.provider}</span>
+                  <span className="text-muted-foreground">{wallet.walletNumber}</span>
+                </div>
+                <StatusPill
+                  tone={wallet.isActive ? "success" : "muted"}
+                  icon={wallet.isActive ? CheckCircle2 : PowerOff}
+                  className="ml-1"
+                >
                   {t(wallet.isActive ? "admin.walletActive" : "admin.walletInactive")}
-                </Badge>
+                </StatusPill>
               </div>
               {wallet.isActive && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button variant="warning" size="sm">
+                      <PowerOff />
                       {t("admin.deactivate")}
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="rounded-2xl">
                     <AlertDialogHeader>
-                      <AlertDialogTitle>{t("admin.deactivateWalletTitle")}</AlertDialogTitle>
-                      <AlertDialogDescription>{t("admin.deactivateWalletBody")}</AlertDialogDescription>
+                      <div className="flex items-start gap-3">
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning/10 text-warning">
+                          <PowerOff className="size-5" aria-hidden />
+                        </span>
+                        <div className="space-y-1">
+                          <AlertDialogTitle>{t("admin.deactivateWalletTitle")}</AlertDialogTitle>
+                          <AlertDialogDescription>{t("admin.deactivateWalletBody")}</AlertDialogDescription>
+                        </div>
+                      </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                       <AlertDialogAction
+                        className="bg-warning text-white hover:bg-warning/90"
                         onClick={() =>
                           deactivate.mutate(wallet.walletId, {
                             onSuccess: () => toast.success(t("admin.walletDeactivated")),

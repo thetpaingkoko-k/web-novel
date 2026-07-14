@@ -4,11 +4,11 @@ import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
+import { Lock, Mail, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
 import { useAuth } from "./auth-context"
+import { AuthShell } from "./components/auth-shell"
+import { IconInput } from "./components/icon-input"
 import { buildRegisterSchema, type RegisterFormValues } from "./schemas"
 
 export function RegisterPage() {
@@ -34,59 +34,49 @@ export function RegisterPage() {
   })
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>{t("auth.registerTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmit} noValidate>
-            <FieldGroup>
-              <Field data-invalid={!!errors.username}>
-                <FieldLabel htmlFor="register-username">{t("auth.username")}</FieldLabel>
-                <Input
-                  id="register-username"
-                  autoComplete="username"
-                  aria-invalid={!!errors.username}
-                  {...register("username")}
-                />
-                <FieldError errors={[errors.username]} />
-              </Field>
-              <Field data-invalid={!!errors.email}>
-                <FieldLabel htmlFor="register-email">{t("auth.email")}</FieldLabel>
-                <Input
-                  id="register-email"
-                  type="email"
-                  autoComplete="email"
-                  aria-invalid={!!errors.email}
-                  {...register("email")}
-                />
-                <FieldError errors={[errors.email]} />
-              </Field>
-              <Field data-invalid={!!errors.password}>
-                <FieldLabel htmlFor="register-password">{t("auth.password")}</FieldLabel>
-                <Input
-                  id="register-password"
-                  type="password"
-                  autoComplete="new-password"
-                  aria-invalid={!!errors.password}
-                  {...register("password")}
-                />
-                <FieldError errors={[errors.password]} />
-              </Field>
-              <Button type="submit" className="w-full" disabled={registerUser.isPending}>
-                {t("auth.registerSubmit")}
-              </Button>
-            </FieldGroup>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            {t("auth.hasAccount")}{" "}
-            <Link to="/login" className="text-primary underline underline-offset-4">
-              {t("auth.loginSubmit")}
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <AuthShell
+      title={t("auth.registerTitle")}
+      subtitle={t("auth.registerSubtitle")}
+      footer={
+        <>
+          {t("auth.hasAccount")}{" "}
+          <Link to="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+            {t("auth.loginSubmit")}
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+        <IconInput
+          id="register-username"
+          icon={User}
+          label={t("auth.username")}
+          autoComplete="username"
+          error={errors.username?.message}
+          {...register("username")}
+        />
+        <IconInput
+          id="register-email"
+          icon={Mail}
+          label={t("auth.email")}
+          type="email"
+          autoComplete="email"
+          error={errors.email?.message}
+          {...register("email")}
+        />
+        <IconInput
+          id="register-password"
+          icon={Lock}
+          label={t("auth.password")}
+          type="password"
+          autoComplete="new-password"
+          error={errors.password?.message}
+          {...register("password")}
+        />
+        <Button type="submit" className="mt-1 h-11 w-full" disabled={registerUser.isPending}>
+          {t("auth.registerSubmit")}
+        </Button>
+      </form>
+    </AuthShell>
   )
 }

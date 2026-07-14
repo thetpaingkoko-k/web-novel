@@ -14,6 +14,13 @@ export interface Book {
   isPremium: boolean
   createdAt: string
   chapters: ChapterSummary[]
+  /**
+   * Optional denormalized engagement counters. Added by the backend in
+   * parallel; each is rendered only when present (`!= null`).
+   */
+  viewCount?: number | null
+  bookmarkCount?: number | null
+  likeCount?: number | null
 }
 
 /** `GET /books` row — BookListItem. */

@@ -17,9 +17,21 @@ export function CommentThread({ chapterId }: { chapterId: number }) {
 
   const tree = useMemo(() => (data ? buildCommentTree(data) : []), [data])
 
+  const count = tree.length
+
   return (
-    <section className="flex flex-col gap-4">
-      <h2 className="text-lg font-medium">{t("comments.title")}</h2>
+    <section className="flex flex-col gap-5 border-t pt-8">
+      <h2 className="font-display flex items-center gap-2.5 text-lg font-semibold">
+        <span className="brand-gradient flex h-8 w-8 items-center justify-center rounded-lg text-primary-foreground">
+          <MessageSquare className="h-4 w-4" aria-hidden="true" />
+        </span>
+        {t("comments.title")}
+        {count > 0 && (
+          <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground tabular-nums">
+            {count}
+          </span>
+        )}
+      </h2>
 
       {isAuthenticated && <CommentComposer chapterId={chapterId} />}
 
@@ -28,7 +40,7 @@ export function CommentThread({ chapterId }: { chapterId: number }) {
       {!isError && isLoading && (
         <div className="flex flex-col gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
+            <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
         </div>
       )}
@@ -38,7 +50,7 @@ export function CommentThread({ chapterId }: { chapterId: number }) {
       )}
 
       {!isError && !isLoading && tree.length > 0 && (
-        <div className="flex flex-col divide-y">
+        <div className="flex flex-col gap-4">
           {tree.map((comment) => (
             <CommentItem key={comment.commentId} comment={comment} chapterId={chapterId} />
           ))}

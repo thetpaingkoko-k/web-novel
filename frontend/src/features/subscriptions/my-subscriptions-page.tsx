@@ -13,15 +13,28 @@ export function MySubscriptionsPage() {
   const { data, isLoading, isError, refetch } = useMySubscriptions()
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("nav.mySubscriptions")}</h1>
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+      <div className="flex items-center gap-3">
+        <span
+          className="brand-gradient glow-brand flex size-12 shrink-0 items-center justify-center rounded-2xl text-white"
+          aria-hidden="true"
+        >
+          <BookHeart className="size-6" />
+        </span>
+        <div className="space-y-1">
+          <h1 className="font-display text-2xl font-bold tracking-tight">
+            {t("nav.mySubscriptions")}
+          </h1>
+          <p className="text-sm text-muted-foreground">{t("subscribe.mySubscriptionsSubtitle")}</p>
+        </div>
+      </div>
 
       {isError && <QueryError onRetry={() => refetch()} />}
 
       {!isError && isLoading && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full" />
+            <Skeleton key={i} className="h-20 w-full rounded-2xl" />
           ))}
         </div>
       )}
@@ -39,21 +52,31 @@ export function MySubscriptionsPage() {
       )}
 
       {!isError && !isLoading && data && data.length > 0 && (
-        <ol className="flex flex-col divide-y rounded-lg border">
+        <ul className="flex flex-col gap-3">
           {data.map((sub) => (
-            <li key={sub.subscriptionId} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-              <span className="font-medium">{sub.authorUsername}</span>
-              <div className="flex items-center gap-3 text-muted-foreground">
-                {sub.endDate && (
-                  <span>{t("subscribe.expiresOn", { date: new Date(sub.endDate).toLocaleDateString() })}</span>
-                )}
-                <Badge variant={sub.status === "active" ? "default" : "secondary"}>
-                  {t("subscribe.status." + sub.status)}
-                </Badge>
+            <li
+              key={sub.subscriptionId}
+              className="hover-lift flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-sm"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="brand-gradient flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-white shadow-sm shadow-primary/20">
+                  {sub.authorUsername.charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{sub.authorUsername}</p>
+                  {sub.endDate && (
+                    <p className="text-xs text-muted-foreground">
+                      {t("subscribe.expiresOn", { date: new Date(sub.endDate).toLocaleDateString() })}
+                    </p>
+                  )}
+                </div>
               </div>
+              <Badge variant={sub.status === "active" ? "default" : "secondary"}>
+                {t("subscribe.status." + sub.status)}
+              </Badge>
             </li>
           ))}
-        </ol>
+        </ul>
       )}
     </div>
   )

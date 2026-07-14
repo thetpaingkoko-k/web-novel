@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Clock } from "lucide-react"
+import { Check, Clock, Sparkles } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -58,9 +58,10 @@ export function SubscribePage() {
 
   if (authorLoading || walletLoading || !author || !wallet) {
     return (
-      <div className="mx-auto flex max-w-sm flex-col gap-4">
+      <div className="mx-auto flex max-w-md flex-col gap-4">
         <Skeleton className="h-8 w-1/2" />
         <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-64 w-full" />
       </div>
     )
   }
@@ -81,15 +82,54 @@ export function SubscribePage() {
     )
   })
 
+  const price = author.monthlySubscriptionPrice ?? 0
+  const benefits = [
+    t("subscribe.benefit1", { author: author.username }),
+    t("subscribe.benefit2", { author: author.username }),
+    t("subscribe.benefit3"),
+  ]
+
   return (
-    <div className="mx-auto flex max-w-sm flex-col gap-4">
-      <Card>
+    <div className="mx-auto flex max-w-md flex-col gap-6">
+      {/* Plan card with brand price hero */}
+      <Card className="glow-brand overflow-hidden rounded-2xl border-border/70">
+        <div className="brand-gradient relative isolate overflow-hidden p-6 text-white">
+          <div className="pointer-events-none absolute -top-12 -right-8 -z-10 h-40 w-40 rounded-full bg-white/15 blur-3xl" />
+          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-white/90">
+            <Sparkles className="size-4" aria-hidden="true" />
+            {t("subscribe.planHeading")}
+          </p>
+          <h1 className="font-display mt-2 text-2xl font-bold tracking-tight">
+            {t("subscribe.title", { author: author.username })}
+          </h1>
+          <p className="mt-4 flex items-baseline gap-1.5">
+            <span className="font-display text-4xl font-bold">{price.toLocaleString()}</span>
+            <span className="text-sm text-white/85">MMK · {t("subscribe.perMonth")}</span>
+          </p>
+        </div>
+        <CardContent className="pt-6">
+          <p className="mb-3 text-sm font-medium">{t("subscribe.benefitsTitle")}</p>
+          <ul className="flex flex-col gap-2.5">
+            {benefits.map((benefit) => (
+              <li key={benefit} className="flex items-start gap-2.5 text-sm">
+                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                  <Check className="size-3" strokeWidth={3} />
+                </span>
+                {benefit}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
+      {/* Payment submission form */}
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle>{t("subscribe.title", { author: author.username })}</CardTitle>
+          <CardTitle className="text-lg">{t("subscribe.paymentHeading")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="rounded-lg border bg-muted/50 p-3 text-sm">
-            <p>{t("subscribe.priceLabel", { price: author.monthlySubscriptionPrice ?? 0 })}</p>
+          <div className="rounded-xl border border-border/70 bg-muted/50 p-3 text-sm">
+            <p>{t("subscribe.priceLabel", { price })}</p>
             <p className="mt-1 text-muted-foreground">
               {t("subscribe.walletLabel", { provider: wallet.provider, number: wallet.walletNumber })}
             </p>

@@ -28,8 +28,10 @@ function renderLoginPage(initialEntries: InitialEntry[] = ["/login"]) {
 
 async function submitValidCredentials() {
   const user = userEvent.setup()
-  await user.type(screen.getByLabelText(/email/i), "reader@example.com")
-  await user.type(screen.getByLabelText(/password/i), "password123")
+  // Exact labels: the password field's show/hide toggle is also named
+  // "Show password", so a loose /password/i would match two elements.
+  await user.type(screen.getByLabelText("Email"), "reader@example.com")
+  await user.type(screen.getByLabelText("Password"), "password123")
   await user.click(screen.getByRole("button", { name: /log in/i }))
 }
 
@@ -38,8 +40,8 @@ describe("LoginPage", () => {
     const user = userEvent.setup()
     renderLoginPage()
 
-    await user.type(screen.getByLabelText(/email/i), "not-an-email")
-    await user.type(screen.getByLabelText(/password/i), "password123")
+    await user.type(screen.getByLabelText("Email"), "not-an-email")
+    await user.type(screen.getByLabelText("Password"), "password123")
     await user.click(screen.getByRole("button", { name: /log in/i }))
 
     expect(await screen.findByText(/valid email/i)).toBeInTheDocument()

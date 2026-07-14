@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { isAxiosError } from "axios"
-import { Heart, Lock } from "lucide-react"
+import { ChevronLeft, ChevronRight, Clock, Heart, Library, Lock } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 import { QueryError } from "@/components/query-error"
@@ -12,11 +12,69 @@ import { useBook, useUpdateReadingProgress } from "@/features/books/api"
 import type { AccessDeniedError } from "@/types/content"
 import { CommentThread } from "./components/comment-thread"
 import { useChapter, useLikeChapter, useRecordChapterView } from "./api"
+import { ReaderControls, useReaderPreferences } from "./reader-preferences"
 
 /** Fraction of the page that must be scrolled to count a chapter as read. */
 const COMPLETION_SCROLL_RATIO = 0.9
 /** Dwell time (ms) that completes a chapter too short to scroll. */
 const COMPLETION_DWELL_MS = 8000
+/** Average adult reading speed used to estimate a chapter's reading time. */
+const WORDS_PER_MINUTE = 200
+
+/** Split chapter text into paragraphs faithfully, preferring blank-line breaks. */
+function splitParagraphs(content: string): string[] {
+  const byBlankLine = content
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+  if (byBlankLine.length > 1) return byBlankLine
+  const byLine = content
+    .split(/\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+  return byLine.length > 0 ? byLine : [content]
+}
+
+function estimateReadingMinutes(content: string): number {
+  const words = content.trim().split(/\s+/).filter(Boolean).length
+  return Math.max(1, Math.round(words / WORDS_PER_MINUTE))
+}
+
+/**
+ * A thin scroll-linked progress bar pinned to the top of the viewport. Purely
+ * decorative (aria-hidden) and self-contained: it drives an element's transform
+ * directly via a ref, so it never re-renders the reader or touches the
+ * completion/reading-progress logic.
+ */
+function ReadingProgress() {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let raf = 0
+    function onScroll() {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        const scrollable = document.documentElement.scrollHeight - window.innerHeight
+        const ratio = scrollable > 0 ? Math.min(1, Math.max(0, window.scrollY / scrollable)) : 0
+        if (ref.current) ref.current.style.transform = `scaleX(${ratio})`
+      })
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    onScroll()
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      cancelAnimationFrame(raf)
+    }
+  }, [])
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-50 h-1" aria-hidden="true">
+      <div
+        ref={ref}
+        className="brand-gradient h-full origin-left"
+        style={{ transform: "scaleX(0)" }}
+      />
+    </div>
+  )
+}
 
 export function ChapterReaderPage() {
   const { chapterId } = useParams<{ chapterId: string }>()
@@ -32,6 +90,11 @@ export function ChapterReaderPage() {
   useEffect(() => setLiked(chapter?.likedByMe ?? false), [id, chapter?.likedByMe])
   const { data: book } = useBook(chapter?.bookId ?? Number.NaN)
   const updateProgress = useUpdateReadingProgress(chapter?.bookId ?? Number.NaN)
+  const reader = useReaderPreferences()
+
+  const content = chapter?.content ?? ""
+  const paragraphs = useMemo(() => splitParagraphs(content), [content])
+  const readingMinutes = useMemo(() => estimateReadingMinutes(content), [content])
 
   // Record a view once per chapter load (fire-and-forget; never blocks content).
   useEffect(() => {
@@ -80,24 +143,47 @@ export function ChapterReaderPage() {
       const authorId = denial.details?.authorId
       const authorUsername = denial.details?.authorUsername ?? t("access.unknownAuthor")
       return (
-        <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-          <Lock className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
-          <h1 className="text-lg font-medium">{t("access.subscribeToUnlockTitle")}</h1>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            {t(
-              denial.code === "expired_subscription"
-                ? "access.expiredSubscriptionBody"
-                : "access.noSubscriptionBody",
-              { author: authorUsername }
-            )}
-          </p>
-          {authorId != null && (
-            <Button asChild>
-              <Link to={`/authors/${authorId}/subscribe`}>
-                {t("access.subscribeAction", { author: authorUsername })}
-              </Link>
-            </Button>
-          )}
+        <div className="mx-auto max-w-md py-12">
+          <div className="glow-brand relative overflow-hidden rounded-3xl border bg-card text-center">
+            <div className="bg-mesh pointer-events-none absolute inset-0 opacity-50" aria-hidden="true" />
+            <div className="relative flex flex-col items-center gap-6 px-6 py-12 sm:px-10">
+              <div className="relative flex h-24 w-24 items-center justify-center">
+                <span
+                  className="brand-gradient absolute inset-0 animate-pulse rounded-full opacity-20 blur-md"
+                  aria-hidden="true"
+                />
+                <span
+                  className="brand-gradient absolute inset-2 rounded-full opacity-90"
+                  aria-hidden="true"
+                />
+                <span
+                  className="absolute inset-3.5 rounded-full bg-card ring-1 ring-border"
+                  aria-hidden="true"
+                />
+                <Lock className="text-brand relative h-9 w-9" aria-hidden="true" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <h1 className="font-display text-2xl font-semibold tracking-tight">
+                  {t("access.subscribeToUnlockTitle")}
+                </h1>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {t(
+                    denial.code === "expired_subscription"
+                      ? "access.expiredSubscriptionBody"
+                      : "access.noSubscriptionBody",
+                    { author: authorUsername }
+                  )}
+                </p>
+              </div>
+              {authorId != null && (
+                <Button asChild size="lg" className="glow-brand-hover hover-lift rounded-full px-8">
+                  <Link to={`/authors/${authorId}/subscribe`}>
+                    {t("access.subscribeAction", { author: authorUsername })}
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       )
     }
@@ -106,11 +192,23 @@ export function ChapterReaderPage() {
 
   if (isLoading || !chapter) {
     return (
-      <div className="mx-auto flex max-w-2xl flex-col gap-4">
-        <Skeleton className="h-8 w-1/2" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
+      <div className="mx-auto flex max-w-2xl flex-col gap-8">
+        <div className="flex flex-col gap-5 rounded-3xl border bg-card p-6 sm:p-8">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-8 w-16 rounded-md" />
+          </div>
+          <Skeleton className="h-6 w-24 rounded-full" />
+          <Skeleton className="h-10 w-3/4" />
+          <Skeleton className="h-4 w-1/3" />
+        </div>
+        <div className="flex flex-col gap-3 rounded-2xl border p-6 sm:p-10">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
       </div>
     )
   }
@@ -121,45 +219,92 @@ export function ChapterReaderPage() {
   const nextChapter = index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : undefined
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <ChapterNav
-        bookId={chapter.bookId}
-        prevChapterId={prevChapter?.chapterId}
-        nextChapterId={nextChapter?.chapterId}
-      />
+    <div className="mx-auto flex max-w-2xl flex-col gap-8">
+      <ReadingProgress />
 
-      <div>
-        <h1 className="text-2xl font-semibold">
-          {t("chapters.chapterLabel", { number: chapter.chapterNumber })}: {chapter.title}
-        </h1>
-        {chapter.publishedAt && (
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("chapters.publishedOn", { date: new Date(chapter.publishedAt).toLocaleDateString() })}
-          </p>
-        )}
+      {/* Chapter header — mesh-accented card with breadcrumb + reader settings */}
+      <header className="relative overflow-hidden rounded-3xl border bg-card">
+        <div className="bg-mesh pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden="true" />
+        <div className="relative flex flex-col gap-5 p-6 sm:p-8">
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              to={`/books/${chapter.bookId}`}
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Library className="h-4 w-4" aria-hidden="true" />
+              <span className="max-w-48 truncate">
+                {book?.title ?? t("chapters.backToBook")}
+              </span>
+            </Link>
+            <ReaderControls controller={reader} />
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <span className="brand-gradient inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide text-primary-foreground uppercase">
+              {t("chapters.chapterLabel", { number: chapter.chapterNumber })}
+            </span>
+            <h1 className="font-display text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl">
+              {chapter.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                {t("chapters.readingTime", { minutes: readingMinutes })}
+              </span>
+              {chapter.publishedAt && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>
+                    {t("chapters.publishedOn", {
+                      date: new Date(chapter.publishedAt).toLocaleDateString(),
+                    })}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Immersive reading surface — reader-themed, width- and size-tuned */}
+      <div
+        className="mx-auto w-full rounded-2xl border px-6 py-8 shadow-sm transition-colors sm:px-10 sm:py-12"
+        style={{ maxWidth: reader.maxWidthValue, ...reader.surface.style }}
+      >
+        <div className="reading-prose" style={{ fontSize: reader.fontSizeValue }}>
+          {paragraphs.map((paragraph, i) => (
+            <p key={i} className="whitespace-pre-line">
+              {paragraph}
+            </p>
+          ))}
+        </div>
       </div>
 
-      <div className="whitespace-pre-wrap text-base leading-8">{chapter.content}</div>
-
       {isAuthenticated && (
-        <Button
-          variant="outline"
-          className="w-fit"
-          aria-pressed={liked}
-          onClick={() =>
-            like.mutate(liked, { onSuccess: (result) => setLiked(result.liked) })
-          }
-          disabled={like.isPending}
-        >
-          <Heart className={cn("h-4 w-4", liked && "fill-current text-destructive")} />
-          {chapter.likeCount}
-        </Button>
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            size="lg"
+            className={cn(
+              "hover-lift glow-brand-hover rounded-full px-6",
+              liked && "border-destructive/40 text-destructive"
+            )}
+            aria-pressed={liked}
+            aria-label={t("chapters.likeChapter")}
+            onClick={() => like.mutate(liked, { onSuccess: (result) => setLiked(result.liked) })}
+            disabled={like.isPending}
+          >
+            <Heart className={cn("h-5 w-5 transition-transform", liked && "scale-110 fill-current")} />
+            <span className="tabular-nums">{chapter.likeCount}</span>
+          </Button>
+        </div>
       )}
 
+      {/* Prominent bottom navigation */}
       <ChapterNav
         bookId={chapter.bookId}
-        prevChapterId={prevChapter?.chapterId}
-        nextChapterId={nextChapter?.chapterId}
+        prev={prevChapter}
+        next={nextChapter}
       />
 
       <CommentThread chapterId={chapter.chapterId} />
@@ -167,35 +312,65 @@ export function ChapterReaderPage() {
   )
 }
 
+interface NavChapter {
+  chapterId: number
+  chapterNumber: number
+  title: string
+}
+
 function ChapterNav({
   bookId,
-  prevChapterId,
-  nextChapterId,
+  prev,
+  next,
 }: {
   bookId: number
-  prevChapterId?: number
-  nextChapterId?: number
+  prev?: NavChapter
+  next?: NavChapter
 }) {
   const { t } = useTranslation()
   return (
-    <div className="flex items-center justify-between border-y py-2 text-sm">
-      {prevChapterId ? (
-        <Link to={`/chapters/${prevChapterId}`} className="text-primary underline underline-offset-4">
-          {t("chapters.prevChapter")}
-        </Link>
+    <nav className="grid grid-cols-2 gap-3" aria-label={t("chapters.chapterNavigation")}>
+      {prev ? (
+        <Button
+          asChild
+          variant="outline"
+          className="hover-lift h-auto justify-start gap-3 rounded-2xl py-4"
+        >
+          <Link to={`/chapters/${prev.chapterId}`}>
+            <ChevronLeft className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className="flex min-w-0 flex-col items-start">
+              <span className="text-xs text-muted-foreground">{t("chapters.prevChapter")}</span>
+              <span className="w-full truncate text-left text-sm font-medium">{prev.title}</span>
+            </span>
+          </Link>
+        </Button>
       ) : (
         <span />
       )}
-      <Link to={`/books/${bookId}`} className="text-muted-foreground underline underline-offset-4">
-        {t("chapters.backToBook")}
-      </Link>
-      {nextChapterId ? (
-        <Link to={`/chapters/${nextChapterId}`} className="text-primary underline underline-offset-4">
-          {t("chapters.nextChapter")}
-        </Link>
+      {next ? (
+        <Button
+          asChild
+          className="glow-brand-hover hover-lift brand-gradient col-start-2 h-auto justify-end gap-3 rounded-2xl border-0 py-4 text-primary-foreground"
+        >
+          <Link to={`/chapters/${next.chapterId}`}>
+            <span className="flex min-w-0 flex-col items-end">
+              <span className="text-xs text-primary-foreground/80">{t("chapters.nextChapter")}</span>
+              <span className="w-full truncate text-right text-sm font-semibold">{next.title}</span>
+            </span>
+            <ChevronRight className="h-5 w-5 shrink-0" aria-hidden="true" />
+          </Link>
+        </Button>
       ) : (
-        <span />
+        <span className="col-start-2" />
       )}
-    </div>
+      <div className="col-span-2 flex justify-center">
+        <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
+          <Link to={`/books/${bookId}`}>
+            <Library className="h-4 w-4" aria-hidden="true" />
+            {t("chapters.backToBook")}
+          </Link>
+        </Button>
+      </div>
+    </nav>
   )
 }

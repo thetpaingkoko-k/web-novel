@@ -7,7 +7,6 @@ import { EmptyState } from "@/components/empty-state"
 import { QueryError } from "@/components/query-error"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/features/auth/auth-context"
 import { useBooks } from "@/features/books/api"
@@ -40,54 +39,76 @@ export function AuthorProfilePage() {
   }
 
   const canSubscribe = author.isMonetizationEnabled && author.monthlySubscriptionPrice != null
+  const initial = author.username.trim().charAt(0).toUpperCase() || "?"
+  const booksCount = books.data?.length ?? 0
+  const postsCount = feed.data?.length ?? 0
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-2xl">{author.username}</CardTitle>
+      {/* Bold author hero over an ambient violet mesh. */}
+      <section className="bg-mesh relative isolate overflow-hidden rounded-3xl border border-border/60 p-6 shadow-sm sm:p-8">
+        <div className="brand-gradient pointer-events-none absolute -top-20 -right-16 -z-10 h-56 w-56 rounded-full opacity-25 blur-3xl" />
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <span
+              className="brand-gradient glow-brand flex size-20 shrink-0 items-center justify-center rounded-2xl text-3xl font-bold text-white"
+              aria-hidden="true"
+            >
+              {initial}
+            </span>
+            <div className="flex flex-col gap-1.5">
+              <h1 className="font-display text-3xl font-bold tracking-tight">{author.username}</h1>
               <Badge variant="secondary" className="w-fit">
                 {t("authors.careerStage." + author.careerStage)}
               </Badge>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              {canSubscribe && (
-                <>
-                  <span className="text-sm text-muted-foreground">
-                    {t("subscribe.priceLabel", { price: author.monthlySubscriptionPrice })}
-                  </span>
-                  <Button asChild size="sm">
-                    <Link to={`/authors/${authorId}/subscribe`}>
-                      {t("authors.subscribeAction")}
-                    </Link>
-                  </Button>
-                </>
-              )}
-              {isAuthenticated && user?.userId !== authorId && (
-                <ReportDialog
-                  targetType="user"
-                  targetId={authorId}
-                  trigger={
-                    <Button variant="ghost" size="xs" className="text-muted-foreground">
-                      {t("moderation.report")}
-                    </Button>
-                  }
-                />
-              )}
+              <Link
+                to={`/authors/${authorId}/feed`}
+                className="text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+              >
+                {t("authors.viewAllPosts")}
+              </Link>
             </div>
           </div>
-        </CardHeader>
+          <div className="flex flex-col items-end gap-2">
+            {canSubscribe && (
+              <>
+                <span className="text-sm text-muted-foreground">
+                  {t("subscribe.priceLabel", { price: author.monthlySubscriptionPrice })}
+                </span>
+                <Button asChild size="sm" className="glow-brand">
+                  <Link to={`/authors/${authorId}/subscribe`}>
+                    {t("authors.subscribeAction")}
+                  </Link>
+                </Button>
+              </>
+            )}
+            {isAuthenticated && user?.userId !== authorId && (
+              <ReportDialog
+                targetType="user"
+                targetId={authorId}
+                trigger={
+                  <Button variant="ghost" size="xs" className="text-muted-foreground">
+                    {t("moderation.report")}
+                  </Button>
+                }
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Glass stat row. */}
+        <div className="glass mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl">
+          <ProfileStat value={booksCount} label={t("authors.books")} />
+          <ProfileStat value={postsCount} label={t("authors.postsLabel")} />
+        </div>
+
         {author.bio && (
-          <CardContent>
-            <p className="text-sm whitespace-pre-wrap text-muted-foreground">{author.bio}</p>
-          </CardContent>
+          <p className="mt-6 text-sm whitespace-pre-wrap text-muted-foreground">{author.bio}</p>
         )}
-      </Card>
+      </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">{t("authors.books")}</h2>
+        <h2 className="font-display text-xl font-semibold">{t("authors.books")}</h2>
         {books.isError ? (
           <QueryError onRetry={() => books.refetch()} />
         ) : books.isLoading ? (
@@ -109,7 +130,7 @@ export function AuthorProfilePage() {
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium">{t("authors.feed")}</h2>
+          <h2 className="font-display text-xl font-semibold">{t("authors.feed")}</h2>
           <Link
             to={`/authors/${authorId}/feed`}
             className="text-sm text-muted-foreground underline underline-offset-4"
@@ -135,6 +156,17 @@ export function AuthorProfilePage() {
           <EmptyState icon={Megaphone} message={t("authors.noPostsYet")} />
         )}
       </section>
+    </div>
+  )
+}
+
+function ProfileStat({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-0.5 bg-card/40 px-4 py-4 text-center">
+      <span className="font-display text-2xl font-bold tabular-nums">
+        {value.toLocaleString()}
+      </span>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
     </div>
   )
 }
