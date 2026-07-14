@@ -76,10 +76,18 @@ export function useUpdateChapter(chapterId: number) {
   })
 }
 
-export function useSubmitChapterForPublish(chapterId: number) {
+export function useSubmitChapterForPublish() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (scheduledFor?: string | null) => {
+    // `chapterId` is passed per-call so a just-created chapter can be published
+    // immediately, before the URL param carries its id.
+    mutationFn: async ({
+      chapterId,
+      scheduledFor,
+    }: {
+      chapterId: number
+      scheduledFor?: string | null
+    }) => {
       const { data } = await apiClient.post<Chapter>(
         `/chapters/${chapterId}/publish`,
         scheduledFor ? { scheduledFor } : {}
@@ -87,7 +95,7 @@ export function useSubmitChapterForPublish(chapterId: number) {
       return data
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(chapterKeys.detail(chapterId), data)
+      queryClient.setQueryData(chapterKeys.detail(data.chapterId), data)
       queryClient.invalidateQueries({ queryKey: ["books", "detail", data.bookId] })
     },
   })

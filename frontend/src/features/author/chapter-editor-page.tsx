@@ -30,7 +30,7 @@ export function ChapterEditorPage() {
   const { data: chapter, isLoading, isError, refetch } = useChapter(chapterId)
   const createChapter = useCreateChapter(isEditMode ? (chapter?.bookId ?? Number.NaN) : bookId)
   const updateChapter = useUpdateChapter(chapterId)
-  const submitForPublish = useSubmitChapterForPublish(chapterId)
+  const submitForPublish = useSubmitChapterForPublish()
   const schema = useMemo(() => buildChapterSchema(t), [t])
 
   const {
@@ -92,20 +92,24 @@ export function ChapterEditorPage() {
         const scheduledFor = values.scheduledFor
           ? new Date(values.scheduledFor).toISOString()
           : undefined
-        submitForPublish.mutate(scheduledFor, {
-          onSuccess: (published) => {
-            toast.success(
-              published.status === "scheduled"
-                ? t("author.chapterScheduled")
-                : published.status === "published"
-                  ? t("author.chapterPublished")
-                  : t("author.chapterSubmittedForReview")
-            )
-            navigate(`/author/books/${published.bookId}/edit`)
-          },
-          onError: () => toast.error(t("common.genericError")),
-        })
-        if (!isEditMode) navigate(`/author/chapters/${saved.chapterId}/edit`, { replace: true })
+        // Publish the chapter we just saved by id — on create the URL param
+        // has no id yet, so we can't rely on the mutation being bound to it.
+        submitForPublish.mutate(
+          { chapterId: saved.chapterId, scheduledFor },
+          {
+            onSuccess: (published) => {
+              toast.success(
+                published.status === "scheduled"
+                  ? t("author.chapterScheduled")
+                  : published.status === "published"
+                    ? t("author.chapterPublished")
+                    : t("author.chapterSubmittedForReview")
+              )
+              navigate(`/author/books/${published.bookId}/edit`)
+            },
+            onError: () => toast.error(t("common.genericError")),
+          }
+        )
       },
       onError: () => toast.error(t("common.genericError")),
     })
