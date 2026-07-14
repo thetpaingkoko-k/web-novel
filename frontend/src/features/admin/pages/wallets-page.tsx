@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { z } from "zod"
+import { resolveUploadUrl } from "@/api/uploads"
+import { ImageUploadField } from "@/components/image-upload-field"
 import { QueryError } from "@/components/query-error"
 import {
   AlertDialog,
@@ -47,6 +49,7 @@ export function WalletsPage() {
       z.object({
         provider: z.enum(["KBZPay", "WavePay", "AYAPay", "other"]),
         walletNumber: z.string().min(1, t("validation.required")),
+        qrImageUrl: z.string(),
       }),
     [t]
   )
@@ -61,11 +64,13 @@ export function WalletsPage() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { provider: "KBZPay", walletNumber: "" },
+    defaultValues: { provider: "KBZPay", walletNumber: "", qrImageUrl: "" },
   })
 
   const onSubmit = handleSubmit((values) => {
-    addWallet.mutate(values, {
+    addWallet.mutate(
+      { ...values, qrImageUrl: values.qrImageUrl || null },
+      {
       onSuccess: () => {
         toast.success(t("admin.walletAdded"))
         reset()
@@ -115,6 +120,14 @@ export function WalletsPage() {
                 <Input id="wallet-number" aria-invalid={!!errors.walletNumber} {...register("walletNumber")} />
                 <FieldError errors={[errors.walletNumber]} />
               </Field>
+              <Field>
+                <FieldLabel htmlFor="wallet-qr">{t("admin.walletQr")}</FieldLabel>
+                <ImageUploadField
+                  id="wallet-qr"
+                  value={watch("qrImageUrl")}
+                  onChange={(url) => setValue("qrImageUrl", url, { shouldDirty: true })}
+                />
+              </Field>
               <Button type="submit" className="w-fit" disabled={addWallet.isPending}>
                 <Plus />
                 {t("admin.addWallet")}
@@ -136,9 +149,17 @@ export function WalletsPage() {
               className="hover-lift flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-sm"
             >
               <div className="flex min-w-0 items-center gap-3 text-sm">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <WalletCards className="size-5" aria-hidden />
-                </span>
+                {wallet.qrImageUrl ? (
+                  <img
+                    src={resolveUploadUrl(wallet.qrImageUrl)}
+                    alt={t("admin.walletQr")}
+                    className="size-10 shrink-0 rounded-xl border border-border/70 object-cover"
+                  />
+                ) : (
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <WalletCards className="size-5" aria-hidden />
+                  </span>
+                )}
                 <div className="flex min-w-0 flex-col gap-1">
                   <span className="font-medium">{wallet.provider}</span>
                   <span className="text-muted-foreground">{wallet.walletNumber}</span>

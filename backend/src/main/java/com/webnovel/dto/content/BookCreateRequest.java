@@ -1,8 +1,10 @@
 package com.webnovel.dto.content;
 
 import com.webnovel.domain.enums.BookStatus;
+import com.webnovel.domain.enums.Genre;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 
 /** Create a book directly (FR-2.1). {@code isPremium} is honored only for monetized professionals (FR-2.4). */
 public record BookCreateRequest(
@@ -12,8 +14,7 @@ public record BookCreateRequest(
 
         String synopsis,
 
-        @Size(max = 50)
-        String genre,
+        List<Genre> genres,
 
         @Size(max = 500)
         String coverImageUrl,

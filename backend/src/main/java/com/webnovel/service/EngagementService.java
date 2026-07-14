@@ -12,6 +12,7 @@ import com.webnovel.dto.engagement.LikeResponse;
 import com.webnovel.dto.engagement.ProgressResponse;
 import com.webnovel.dto.engagement.ProgressUpdateRequest;
 import com.webnovel.exception.BadRequestException;
+import com.webnovel.exception.ForbiddenException;
 import com.webnovel.exception.NotFoundException;
 import com.webnovel.repository.BookRepository;
 import com.webnovel.repository.ChapterCommentRepository;
@@ -106,7 +107,23 @@ public class EngagementService {
                 return List.of();
             }
         }
-        return comments.findVisibleByChapter(chapterId);
+        return comments.findThreadByChapter(chapterId);
+    }
+
+    /**
+     * Soft-deletes the caller's own comment (sets {@link CommentStatus#removed}) so reply
+     * threads stay intact — {@link #listComments} still returns the node. 403 if the caller
+     * is not the comment's author, 404 if it does not exist.
+     */
+    @Transactional
+    public void deleteComment(AppUserPrincipal reader, Long commentId) {
+        ChapterComment comment = comments.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("comment.not_found"));
+        if (!comment.getReaderId().equals(reader.getId())) {
+            throw new ForbiddenException("comment.not_author");
+        }
+        comment.setStatus(CommentStatus.removed);
+        comments.save(comment);
     }
 
     // --- reading progress (FR-10) ---

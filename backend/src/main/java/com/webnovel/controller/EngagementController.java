@@ -58,6 +58,13 @@ public class EngagementController {
         return engagement.listComments(id, SecurityUtils.currentPrincipal());
     }
 
+    /** Soft-delete the caller's own comment (§4). 204 on success, 403 if not the author, 404 if missing. */
+    @DeleteMapping("/comments/{commentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteComment(@PathVariable Long commentId) {
+        engagement.deleteComment(SecurityUtils.requirePrincipal(), commentId);
+    }
+
     @PutMapping("/books/{id}/progress")
     public ProgressResponse updateProgress(
             @PathVariable Long id, @Valid @RequestBody ProgressUpdateRequest req) {

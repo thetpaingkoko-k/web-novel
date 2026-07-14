@@ -16,10 +16,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { GENRES, genreLabelKey } from "@/lib/genres"
 import type { BookStatus } from "@/types/content"
 import { useBooks } from "./api"
 
-const GENRES = ["Fantasy", "Romance", "Sci-Fi", "Mystery", "Drama", "Action"]
 const STATUSES: BookStatus[] = ["ongoing", "completed", "hiatus"]
 
 export function BooksBrowsePage() {
@@ -100,7 +100,7 @@ export function BooksBrowsePage() {
             <GenreChip
               key={g}
               active={genre === g}
-              label={g}
+              label={t(genreLabelKey(g))}
               onClick={() => setGenre(genre === g ? undefined : g)}
             />
           ))}

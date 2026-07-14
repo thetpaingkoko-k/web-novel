@@ -48,9 +48,9 @@ export function useLikeChapter(chapterId: number) {
 export function useCreateChapter(bookId: number) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ chapterNumber, title, content }: ChapterFormValues) => {
+    mutationFn: async ({ title, content }: ChapterFormValues) => {
+      // The backend auto-numbers the chapter as the next in the book.
       const { data } = await apiClient.post<Chapter>(`/books/${bookId}/chapters`, {
-        chapterNumber,
         title,
         content,
       })
@@ -106,6 +106,23 @@ export function useChapterComments(chapterId: number) {
     queryKey: ["chapters", "comments", chapterId] as const,
     queryFn: () => getList<Comment>(`/chapters/${chapterId}/comments`),
     enabled: Number.isFinite(chapterId),
+  })
+}
+
+/**
+ * Soft-delete one of the reader's own comments. The backend sets the node's
+ * status to "removed" (keeping reply threads intact), so we simply refetch the
+ * chapter's comments to pick up the new state.
+ */
+export function useDeleteComment(chapterId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (commentId: number) => {
+      await apiClient.delete(`/comments/${commentId}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["chapters", "comments", chapterId] })
+    },
   })
 }
 

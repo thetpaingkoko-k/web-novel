@@ -8,7 +8,8 @@ export interface Book {
   authorUsername: string
   title: string
   synopsis: string | null
-  genre: string | null
+  /** Canonical genre enum names (see `lib/genres.ts`). */
+  genres: string[]
   coverImageUrl: string | null
   status: BookStatus
   isPremium: boolean
@@ -28,7 +29,8 @@ export interface BookListItem {
   bookId: number
   authorUsername: string
   title: string
-  genre: string | null
+  /** Canonical genre enum names (see `lib/genres.ts`). */
+  genres: string[]
   coverImageUrl: string | null
   status: BookStatus
   isPremium: boolean
@@ -56,7 +58,8 @@ export interface BookListParams {
 export interface BookFormValues {
   title: string
   synopsis: string
-  genre: string
+  /** Canonical genre enum names (see `lib/genres.ts`). */
+  genres: string[]
   coverImageUrl: string
   status: BookStatus
   isPremium: boolean
@@ -89,7 +92,6 @@ export interface Chapter extends ChapterSummary {
 
 /** Editor form values. `scheduledFor` is form-only; it feeds `POST /chapters/{id}/publish`. */
 export interface ChapterFormValues {
-  chapterNumber: number
   title: string
   content: string
   scheduledFor?: string

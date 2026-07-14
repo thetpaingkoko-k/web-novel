@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react"
 import { Trans, useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 import { resolveUploadUrl } from "@/api/uploads"
+import { genreLabelKey } from "@/lib/genres"
 import { EmptyState } from "@/components/empty-state"
 import { ProgressRing } from "@/components/progress-ring"
 import { QueryError } from "@/components/query-error"
@@ -87,7 +88,11 @@ export function BookDetailPage() {
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary">{t("books.status." + book.status)}</Badge>
-                {book.genre && <Badge variant="outline">{book.genre}</Badge>}
+                {book.genres.map((genre) => (
+                  <Badge key={genre} variant="outline">
+                    {t(genreLabelKey(genre))}
+                  </Badge>
+                ))}
                 {book.isPremium && (
                   <span className="brand-gradient inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm">
                     <Sparkles className="size-3" />

@@ -47,9 +47,9 @@ const FONT_SIZE_REM: Record<ReaderFontSize, string> = {
 }
 
 const WIDTH_REM: Record<ReaderWidth, string> = {
-  narrow: "34rem",
-  comfortable: "42rem",
-  wide: "52rem",
+  narrow: "38rem",
+  comfortable: "46rem",
+  wide: "60rem",
 }
 
 const SURFACES: Record<

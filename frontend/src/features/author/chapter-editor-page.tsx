@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { AlertTriangle, CalendarClock, FileText, PenLine, Send, Timer, Type } from "lucide-react"
-import { useEffect, useMemo } from "react"
+import { AlertTriangle, CalendarClock, FileText, Maximize2, Minimize2, PenLine, Send, Timer, Type } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useNavigate, useParams } from "react-router"
@@ -11,9 +11,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 import { useAuth } from "@/features/auth/auth-context"
 import { useChapter, useCreateChapter, useSubmitChapterForPublish, useUpdateChapter } from "@/features/chapters/api"
 import { buildChapterSchema, type ChapterFormSchema } from "./schemas"
@@ -34,6 +34,7 @@ export function ChapterEditorPage() {
   const isEditMode = Boolean(chapterIdParam)
   const chapterId = Number(chapterIdParam)
   const bookId = Number(bookIdParam)
+  const [focusMode, setFocusMode] = useState(false)
 
   const { data: chapter, isLoading, isError, refetch } = useChapter(chapterId)
   const createChapter = useCreateChapter(isEditMode ? (chapter?.bookId ?? Number.NaN) : bookId)
@@ -49,13 +50,12 @@ export function ChapterEditorPage() {
     formState: { errors },
   } = useForm<ChapterFormSchema>({
     resolver: zodResolver(schema),
-    defaultValues: { chapterNumber: 1, title: "", content: "", scheduledFor: "" },
+    defaultValues: { title: "", content: "", scheduledFor: "" },
   })
 
   useEffect(() => {
     if (chapter) {
       reset({
-        chapterNumber: chapter.chapterNumber,
         title: chapter.title,
         content: chapter.content,
         // The backend doesn't echo a scheduled time back; the field only feeds
@@ -69,6 +69,20 @@ export function ChapterEditorPage() {
   const wordCount = useMemo(() => countWords(content), [content])
   const charCount = content.length
   const readingMinutes = Math.max(1, Math.round(wordCount / 200))
+
+  // ⌘/Ctrl-S saves the draft without leaving the editor. `saveOnly` is a hoisted
+  // function declaration, so referencing it here is safe.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault()
+        handleSubmit(saveOnly)()
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (isEditMode && isError) {
     return <QueryError message={t("chapters.notFound")} onRetry={() => refetch()} />
@@ -130,15 +144,22 @@ export function ChapterEditorPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <StudioHero
-        eyebrow={t("author.studioEyebrow")}
-        icon={PenLine}
-        title={isEditMode ? t("author.editChapter") : t("author.addChapter")}
-        subtitle={t("author.chapterEditorSubtitle")}
-      />
+    <div
+      className={cn(
+        "mx-auto flex w-full flex-col gap-6 transition-[max-width] duration-200",
+        focusMode ? "max-w-5xl" : "max-w-3xl"
+      )}
+    >
+      {!focusMode && (
+        <StudioHero
+          eyebrow={t("author.studioEyebrow")}
+          icon={PenLine}
+          title={isEditMode ? t("author.editChapter") : t("author.addChapter")}
+          subtitle={t("author.chapterEditorSubtitle")}
+        />
+      )}
 
-      {chapter?.status === "rejected" && chapter.rejectionReason && (
+      {!focusMode && chapter?.status === "rejected" && chapter.rejectionReason && (
         <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <span>{t("author.rejectionReason", { reason: chapter.rejectionReason })}</span>
@@ -146,31 +167,25 @@ export function ChapterEditorPage() {
       )}
 
       <form noValidate className="flex flex-col gap-6">
-        <Card>
-          <CardContent className="pt-2">
-            <FieldGroup>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                <Field data-invalid={!!errors.chapterNumber} className="sm:w-32">
-                  <FieldLabel htmlFor="chapter-number">{t("author.chapterNumber")}</FieldLabel>
-                  <Input
-                    id="chapter-number"
-                    type="number"
-                    min={1}
-                    aria-invalid={!!errors.chapterNumber}
-                    {...register("chapterNumber", { valueAsNumber: true })}
-                  />
-                  <FieldError errors={[errors.chapterNumber]} />
-                </Field>
-
-                <Field data-invalid={!!errors.title} className="flex-1">
+        {!focusMode && (
+          <Card>
+            <CardContent className="pt-2">
+              <FieldGroup>
+                <Field data-invalid={!!errors.title}>
                   <FieldLabel htmlFor="chapter-title">{t("author.chapterTitle")}</FieldLabel>
                   <Input id="chapter-title" aria-invalid={!!errors.title} {...register("title")} />
+                  {/* The chapter number is assigned automatically (next in the book). */}
+                  <FieldDescription>
+                    {isEditMode && chapter
+                      ? t("chapters.chapterLabel", { number: chapter.chapterNumber })
+                      : t("author.chapterNumberAuto")}
+                  </FieldDescription>
                   <FieldError errors={[errors.title]} />
                 </Field>
-              </div>
-            </FieldGroup>
-          </CardContent>
-        </Card>
+              </FieldGroup>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Roomy, distraction-reduced writing surface with a live stat strip. */}
         <Card className="overflow-hidden">
@@ -180,28 +195,48 @@ export function ChapterEditorPage() {
                 <PenLine className="h-4 w-4 text-primary" aria-hidden="true" />
                 {t("author.chapterContent")}
               </FieldLabel>
-              <div
-                className="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground"
-                aria-live="polite"
-              >
-                <span className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1">
-                  <Type className="h-3.5 w-3.5" aria-hidden="true" />
-                  {t("author.wordCount", { count: wordCount })}
-                </span>
-                <span className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1">
-                  <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-                  {t("author.charCount", { count: charCount })}
-                </span>
-                <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
-                  <Timer className="h-3.5 w-3.5" aria-hidden="true" />
-                  {t("author.readingTimeMin", { count: readingMinutes })}
-                </span>
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground"
+                  aria-live="polite"
+                >
+                  <span className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1">
+                    <Type className="h-3.5 w-3.5" aria-hidden="true" />
+                    {t("author.wordCount", { count: wordCount })}
+                  </span>
+                  <span className="hidden items-center gap-1 rounded-full bg-muted px-2.5 py-1 sm:flex">
+                    <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+                    {t("author.charCount", { count: charCount })}
+                  </span>
+                  <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
+                    <Timer className="h-3.5 w-3.5" aria-hidden="true" />
+                    {t("author.readingTimeMin", { count: readingMinutes })}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  className="text-muted-foreground"
+                  aria-pressed={focusMode}
+                  onClick={() => setFocusMode((v) => !v)}
+                >
+                  {focusMode ? (
+                    <Minimize2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  ) : (
+                    <Maximize2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  )}
+                  {focusMode ? t("author.exitFocusMode") : t("author.focusMode")}
+                </Button>
               </div>
             </div>
             <Textarea
               id="chapter-content"
               aria-invalid={!!errors.content}
-              className="reading-prose min-h-[60vh] resize-y border-border/70 bg-background leading-relaxed focus-visible:ring-primary/40"
+              className={cn(
+                "reading-prose resize-y border-border/70 bg-background leading-relaxed focus-visible:ring-primary/40",
+                focusMode ? "min-h-[78vh]" : "min-h-[60vh]"
+              )}
               placeholder={t("author.chapterContentPlaceholder")}
               {...register("content")}
             />
@@ -209,50 +244,53 @@ export function ChapterEditorPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-2">
-            <FieldGroup>
-              {isProfessional && (
-                <>
-                  <Field>
-                    <FieldLabel htmlFor="chapter-schedule" className="flex items-center gap-1.5">
-                      <CalendarClock className="h-4 w-4 text-primary" aria-hidden="true" />
-                      {t("author.schedulePublish")}
-                    </FieldLabel>
-                    <Input
-                      id="chapter-schedule"
-                      type="datetime-local"
-                      className="max-w-60"
-                      {...register("scheduledFor")}
-                    />
-                    <FieldDescription>{t("author.scheduleHint")}</FieldDescription>
-                  </Field>
-                  <Separator />
-                </>
-              )}
+        {isProfessional && !focusMode && (
+          <Card>
+            <CardContent className="pt-2">
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="chapter-schedule" className="flex items-center gap-1.5">
+                    <CalendarClock className="h-4 w-4 text-primary" aria-hidden="true" />
+                    {t("author.schedulePublish")}
+                  </FieldLabel>
+                  <Input
+                    id="chapter-schedule"
+                    type="datetime-local"
+                    className="max-w-60"
+                    {...register("scheduledFor")}
+                  />
+                  <FieldDescription>{t("author.scheduleHint")}</FieldDescription>
+                </Field>
+              </FieldGroup>
+            </CardContent>
+          </Card>
+        )}
 
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  disabled={isPending}
-                  onClick={handleSubmit(saveAndSubmit)}
-                  className="glow-brand-hover"
-                >
-                  <Send className="h-4 w-4" aria-hidden="true" />
-                  {isProfessional ? t("author.publish") : t("author.submitForReview")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isPending}
-                  onClick={handleSubmit(saveOnly)}
-                >
-                  {t("author.saveDraft")}
-                </Button>
-              </div>
-            </FieldGroup>
-          </CardContent>
-        </Card>
+        {/* Sticky action bar — stays reachable in long chapters. */}
+        <div className="sticky bottom-4 z-20">
+          <div className="glass flex flex-wrap items-center gap-2 rounded-2xl border border-border/70 p-3 shadow-lg">
+            <Button
+              type="button"
+              disabled={isPending}
+              onClick={handleSubmit(saveAndSubmit)}
+              className="glow-brand-hover"
+            >
+              <Send className="h-4 w-4" aria-hidden="true" />
+              {isProfessional ? t("author.publish") : t("author.submitForReview")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending}
+              onClick={handleSubmit(saveOnly)}
+            >
+              {t("author.saveDraft")}
+            </Button>
+            <span className="ml-auto hidden pr-1 text-xs text-muted-foreground sm:inline">
+              {t("author.saveShortcutHint")}
+            </span>
+          </div>
+        </div>
       </form>
     </div>
   )

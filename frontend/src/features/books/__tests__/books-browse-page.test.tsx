@@ -20,6 +20,23 @@ describe("BooksBrowsePage", () => {
     expect(await screen.findByText(/no books match/i)).toBeInTheDocument()
   })
 
+  it("sends the exact canonical enum name when a genre chip is selected", async () => {
+    const user = userEvent.setup()
+    let lastGenre: string | null = "unset"
+    server.use(
+      http.get("/api/v1/books", ({ request }) => {
+        lastGenre = new URL(request.url).searchParams.get("genre")
+        return HttpResponse.json([])
+      })
+    )
+    renderWithProviders(<BooksBrowsePage />)
+
+    // "Sci-Fi" is the display label for the canonical `SciFi` enum value.
+    await user.click(await screen.findByRole("button", { name: "Sci-Fi", pressed: false }))
+
+    await waitFor(() => expect(lastGenre).toBe("SciFi"))
+  })
+
   it("forwards the search box to the server as a `search` query param", async () => {
     const user = userEvent.setup()
     let lastSearch: string | null = "unset"

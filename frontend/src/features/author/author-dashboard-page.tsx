@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { BookListItem } from "@/types/content"
+import { genreLabelKey } from "@/lib/genres"
 import { useAuth } from "@/features/auth/auth-context"
 import { useAuthorMe, useRequestUpgrade } from "@/features/authors/api"
 import { useMyBooks } from "@/features/books/api"
@@ -108,9 +109,9 @@ function AuthorBookCard({ book }: { book: BookListItem }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-            {book.genre && (
+            {book.genres[0] && (
               <>
-                <span className="font-medium text-foreground/70">{book.genre}</span>
+                <span className="font-medium text-foreground/70">{t(genreLabelKey(book.genres[0]))}</span>
                 <span aria-hidden>·</span>
               </>
             )}

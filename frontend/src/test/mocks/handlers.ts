@@ -11,7 +11,7 @@ export const mockBookList: BookListItem[] = [
     bookId: 1,
     authorUsername: "moonlight_writer",
     title: "The Last Ember",
-    genre: "Fantasy",
+    genres: ["Fantasy"],
     coverImageUrl: null,
     status: "ongoing",
     isPremium: false,
@@ -26,7 +26,7 @@ export const mockBookDetail: Book = {
   authorUsername: "moonlight_writer",
   title: "The Last Ember",
   synopsis: "A hobbyist tale of embers and ash.",
-  genre: "Fantasy",
+  genres: ["Fantasy"],
   coverImageUrl: null,
   status: "ongoing",
   isPremium: false,
@@ -85,7 +85,13 @@ export const handlers = [
     })
   ),
   http.get("/api/v1/wallets/active", () =>
-    HttpResponse.json({ walletId: 1, provider: "KBZPay", walletNumber: "09123456789", isActive: true })
+    HttpResponse.json({
+      walletId: 1,
+      provider: "KBZPay",
+      walletNumber: "09123456789",
+      isActive: true,
+      qrImageUrl: null,
+    })
   ),
   http.get("/api/v1/subscriptions/me", () => HttpResponse.json([])),
   http.post("/api/v1/authors/:authorId/payment-submissions", () =>

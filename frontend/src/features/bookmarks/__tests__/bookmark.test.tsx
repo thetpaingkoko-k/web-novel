@@ -27,7 +27,7 @@ const SAVED_BOOK: BookListItem = {
   bookId: 7,
   authorUsername: "moonlight_writer",
   title: "The Saved Tale",
-  genre: "Fantasy",
+  genres: ["Fantasy"],
   coverImageUrl: null,
   status: "ongoing",
   isPremium: false,

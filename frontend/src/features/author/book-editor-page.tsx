@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { BookText, CheckCircle2, Eye, Heart, Image as ImageIcon, ListPlus, Rocket, Sparkles } from "lucide-react"
+import { BookText, CheckCircle2, Eye, Heart, Image as ImageIcon, ListPlus, PenLine, Rocket, Sparkles } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
@@ -28,6 +28,8 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/features/auth/auth-context"
 import { useBook, useCreateBook, useUpdateBook } from "@/features/books/api"
+import { cn } from "@/lib/utils"
+import { GENRES, genreLabelKey } from "@/lib/genres"
 import { buildBookSchema, type BookFormSchema } from "./schemas"
 
 const STATUSES = ["draft", "ongoing", "completed", "hiatus"] as const
@@ -82,7 +84,7 @@ export function BookEditorPage() {
     defaultValues: {
       title: "",
       synopsis: "",
-      genre: "",
+      genres: [],
       coverImageUrl: "",
       status: "draft",
       isPremium: false,
@@ -94,13 +96,21 @@ export function BookEditorPage() {
       reset({
         title: book.title,
         synopsis: book.synopsis ?? "",
-        genre: book.genre ?? "",
+        genres: book.genres ?? [],
         coverImageUrl: book.coverImageUrl ?? "",
         status: book.status,
         isPremium: book.isPremium,
       })
     }
   }, [book, reset])
+
+  const selectedGenres = watch("genres")
+  function toggleGenre(genre: string) {
+    const next = selectedGenres.includes(genre)
+      ? selectedGenres.filter((g) => g !== genre)
+      : [...selectedGenres, genre]
+    setValue("genres", next, { shouldDirty: true })
+  }
 
   const canPublishPremium = user?.isMonetizationEnabled ?? false
   const isPremium = watch("isPremium")
@@ -157,8 +167,29 @@ export function BookEditorPage() {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="book-genre">{t("author.bookGenre")}</FieldLabel>
-                <Input id="book-genre" placeholder={t("author.genrePlaceholder")} {...register("genre")} />
+                <FieldLabel>{t("author.bookGenre")}</FieldLabel>
+                <div className="flex flex-wrap gap-2" role="group" aria-label={t("author.bookGenre")}>
+                  {GENRES.map((genre) => {
+                    const active = selectedGenres.includes(genre)
+                    return (
+                      <button
+                        key={genre}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => toggleGenre(genre)}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                          active
+                            ? "brand-gradient border-transparent text-white shadow-sm"
+                            : "border-border/70 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                        )}
+                      >
+                        {t(genreLabelKey(genre))}
+                      </button>
+                    )
+                  })}
+                </div>
+                <FieldDescription>{t("author.genreHint")}</FieldDescription>
               </Field>
 
               <Field>
@@ -250,14 +281,23 @@ export function BookEditorPage() {
 
       {isEditMode && book && (
         <div>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold">{t("books.chapters")}</h2>
-            <Button variant="outline" size="sm" asChild>
-              <Link to={`/author/books/${book.bookId}/chapters/new`}>
-                <ListPlus className="h-4 w-4" />
-                {t("author.addChapter")}
-              </Link>
-            </Button>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-baseline gap-2">
+              <h2 className="font-display text-lg font-semibold">{t("books.chapters")}</h2>
+              {book.chapters.length > 0 && (
+                <span className="text-sm text-muted-foreground tabular-nums">
+                  {book.chapters.length}
+                </span>
+              )}
+            </div>
+            {book.chapters.length > 0 && (
+              <Button size="sm" asChild className="glow-brand-hover">
+                <Link to={`/author/books/${book.bookId}/chapters/new`}>
+                  <PenLine className="h-4 w-4" />
+                  {t("author.writeNewChapter")}
+                </Link>
+              </Button>
+            )}
           </div>
           {book.chapters.length === 0 ? (
             <Card className="border-dashed">
@@ -266,9 +306,10 @@ export function BookEditorPage() {
                   icon={ListPlus}
                   message={t("books.noChaptersYet")}
                   action={
-                    <Button size="sm" variant="outline" asChild>
+                    <Button size="sm" asChild className="glow-brand-hover">
                       <Link to={`/author/books/${book.bookId}/chapters/new`}>
-                        {t("author.addChapter")}
+                        <PenLine className="h-4 w-4" />
+                        {t("author.writeNewChapter")}
                       </Link>
                     </Button>
                   }
@@ -281,10 +322,10 @@ export function BookEditorPage() {
                 <li key={chapter.chapterId}>
                   <Link
                     to={`/author/chapters/${chapter.chapterId}/edit`}
-                    className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted"
+                    className="group flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="font-display flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground tabular-nums">
+                      <span className="font-display flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground tabular-nums group-hover:bg-primary/10 group-hover:text-primary">
                         {chapter.chapterNumber}
                       </span>
                       <div className="flex min-w-0 flex-col gap-1">

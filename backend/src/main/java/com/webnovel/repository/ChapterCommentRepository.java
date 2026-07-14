@@ -11,7 +11,12 @@ public interface ChapterCommentRepository extends JpaRepository<ChapterComment, 
 
     boolean existsByIdAndChapterId(Long id, Long chapterId);
 
-    /** Visible comments for a chapter with the joined author username (§4.1.1 read model). */
+    /**
+     * A chapter's comment thread with the joined author username (§4.1.1 read model).
+     * Includes {@code removed} nodes (soft-deleted by their author) so reply threads
+     * stay intact — the client renders a "[deleted]" placeholder; only moderator-hidden
+     * comments are excluded.
+     */
     @Query("""
             select new com.webnovel.dto.engagement.CommentResponse(
                 c.id, c.chapterId, c.parentCommentId, c.readerId, u.username,
@@ -19,8 +24,8 @@ public interface ChapterCommentRepository extends JpaRepository<ChapterComment, 
             from ChapterComment c, User u
             where c.readerId = u.id
               and c.chapterId = :chapterId
-              and c.status = com.webnovel.domain.enums.CommentStatus.visible
+              and c.status <> com.webnovel.domain.enums.CommentStatus.hidden
             order by c.createdAt asc
             """)
-    List<CommentResponse> findVisibleByChapter(@Param("chapterId") Long chapterId);
+    List<CommentResponse> findThreadByChapter(@Param("chapterId") Long chapterId);
 }

@@ -22,7 +22,7 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
      */
     @Query("""
             select new com.webnovel.dto.content.BookListItem(
-                b.id, b.title, b.coverImageUrl, b.genre, b.status, b.premium, u.username,
+                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username,
                 (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published))
             from Bookmark bm, Book b, User u
             where b.id = bm.bookId

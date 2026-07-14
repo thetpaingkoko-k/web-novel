@@ -5,6 +5,7 @@ import com.webnovel.domain.entity.AuthorEarning;
 import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.PaymentSubmission;
 import com.webnovel.domain.entity.Subscription;
+import com.webnovel.domain.enums.AdminActionType;
 import com.webnovel.domain.enums.PaymentStatus;
 import com.webnovel.domain.enums.SubscriptionStatus;
 import com.webnovel.dto.payment.AdminPaymentRow;
@@ -37,6 +38,7 @@ public class PaymentService {
     private final AdminWalletRepository wallets;
     private final AuthorProfileRepository authorProfiles;
     private final AuthorEarningRepository earnings;
+    private final AdminActionService adminActions;
     private final AppProperties props;
 
     /** §9.3: create/reuse a pending subscription, run the duplicate check, persist the submission. */
@@ -137,6 +139,9 @@ public class PaymentService {
                 .orElseThrow(() -> new NotFoundException("author.not_monetized"));
         author.setAvailableBalance(author.getAvailableBalance().add(net));
         author.setTotalEarned(author.getTotalEarned().add(net));
+
+        adminActions.log(adminId, AdminActionType.payment_approval,
+                "payment_submission", submission.getId(), null); // §7.3 audit
         return toResponse(submission);
     }
 
@@ -152,6 +157,9 @@ public class PaymentService {
         submission.setRejectionReason(reason);
         submission.setReviewedBy(adminId);
         submission.setReviewedAt(OffsetDateTime.now());
+
+        adminActions.log(adminId, AdminActionType.payment_rejection,
+                "payment_submission", submission.getId(), reason); // §7.3 audit
         return toResponse(submission);
     }
 

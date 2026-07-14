@@ -2,6 +2,7 @@ package com.webnovel.engagement;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -104,5 +105,53 @@ class EngagementIT extends AuthTestSupport {
         mvc.perform(get("/api/v1/chapters/{id}/comments", chapterId).header("Authorization", bearer(reader2)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].content", is("Loved it")));
+    }
+
+    /** §4: an author may soft-delete their own comment; the removed node stays in the thread. */
+    @Test
+    void deleteOwnComment_softDeletes_keepingThreadWithRemovedStatus() throws Exception {
+        registerAndGetToken("delauthor", "delauthor@example.com");
+        long authorId = userIdOf("delauthor@example.com");
+        String adminToken = seedAdminAndGetToken("deladmin@webnovel.local");
+        approve(adminToken, authorId, ApproveRequest.Kind.verify_author);
+        approve(adminToken, authorId, ApproveRequest.Kind.enable_monetization); // professional → direct publish
+        String author = relogin("delauthor@example.com");
+        long chapterId = publishedFreeChapter(author);
+
+        String reader = registerAndGetToken("delreader", "delreader@example.com");
+        long bookId = objectMapper.readTree(
+                        mvc.perform(get("/api/v1/chapters/{id}", chapterId).header("Authorization", bearer(reader)))
+                                .andReturn().getResponse().getContentAsString())
+                .get("bookId").asLong();
+        // read the chapter so the spoiler gate lets the commenter see the thread
+        mvc.perform(put("/api/v1/books/{id}/progress", bookId).header("Authorization", bearer(reader))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"chapterId\":" + chapterId + "}"))
+                .andExpect(status().isOk());
+
+        String commentBody = mvc.perform(post("/api/v1/chapters/{id}/comments", chapterId)
+                        .header("Authorization", bearer(reader))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"to be deleted\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long commentId = objectMapper.readTree(commentBody).get("commentId").asLong();
+
+        // a different authenticated user cannot delete it → 403
+        String other = registerAndGetToken("delother", "delother@example.com");
+        mvc.perform(delete("/api/v1/comments/{id}", commentId).header("Authorization", bearer(other)))
+                .andExpect(status().isForbidden());
+
+        // deleting a non-existent comment → 404
+        mvc.perform(delete("/api/v1/comments/{id}", 999999L).header("Authorization", bearer(reader)))
+                .andExpect(status().isNotFound());
+
+        // the comment's author soft-deletes it → 204
+        mvc.perform(delete("/api/v1/comments/{id}", commentId).header("Authorization", bearer(reader)))
+                .andExpect(status().isNoContent());
+
+        // the node is still returned (thread intact) with status = removed
+        mvc.perform(get("/api/v1/chapters/{id}/comments", chapterId).header("Authorization", bearer(reader)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].commentId", is((int) commentId)))
+                .andExpect(jsonPath("$[0].status", is("removed")));
     }
 }

@@ -31,12 +31,19 @@ public class ChapterService {
     @Transactional
     public ChapterResponse create(AppUserPrincipal principal, Long bookId, ChapterCreateRequest req) {
         Book book = requireOwnedBook(principal, bookId);
-        if (chapters.existsByBookIdAndChapterNumber(book.getId(), req.chapterNumber())) {
-            throw new ConflictException("chapter.number_taken");
+        // Auto-number as the next chapter unless the author explicitly pins one.
+        int chapterNumber;
+        if (req.chapterNumber() == null) {
+            chapterNumber = chapters.findMaxChapterNumber(book.getId()) + 1;
+        } else {
+            if (chapters.existsByBookIdAndChapterNumber(book.getId(), req.chapterNumber())) {
+                throw new ConflictException("chapter.number_taken");
+            }
+            chapterNumber = req.chapterNumber();
         }
         Chapter chapter = new Chapter();
         chapter.setBookId(book.getId());
-        chapter.setChapterNumber(req.chapterNumber());
+        chapter.setChapterNumber(chapterNumber);
         chapter.setTitle(req.title());
         chapter.setContent(req.content());
         chapter.setStatus(ChapterStatus.draft);

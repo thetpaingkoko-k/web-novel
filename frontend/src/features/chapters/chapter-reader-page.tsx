@@ -192,7 +192,7 @@ export function ChapterReaderPage() {
 
   if (isLoading || !chapter) {
     return (
-      <div className="mx-auto flex max-w-2xl flex-col gap-8">
+      <div className="mx-auto flex max-w-3xl flex-col gap-8">
         <div className="flex flex-col gap-5 rounded-3xl border bg-card p-6 sm:p-8">
           <div className="flex items-center justify-between">
             <Skeleton className="h-6 w-40" />
@@ -219,11 +219,14 @@ export function ChapterReaderPage() {
   const nextChapter = index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : undefined
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-8">
+    // The outer column is wide enough for the widest reading setting (60rem);
+    // the header/like/nav/comments each re-center themselves in a narrower
+    // column so only the reading surface grows with `reader.maxWidthValue`.
+    <div className="mx-auto flex w-full max-w-[64rem] flex-col gap-8">
       <ReadingProgress />
 
       {/* Chapter header — mesh-accented card with breadcrumb + reader settings */}
-      <header className="relative overflow-hidden rounded-3xl border bg-card">
+      <header className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border bg-card">
         <div className="bg-mesh pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden="true" />
         <div className="relative flex flex-col gap-5 p-6 sm:p-8">
           <div className="flex items-center justify-between gap-3">
@@ -301,13 +304,17 @@ export function ChapterReaderPage() {
       )}
 
       {/* Prominent bottom navigation */}
-      <ChapterNav
-        bookId={chapter.bookId}
-        prev={prevChapter}
-        next={nextChapter}
-      />
+      <div className="mx-auto w-full max-w-2xl">
+        <ChapterNav
+          bookId={chapter.bookId}
+          prev={prevChapter}
+          next={nextChapter}
+        />
+      </div>
 
-      <CommentThread chapterId={chapter.chapterId} />
+      <div className="mx-auto w-full max-w-2xl">
+        <CommentThread chapterId={chapter.chapterId} />
+      </div>
     </div>
   )
 }

@@ -46,9 +46,10 @@ class ContentIT extends AuthTestSupport {
         String bookBody = mvc.perform(post("/api/v1/books").header("Authorization", bearer(authorToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"Chronicles","synopsis":"An epic","genre":"fantasy","status":"ongoing","isPremium":true}"""))
+                                {"title":"Chronicles","synopsis":"An epic","genres":["Fantasy","Adventure"],"status":"ongoing","isPremium":true}"""))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.isPremium", is(true)))
+                .andExpect(jsonPath("$.genres", is(java.util.List.of("Fantasy", "Adventure"))))
                 .andExpect(jsonPath("$.authorUsername", is("penny")))
                 .andReturn().getResponse().getContentAsString();
         long bookId = objectMapper.readTree(bookBody).get("bookId").asLong();
@@ -79,6 +80,37 @@ class ContentIT extends AuthTestSupport {
     }
 
     @Test
+    void chaptersWithoutNumber_areAutoNumberedSequentially() throws Exception {
+        registerAndGetToken("autonum", "autonum@example.com");
+        long authorId = userIdOf("autonum@example.com");
+        String adminToken = seedAdminAndGetToken("autonumadmin@webnovel.local");
+        approve(adminToken, authorId, ApproveRequest.Kind.verify_author);
+        String authorToken = seedRelogin("autonum@example.com");
+
+        String bookBody = mvc.perform(post("/api/v1/books").header("Authorization", bearer(authorToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"AutoBook\",\"status\":\"ongoing\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long bookId = objectMapper.readTree(bookBody).get("bookId").asLong();
+
+        // No chapterNumber in the payload → backend assigns the next number.
+        mvc.perform(post("/api/v1/books/{bookId}/chapters", bookId)
+                        .header("Authorization", bearer(authorToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"First\",\"content\":\"c1\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.chapterNumber", is(1)));
+
+        mvc.perform(post("/api/v1/books/{bookId}/chapters", bookId)
+                        .header("Authorization", bearer(authorToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Second\",\"content\":\"c2\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.chapterNumber", is(2)));
+    }
+
+    @Test
     void browse_search_matchesTitleOrAuthorUsername_andIsIgnoredWithAuthorId() throws Exception {
         registerAndGetToken("zyxauthor", "zyxauthor@example.com");
         long authorId = userIdOf("zyxauthor@example.com");
@@ -87,8 +119,8 @@ class ContentIT extends AuthTestSupport {
         String author = seedRelogin("zyxauthor@example.com");
 
         for (String spec : new String[] {
-                "{\"title\":\"Zyxq Dragon\",\"genre\":\"fantasy\",\"status\":\"ongoing\"}",
-                "{\"title\":\"Zyxq Space\",\"genre\":\"scifi\",\"status\":\"ongoing\"}"}) {
+                "{\"title\":\"Zyxq Dragon\",\"genres\":[\"Fantasy\"],\"status\":\"ongoing\"}",
+                "{\"title\":\"Zyxq Space\",\"genres\":[\"SciFi\"],\"status\":\"ongoing\"}"}) {
             mvc.perform(post("/api/v1/books").header("Authorization", bearer(author))
                             .contentType(MediaType.APPLICATION_JSON).content(spec))
                     .andExpect(status().isCreated());
@@ -105,11 +137,12 @@ class ContentIT extends AuthTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)));
 
-        // combines with the genre filter
-        mvc.perform(get("/api/v1/books").param("search", "zyxq").param("genre", "fantasy"))
+        // combines with the genre filter (genre param is now the canonical enum name)
+        mvc.perform(get("/api/v1/books").param("search", "zyxq").param("genre", "Fantasy"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].title", is("Zyxq Dragon")));
+                .andExpect(jsonPath("$[0].title", is("Zyxq Dragon")))
+                .andExpect(jsonPath("$[0].genres", is(java.util.List.of("Fantasy"))));
 
         // no match → empty list
         mvc.perform(get("/api/v1/books").param("search", "zyxq-nomatch"))

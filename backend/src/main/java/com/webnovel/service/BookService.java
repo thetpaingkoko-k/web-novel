@@ -5,9 +5,11 @@ import com.webnovel.domain.entity.Chapter;
 import com.webnovel.domain.entity.User;
 import com.webnovel.domain.enums.BookStatus;
 import com.webnovel.domain.enums.ChapterStatus;
+import com.webnovel.domain.enums.Genre;
 import com.webnovel.domain.enums.Role;
 import com.webnovel.dto.content.BookCreateRequest;
 import com.webnovel.dto.content.BookDetailResponse;
+import com.webnovel.dto.content.BookGenreRow;
 import com.webnovel.dto.content.BookListItem;
 import com.webnovel.dto.content.BookUpdateRequest;
 import com.webnovel.dto.content.ChapterSummary;
@@ -19,9 +21,14 @@ import com.webnovel.repository.BookRepository;
 import com.webnovel.repository.ChapterRepository;
 import com.webnovel.repository.UserRepository;
 import com.webnovel.security.AppUserPrincipal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +50,7 @@ public class BookService {
         book.setAuthorId(principal.getId());
         book.setTitle(req.title());
         book.setSynopsis(req.synopsis());
-        book.setGenre(req.genre());
+        book.setGenres(toGenreSet(req.genres()));
         book.setCoverImageUrl(req.coverImageUrl());
         book.setStatus(req.status() != null ? req.status() : BookStatus.draft);
         book.setPremium(resolvePremium(principal, req.isPremium()));
@@ -57,7 +64,7 @@ public class BookService {
         requireOwnerOrAdmin(principal, book);
         book.setTitle(req.title());
         book.setSynopsis(req.synopsis());
-        book.setGenre(req.genre());
+        book.setGenres(toGenreSet(req.genres()));
         book.setCoverImageUrl(req.coverImageUrl());
         if (req.status() != null) {
             book.setStatus(req.status());
@@ -68,7 +75,7 @@ public class BookService {
 
     @Transactional(readOnly = true)
     public List<BookListItem> browse(String genre, BookStatus status, String search) {
-        return books.browse(genre, status, toSearchPattern(search));
+        return populateGenres(books.browse(parseGenre(genre), status, toSearchPattern(search)), books);
     }
 
     /**
@@ -88,7 +95,7 @@ public class BookService {
 
     @Transactional(readOnly = true)
     public List<BookListItem> byAuthor(Long authorId) {
-        return books.findByAuthor(authorId);
+        return populateGenres(books.findByAuthor(authorId), books);
     }
 
     @Transactional(readOnly = true)
@@ -153,7 +160,42 @@ public class BookService {
         String username = users.findById(book.getAuthorId()).map(User::getUsername).orElse(null);
         return new BookDetailResponse(
                 book.getId(), book.getAuthorId(), username, book.getTitle(), book.getSynopsis(),
-                book.getGenre(), book.getCoverImageUrl(), book.getStatus(), book.isPremium(),
+                new ArrayList<>(book.getGenres()), book.getCoverImageUrl(), book.getStatus(), book.isPremium(),
                 book.getCreatedAt(), chapterSummaries);
+    }
+
+    /** Copies the requested genres into a fresh set (null → empty), preserving order. */
+    private static Set<Genre> toGenreSet(List<Genre> genres) {
+        return genres == null ? new LinkedHashSet<>() : new LinkedHashSet<>(genres);
+    }
+
+    /** Blank/unknown genre filter → null (no restriction); otherwise the matching enum. */
+    static Genre parseGenre(String genre) {
+        if (genre == null || genre.isBlank()) {
+            return null;
+        }
+        try {
+            return Genre.valueOf(genre.trim());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Fills each row's genres in ONE batch query (a JPQL constructor projection can't
+     * build a per-row collection). Shared with {@code BookmarkService}.
+     */
+    static List<BookListItem> populateGenres(List<BookListItem> items, BookRepository books) {
+        if (items.isEmpty()) {
+            return items;
+        }
+        List<Long> ids = items.stream().map(BookListItem::bookId).toList();
+        Map<Long, List<Genre>> byBook = new HashMap<>();
+        for (BookGenreRow row : books.findGenresByBookIds(ids)) {
+            byBook.computeIfAbsent(row.bookId(), k -> new ArrayList<>()).add(row.genre());
+        }
+        return items.stream()
+                .map(i -> i.withGenres(byBook.getOrDefault(i.bookId(), List.of())))
+                .toList();
     }
 }

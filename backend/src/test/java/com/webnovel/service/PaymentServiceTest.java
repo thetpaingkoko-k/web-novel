@@ -3,6 +3,8 @@ package com.webnovel.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,6 +14,7 @@ import com.webnovel.domain.entity.AuthorEarning;
 import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.PaymentSubmission;
 import com.webnovel.domain.entity.Subscription;
+import com.webnovel.domain.enums.AdminActionType;
 import com.webnovel.domain.enums.PaymentStatus;
 import com.webnovel.domain.enums.SubscriptionStatus;
 import com.webnovel.exception.ConflictException;
@@ -38,6 +41,7 @@ class PaymentServiceTest {
     @Mock AdminWalletRepository wallets;
     @Mock AuthorProfileRepository authorProfiles;
     @Mock AuthorEarningRepository earnings;
+    @Mock AdminActionService adminActions;
 
     private final AppProperties props = new AppProperties(
             new AppProperties.Jwt("unit-test-secret-value-at-least-32-bytes!!",
@@ -47,7 +51,8 @@ class PaymentServiceTest {
             new AppProperties.Uploads("images"));
 
     private PaymentService service() {
-        return new PaymentService(submissions, subscriptions, wallets, authorProfiles, earnings, props);
+        return new PaymentService(submissions, subscriptions, wallets, authorProfiles, earnings,
+                adminActions, props);
     }
 
     @Test
@@ -92,6 +97,10 @@ class PaymentServiceTest {
         assertThat(author.getAvailableBalance()).isEqualByComparingTo("9000");
         assertThat(author.getTotalEarned()).isEqualByComparingTo("9000");
         assertThat(sub.getStatus()).isEqualTo(PaymentStatus.approved);
+
+        // §7.3: the approval is audited
+        verify(adminActions).log(eq(99L), eq(AdminActionType.payment_approval),
+                eq("payment_submission"), eq(1L), isNull());
     }
 
     @Test

@@ -33,6 +33,10 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
 
     boolean existsByBookIdAndChapterNumber(Long bookId, Integer chapterNumber);
 
+    /** Highest chapter number in a book, or 0 when it has none — for auto-numbering new chapters. */
+    @Query("select coalesce(max(c.chapterNumber), 0) from Chapter c where c.bookId = :bookId")
+    int findMaxChapterNumber(@Param("bookId") Long bookId);
+
     @Modifying
     @Query("update Chapter c set c.likeCount = c.likeCount + :delta where c.id = :id")
     void addLikeCount(@Param("id") Long id, @Param("delta") int delta);

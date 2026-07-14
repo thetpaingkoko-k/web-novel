@@ -59,6 +59,9 @@ export type AdminActionType =
   | "ban"
   | "report_resolution"
   | "withdrawal_approval"
+  | "subscription_price_update"
+  | "payment_approval"
+  | "payment_rejection"
 
 /** Row from `GET /admin/actions`. */
 export interface AdminActionLog {
@@ -77,6 +80,8 @@ export interface AdminActionLog {
 export interface NewWalletRequest {
   provider: WalletProvider
   walletNumber: string
+  /** Optional uploaded payment QR image path/URL. */
+  qrImageUrl?: string | null
 }
 
 /** Row from `GET /admin/authors/upgrade-requests` (hobbyists asking to go pro). */

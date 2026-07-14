@@ -37,6 +37,7 @@ public class WalletService {
         AdminWallet w = new AdminWallet();
         w.setProvider(req.provider());
         w.setWalletNumber(req.walletNumber());
+        w.setQrImageUrl(req.qrImageUrl());
         w.setActive(true);
         return toResponse(wallets.save(w));
     }
@@ -51,6 +52,7 @@ public class WalletService {
     }
 
     static WalletResponse toResponse(AdminWallet w) {
-        return new WalletResponse(w.getId(), w.getProvider(), w.getWalletNumber(), w.isActive());
+        return new WalletResponse(w.getId(), w.getProvider(), w.getWalletNumber(), w.isActive(),
+                w.getQrImageUrl());
     }
 }

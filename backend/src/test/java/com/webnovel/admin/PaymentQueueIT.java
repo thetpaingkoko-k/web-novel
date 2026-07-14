@@ -103,8 +103,8 @@ class PaymentQueueIT extends AuthTestSupport {
                 .andExpect(jsonPath("$[0].targetLabel", is("baseauthor")));
 
         // a non-monetized user (no author profile) cannot have a price set
-        registerAndGetToken("plainreader", "plainreader@example.com");
-        long readerId = userIdOf("plainreader@example.com");
+        registerAndGetToken("pqplainreader", "pqplainreader@example.com");
+        long readerId = userIdOf("pqplainreader@example.com");
         mvc.perform(put("/api/v1/admin/users/{id}/subscription-price", readerId)
                         .header("Authorization", bearer(adminToken))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"priceMmk\":8000}"))

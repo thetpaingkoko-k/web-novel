@@ -3,10 +3,12 @@ import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
 import { resolveUploadUrl } from "@/api/uploads"
 import { ProgressRing } from "@/components/progress-ring"
+import { genreLabelKey } from "@/lib/genres"
 import type { BookListItem } from "@/types/content"
 
 export function BookCard({ book, to }: { book: BookListItem; to?: string }) {
   const { t } = useTranslation()
+  const primaryGenre = book.genres[0]
   const hasProgress =
     book.readChaptersCount != null && book.readChaptersCount > 0 && book.chapterCount > 0
 
@@ -54,8 +56,10 @@ export function BookCard({ book, to }: { book: BookListItem; to?: string }) {
           {t("books.byAuthor", { author: book.authorUsername })}
         </p>
         <div className="mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-0.5 pt-1 text-xs text-muted-foreground">
-          {book.genre && <span className="font-medium text-foreground/70">{book.genre}</span>}
-          {book.genre && <span aria-hidden>·</span>}
+          {primaryGenre && (
+            <span className="font-medium text-foreground/70">{t(genreLabelKey(primaryGenre))}</span>
+          )}
+          {primaryGenre && <span aria-hidden>·</span>}
           <span>{t("books.status." + book.status)}</span>
         </div>
       </div>

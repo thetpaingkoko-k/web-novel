@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router"
+import { resolveUploadUrl } from "@/api/uploads"
 import { EmptyState } from "@/components/empty-state"
 import { ImageUploadField } from "@/components/image-upload-field"
 import { QueryError } from "@/components/query-error"
@@ -128,6 +129,19 @@ export function SubscribePage() {
           <CardTitle className="text-lg">{t("subscribe.paymentHeading")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          {wallet.qrImageUrl && (
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-border/70 bg-muted/40 p-4 text-center">
+              <p className="text-sm font-medium">{t("subscribe.scanToPay")}</p>
+              <img
+                src={resolveUploadUrl(wallet.qrImageUrl)}
+                alt={t("subscribe.scanToPay")}
+                className="size-48 rounded-lg border border-border/70 bg-white object-contain p-2"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t("subscribe.walletLabel", { provider: wallet.provider, number: wallet.walletNumber })}
+              </p>
+            </div>
+          )}
           <div className="rounded-xl border border-border/70 bg-muted/50 p-3 text-sm">
             <p>{t("subscribe.priceLabel", { price })}</p>
             <p className="mt-1 text-muted-foreground">

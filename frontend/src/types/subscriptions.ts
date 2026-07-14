@@ -6,6 +6,8 @@ export interface AdminWallet {
   provider: WalletProvider
   walletNumber: string
   isActive: boolean
+  /** Uploaded payment QR image path/URL for readers to scan; null when unset. */
+  qrImageUrl: string | null
 }
 
 export interface Subscription {
