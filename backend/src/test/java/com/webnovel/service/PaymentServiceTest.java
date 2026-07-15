@@ -49,7 +49,9 @@ class PaymentServiceTest {
             new BigDecimal("20"), new BigDecimal("5000"), new BigDecimal("5000"), 30,
             new AppProperties.Cors(List.of("http://localhost:5173")),
             new AppProperties.Uploads("images"),
-            new AppProperties.Google(""));
+            new AppProperties.Google(""),
+            new AppProperties.Mail("noreply@test", "", false,
+                    java.time.Duration.ofMinutes(10), java.time.Duration.ofSeconds(60)));
 
     private PaymentService service() {
         return new PaymentService(submissions, subscriptions, wallets, authorProfiles, earnings,
@@ -131,9 +133,11 @@ class PaymentServiceTest {
         ArgumentCaptor<PaymentSubmission> captor = ArgumentCaptor.forClass(PaymentSubmission.class);
         when(submissions.save(captor.capture())).thenAnswer(i -> i.getArgument(0));
 
+        // no amount is sent: the price is the fixed author baseline (10000 here), set server-side
         service().submit(7L, 50L, new com.webnovel.dto.payment.PaymentSubmissionRequest(
-                3L, new BigDecimal("10000"), "http://x/y.png", "123456"));
+                3L, "http://x/y.png", "123456"));
 
         assertThat(captor.getValue().getStatus()).isEqualTo(PaymentStatus.flagged_duplicate);
+        assertThat(captor.getValue().getAmount()).isEqualByComparingTo("10000");
     }
 }

@@ -35,6 +35,8 @@ export interface PaymentSubmissionReview {
   last6Digits: string
   /** Provider of the platform wallet the reader paid into. */
   walletProvider: WalletProvider
+  /** Account name on the platform wallet the reader paid into; null when unset. */
+  walletAccountName: string | null
   screenshotUrl: string
   status: "pending" | "approved" | "rejected" | "flagged_duplicate"
   submittedAt: string
@@ -80,8 +82,18 @@ export interface AdminActionLog {
 export interface NewWalletRequest {
   provider: WalletProvider
   walletNumber: string
+  /** Optional payee account name (≤100 chars). */
+  accountName?: string | null
   /** Optional uploaded payment QR image path/URL. */
   qrImageUrl?: string | null
+}
+
+/** `GET /admin/analytics/payments` — platform revenue split. All 0 with no approved payments. */
+export interface PaymentAnalytics {
+  totalReaderRevenue: number
+  totalAuthorEarnings: number
+  platformProfit: number
+  approvedPaymentCount: number
 }
 
 /** Row from `GET /admin/authors/upgrade-requests` (hobbyists asking to go pro). */

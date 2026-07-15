@@ -8,7 +8,10 @@ import type {
   LoginResponse,
   RegisterRequest,
   RegisterResponse,
+  ResendCodeRequest,
   UpdateProfileRequest,
+  VerifyEmailRequest,
+  VerifyEmailResponse,
 } from "@/types/auth"
 
 export const authKeys = { currentUser: ["auth", "me"] as const }
@@ -53,16 +56,36 @@ export function useGoogleLogin() {
   })
 }
 
+/** Manual signup. Returns a pending result (no tokens) — the user must verify next. */
 export function useRegister() {
-  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (payload: RegisterRequest) => {
       const { data } = await apiClient.post<RegisterResponse>("/auth/register", payload)
       return data
     },
+  })
+}
+
+/** Submit the emailed 6-digit code → logs the user in (stores the token pair). */
+export function useVerifyEmail() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: VerifyEmailRequest) => {
+      const { data } = await apiClient.post<VerifyEmailResponse>("/auth/verify-email", payload)
+      return data
+    },
     onSuccess: (data) => {
       tokenStorage.setTokens(data.accessToken, data.refreshToken)
       queryClient.setQueryData(authKeys.currentUser, data.user)
+    },
+  })
+}
+
+/** Re-send a verification code to a pending account (rate-limited server-side). */
+export function useResendCode() {
+  return useMutation({
+    mutationFn: async (payload: ResendCodeRequest) => {
+      await apiClient.post("/auth/resend-code", payload)
     },
   })
 }

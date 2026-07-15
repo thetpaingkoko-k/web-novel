@@ -15,6 +15,7 @@ export function AuthorFeedPage() {
   const authorId = Number(authorIdParam)
   const { user } = useAuth()
   const isOwner = user?.userId === authorId
+  const canDelete = isOwner || user?.role === "admin"
   const { data, isLoading, isError, refetch } = useAuthorFeed(authorId)
 
   return (
@@ -48,7 +49,7 @@ export function AuthorFeedPage() {
       {!isError && !isLoading && data && data.length > 0 && (
         <div className="flex flex-col gap-4">
           {data.map((post) => (
-            <FeedPostCard key={post.feedPostId} post={post} />
+            <FeedPostCard key={post.feedPostId} post={post} canDelete={canDelete} />
           ))}
         </div>
       )}

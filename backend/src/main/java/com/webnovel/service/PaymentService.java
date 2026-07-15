@@ -1,6 +1,7 @@
 package com.webnovel.service;
 
 import com.webnovel.config.AppProperties;
+import com.webnovel.domain.entity.AdminWallet;
 import com.webnovel.domain.entity.AuthorEarning;
 import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.PaymentSubmission;
@@ -44,24 +45,30 @@ public class PaymentService {
     /** §9.3: create/reuse a pending subscription, run the duplicate check, persist the submission. */
     @Transactional
     public PaymentSubmissionResponse submit(Long readerId, Long authorId, PaymentSubmissionRequest req) {
-        wallets.findById(req.walletId())
+        AdminWallet wallet = wallets.findById(req.walletId())
                 .orElseThrow(() -> new NotFoundException("wallet.none_active"));
+        if (!wallet.isActive()) {
+            throw new BadRequestException("wallet.not_active");
+        }
         AuthorProfile author = authorProfiles.findByUserId(authorId)
                 .orElseThrow(() -> new BadRequestException("author.not_monetized"));
         if (!author.isMonetizationEnabled() || author.getMonthlySubscriptionPrice() == null) {
             throw new BadRequestException("author.not_monetized");
         }
 
-        Subscription subscription = resolveSubscription(readerId, authorId, author.getMonthlySubscriptionPrice());
+        // FR-6.2: the price is a fixed system baseline — the reader cannot set it. Any amount
+        // supplied by the client is ignored; the author's current subscription price is used.
+        BigDecimal price = author.getMonthlySubscriptionPrice();
+        Subscription subscription = resolveSubscription(readerId, authorId, price);
 
         boolean collision = submissions.existsByWalletIdAndLast6DigitsAndAmountAndStatus(
-                req.walletId(), req.last6Digits(), req.amount(), PaymentStatus.approved);
+                req.walletId(), req.last6Digits(), price, PaymentStatus.approved);
 
         PaymentSubmission submission = new PaymentSubmission();
         submission.setReaderId(readerId);
         submission.setWalletId(req.walletId());
         submission.setSubscriptionId(subscription.getId());
-        submission.setAmount(req.amount());
+        submission.setAmount(price);
         submission.setScreenshotUrl(req.screenshotUrl());
         submission.setLast6Digits(req.last6Digits());
         submission.setStatus(collision ? PaymentStatus.flagged_duplicate : PaymentStatus.pending);

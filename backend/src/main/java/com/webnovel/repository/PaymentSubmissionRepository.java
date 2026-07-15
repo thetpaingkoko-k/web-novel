@@ -21,7 +21,8 @@ public interface PaymentSubmissionRepository extends JpaRepository<PaymentSubmis
     @Query("""
             select new com.webnovel.dto.payment.AdminPaymentRow(
                 p.id, p.readerId, u.username, s.authorId, au.username, p.subscriptionId,
-                p.amount, p.last6Digits, w.provider, p.screenshotUrl, p.status, p.submittedAt)
+                p.amount, p.last6Digits, w.provider, w.accountName, p.screenshotUrl,
+                p.status, p.submittedAt)
             from PaymentSubmission p, User u, Subscription s, User au, AdminWallet w
             where u.id = p.readerId and s.id = p.subscriptionId and au.id = s.authorId
               and w.id = p.walletId and p.status = :status

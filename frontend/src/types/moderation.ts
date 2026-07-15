@@ -28,6 +28,15 @@ export interface Report {
   reporterUsername: string
   targetType: ReportTargetType
   targetId: number
+  /**
+   * The reported content itself so the admin can act without hunting: an
+   * ellipsized comment/debate excerpt, a book title, or the reported user's
+   * username. Null when the target was deleted.
+   */
+  targetContent: string | null
+  /** Author/owner of the reported content; null for user reports or deleted targets. */
+  targetAuthorId: number | null
+  targetAuthorUsername: string | null
   reason: string
   status: ReportStatus
   createdAt: string

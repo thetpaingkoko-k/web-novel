@@ -7,6 +7,7 @@ import com.webnovel.domain.enums.WalletProvider;
 import com.webnovel.domain.enums.WithdrawalStatus;
 import com.webnovel.dto.payment.BalanceResponse;
 import com.webnovel.dto.payment.EarningResponse;
+import com.webnovel.dto.payment.PaymentAnalyticsResponse;
 import com.webnovel.dto.payment.WithdrawalRequest;
 import com.webnovel.dto.payment.WithdrawalResponse;
 import com.webnovel.exception.BadRequestException;
@@ -89,6 +90,22 @@ public class EarningsService {
         w.setPayoutWalletNumber(number);
         w.setStatus(WithdrawalStatus.pending);
         return toResponse(withdrawals.save(w));
+    }
+
+    /**
+     * §9.4: platform payment analytics — reader revenue collected, author earnings credited,
+     * and the platform's cut, aggregated across every approved payment.
+     */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public PaymentAnalyticsResponse paymentAnalytics() {
+        AuthorEarningRepository.EarningsAggregate agg = earnings.earningsAggregate();
+        return new PaymentAnalyticsResponse(
+                nz(agg.getTotalGross()), nz(agg.getTotalNet()), nz(agg.getTotalFee()), agg.getCount());
+    }
+
+    private static BigDecimal nz(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
     }
 
     @Transactional(readOnly = true)

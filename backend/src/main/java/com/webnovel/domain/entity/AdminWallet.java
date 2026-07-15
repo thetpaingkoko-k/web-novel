@@ -25,6 +25,10 @@ public class AdminWallet {
     @Column(name = "wallet_number", nullable = false, length = 50)
     private String walletNumber;
 
+    /** Account-holder name shown to readers at payment time so they can verify the payee. */
+    @Column(name = "account_name", length = 100)
+    private String accountName;
+
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 

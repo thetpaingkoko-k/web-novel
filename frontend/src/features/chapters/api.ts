@@ -76,6 +76,25 @@ export function useUpdateChapter(chapterId: number) {
   })
 }
 
+/**
+ * Delete a chapter. `DELETE /chapters/{id}` → 204. An author may delete only
+ * their own DRAFT chapters (a non-draft author delete returns 403 with code
+ * "chapter.delete_draft_only"); admins may delete any. Pass the owning `bookId`
+ * so the book detail (and its chapter list) refetches after removal.
+ */
+export function useDeleteChapter(bookId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (chapterId: number) => {
+      await apiClient.delete(`/chapters/${chapterId}`)
+    },
+    onSuccess: (_data, chapterId) => {
+      queryClient.removeQueries({ queryKey: chapterKeys.detail(chapterId) })
+      queryClient.invalidateQueries({ queryKey: ["books", "detail", bookId] })
+    },
+  })
+}
+
 export function useSubmitChapterForPublish() {
   const queryClient = useQueryClient()
   return useMutation({

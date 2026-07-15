@@ -32,4 +32,10 @@ public class FeedController {
     public List<FeedPostResponse> list(@PathVariable Long id) {
         return feed.list(id, SecurityUtils.currentPrincipal());
     }
+
+    @DeleteMapping("/{postId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id, @PathVariable Long postId) {
+        feed.delete(SecurityUtils.requirePrincipal(), id, postId);
+    }
 }

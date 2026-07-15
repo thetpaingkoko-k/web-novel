@@ -36,22 +36,33 @@ class PaymentQueueIT extends AuthTestSupport {
         String wallet = mvc.perform(post("/api/v1/admin/wallets").header("Authorization", bearer(adminToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"provider":"KBZPay","walletNumber":"09-777-000-111"}"""))
-                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+                                {"provider":"KBZPay","walletNumber":"09-777-000-111","accountName":"WebNovel Co"}"""))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.accountName", is("WebNovel Co")))
+                .andReturn().getResponse().getContentAsString();
         long walletId = objectMapper.readTree(wallet).get("walletId").asLong();
 
-        // reader submits proof of payment for that author
+        // the reader-facing active-wallet list carries the account name and provider (FR-6.1)
+        mvc.perform(get("/api/v1/wallets").header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.walletId == %d)].accountName".formatted(walletId),
+                        is(List.of("WebNovel Co"))));
+
+        // reader submits proof of payment for that author — no amount is sent (fixed 5000 baseline)
         String reader = registerAndGetToken("payreader", "payreader@example.com");
-        mvc.perform(post("/api/v1/authors/{id}/payment-submissions", authorId)
+        String submission = mvc.perform(post("/api/v1/authors/{id}/payment-submissions", authorId)
                         .header("Authorization", bearer(reader))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"walletId":%d,"amount":5000,"screenshotUrl":"https://x/s.png","last6Digits":"123456"}"""
+                                {"walletId":%d,"screenshotUrl":"https://x/s.png","last6Digits":"123456"}"""
                                 .formatted(walletId)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status", is("pending")));
+                .andExpect(jsonPath("$.status", is("pending")))
+                .andExpect(jsonPath("$.amount", is(5000.0)))
+                .andReturn().getResponse().getContentAsString();
+        long submissionId = objectMapper.readTree(submission).get("submissionId").asLong();
 
-        // queue row carries the joined author and wallet provider
+        // queue row carries the joined author, wallet provider, and wallet account name
         mvc.perform(get("/api/v1/admin/payment-submissions?status=pending")
                         .header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk())
@@ -60,10 +71,28 @@ class PaymentQueueIT extends AuthTestSupport {
                 .andExpect(jsonPath("$[?(@.readerUsername == 'payreader')].authorUsername",
                         is(List.of("payauthor"))))
                 .andExpect(jsonPath("$[?(@.readerUsername == 'payreader')].walletProvider",
-                        is(List.of("KBZPay"))));
+                        is(List.of("KBZPay"))))
+                .andExpect(jsonPath("$[?(@.readerUsername == 'payreader')].walletAccountName",
+                        is(List.of("WebNovel Co"))));
 
         // non-admin cannot read the queue
         mvc.perform(get("/api/v1/admin/payment-submissions").header("Authorization", bearer(reader)))
+                .andExpect(status().isForbidden());
+
+        // approving the payment feeds the admin analytics dashboard (§9.4):
+        // revenue 5000 = author earnings 4000 (net) + platform profit 1000 (20% fee)
+        mvc.perform(put("/api/v1/admin/payment-submissions/{id}/approve", submissionId)
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/admin/analytics/payments").header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalReaderRevenue", is(5000.0)))
+                .andExpect(jsonPath("$.totalAuthorEarnings", is(4000.0)))
+                .andExpect(jsonPath("$.platformProfit", is(1000.0)))
+                .andExpect(jsonPath("$.approvedPaymentCount", is(1)));
+
+        // the analytics dashboard is admin-only
+        mvc.perform(get("/api/v1/admin/analytics/payments").header("Authorization", bearer(reader)))
                 .andExpect(status().isForbidden());
 
         // admin user rows: plain reader has no career stage

@@ -75,6 +75,16 @@ public class BookService {
         return toDetail(book, chapterSummaries(book, viewerCanSeeUnpublished(principal, book)));
     }
 
+    /** Delete a book and everything under it. Admin-only (child rows cascade at the DB level). */
+    @Transactional
+    public void delete(AppUserPrincipal principal, Long bookId) {
+        if (!principal.isAdmin()) {
+            throw new ForbiddenException("content.delete_admin_only");
+        }
+        Book book = books.findById(bookId).orElseThrow(() -> new NotFoundException("book.not_found"));
+        books.delete(book);
+    }
+
     @Transactional(readOnly = true)
     public List<BookListItem> browse(String genre, BookStatus status, String search) {
         return populateGenres(books.browse(parseGenre(genre), status, toSearchPattern(search)), books);

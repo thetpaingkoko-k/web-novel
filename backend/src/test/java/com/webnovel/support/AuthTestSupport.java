@@ -24,13 +24,30 @@ public abstract class AuthTestSupport extends AbstractIntegrationTest {
     @Autowired protected UserRepository users;
     @Autowired protected PasswordEncoder passwordEncoder;
 
+    /**
+     * Registers a user and returns an access token. Manual signup now creates a
+     * {@code pending} account (202, no tokens) that must verify an emailed code;
+     * for downstream tests that just need an authenticated reader, we approve the
+     * account directly and log in — the verification flow itself is covered by
+     * {@code EmailVerificationIT}.
+     */
     protected String registerAndGetToken(String username, String email) throws Exception {
-        String body = mvc.perform(post("/api/v1/auth/register")
+        mvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"username":"%s","email":"%s","password":"password123"}"""
                                 .formatted(username, email)))
-                .andExpect(status().isCreated())
+                .andExpect(status().isAccepted());
+
+        User user = users.findByEmail(email).orElseThrow();
+        user.setStatus(UserStatus.approved);
+        users.save(user);
+
+        String body = mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","password":"password123"}""".formatted(email)))
+                .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).get("accessToken").asText();
     }

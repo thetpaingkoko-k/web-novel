@@ -1,11 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { BookText, CalendarClock, CheckCircle2, Eye, Heart, Image as ImageIcon, ListPlus, PenLine, Rocket, Sparkles } from "lucide-react"
+import { isAxiosError } from "axios"
+import { BookText, CalendarClock, CheckCircle2, Eye, Heart, Image as ImageIcon, ListPlus, PenLine, Rocket, Sparkles, Trash2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/features/admin/components/confirm-dialog"
 import { EmptyState } from "@/components/empty-state"
 import { ImageUploadField } from "@/components/image-upload-field"
 import { QueryError } from "@/components/query-error"
@@ -28,6 +30,8 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuth } from "@/features/auth/auth-context"
 import { useBook, useCreateBook, useUpdateBook } from "@/features/books/api"
+import { useDeleteChapter } from "@/features/chapters/api"
+import type { ChapterSummary } from "@/types/content"
 import { cn } from "@/lib/utils"
 import { GENRES, genreLabelKey } from "@/lib/genres"
 import { buildBookSchema, type BookFormSchema } from "./schemas"
@@ -60,7 +64,7 @@ function SectionHeading({
 }
 
 export function BookEditorPage() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { user } = useAuth()
   const { bookId: bookIdParam } = useParams<{ bookId: string }>()
@@ -319,56 +323,106 @@ export function BookEditorPage() {
           ) : (
             <ol className="flex flex-col divide-y divide-border/70 overflow-hidden rounded-xl border border-border/70 bg-card">
               {book.chapters.map((chapter) => (
-                <li key={chapter.chapterId}>
-                  <Link
-                    to={`/author/chapters/${chapter.chapterId}/edit`}
-                    className="group flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="font-display flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground tabular-nums group-hover:bg-primary/10 group-hover:text-primary">
-                        {chapter.chapterNumber}
-                      </span>
-                      <div className="flex min-w-0 flex-col gap-1">
-                        <span className="truncate font-medium">{chapter.title}</span>
-                        {chapter.status === "published" && (
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Eye className="h-3.5 w-3.5" aria-hidden="true" />
-                              {t("author.viewsCount", { count: chapter.uniqueViewCount })}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Heart className="h-3.5 w-3.5" aria-hidden="true" />
-                              {t("author.likesCount", { count: chapter.likeCount })}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                              {t("author.completionsCount", { count: chapter.completionCount })}
-                            </span>
-                          </div>
-                        )}
-                        {chapter.status === "scheduled" && chapter.publishedAt && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />
-                            {t("chapters.scheduledFor", {
-                              date: new Date(chapter.publishedAt).toLocaleString(i18n.language, {
-                                dateStyle: "medium",
-                                timeStyle: "short",
-                              }),
-                            })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <Badge variant={chapter.status === "rejected" ? "destructive" : "secondary"}>
-                      {t("author.chapterStatus." + chapter.status)}
-                    </Badge>
-                  </Link>
-                </li>
+                <ChapterRow key={chapter.chapterId} chapter={chapter} bookId={book.bookId} />
               ))}
             </ol>
           )}
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * One row in a book's chapter list. Draft chapters get a delete affordance —
+ * authors may delete only their own drafts (revise-by-delete-and-re-add), and
+ * the confirm dialog sits outside the row's edit link so it stays valid markup.
+ */
+function ChapterRow({ chapter, bookId }: { chapter: ChapterSummary; bookId: number }) {
+  const { t, i18n } = useTranslation()
+  const deleteChapter = useDeleteChapter(bookId)
+  // Authors may delete their own draft OR rejected chapters (others are admin-only).
+  const canDelete = chapter.status === "draft" || chapter.status === "rejected"
+
+  return (
+    <li className="flex items-center gap-1 pr-2">
+      <Link
+        to={`/author/chapters/${chapter.chapterId}/edit`}
+        className="group flex flex-1 items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted"
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="font-display flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground tabular-nums group-hover:bg-primary/10 group-hover:text-primary">
+            {chapter.chapterNumber}
+          </span>
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="truncate font-medium">{chapter.title}</span>
+            {chapter.status === "published" && (
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                  {t("author.viewsCount", { count: chapter.uniqueViewCount })}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Heart className="h-3.5 w-3.5" aria-hidden="true" />
+                  {t("author.likesCount", { count: chapter.likeCount })}
+                </span>
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  {t("author.completionsCount", { count: chapter.completionCount })}
+                </span>
+              </div>
+            )}
+            {chapter.status === "scheduled" && chapter.publishedAt && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />
+                {t("chapters.scheduledFor", {
+                  date: new Date(chapter.publishedAt).toLocaleString(i18n.language, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }),
+                })}
+              </span>
+            )}
+          </div>
+        </div>
+        <Badge variant={chapter.status === "rejected" ? "destructive" : "secondary"}>
+          {t("author.chapterStatus." + chapter.status)}
+        </Badge>
+      </Link>
+      {canDelete && (
+        <ConfirmDialog
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
+              aria-label={t("author.deleteChapter")}
+              disabled={deleteChapter.isPending}
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          }
+          title={t("author.deleteChapterConfirmTitle")}
+          description={t("author.deleteChapterConfirmBody")}
+          confirmLabel={t("author.deleteChapter")}
+          icon={Trash2}
+          onConfirm={() =>
+            deleteChapter.mutate(chapter.chapterId, {
+              onSuccess: () => toast.success(t("author.chapterDeleted")),
+              onError: (error) => {
+                const code = isAxiosError(error)
+                  ? (error.response?.data as { code?: string } | undefined)?.code
+                  : undefined
+                toast.error(
+                  code === "chapter.delete_draft_only"
+                    ? t("author.deleteDraftOnly")
+                    : t("common.genericError")
+                )
+              },
+            })
+          }
+        />
+      )}
+    </li>
   )
 }

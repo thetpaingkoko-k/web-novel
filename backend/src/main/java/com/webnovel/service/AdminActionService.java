@@ -38,6 +38,15 @@ public class AdminActionService {
     private final AuthorWithdrawalRepository withdrawals;
     private final ReportRepository reports;
 
+    /** Removes a single audit-log entry (FR-13.7 admin housekeeping). 404 if it does not exist. */
+    @Transactional
+    public void delete(Long adminActionId) {
+        if (!adminActions.existsById(adminActionId)) {
+            throw new com.webnovel.exception.NotFoundException("adminaction.not_found");
+        }
+        adminActions.deleteById(adminActionId);
+    }
+
     public void log(Long adminId, AdminActionType type, String targetType, Long targetId, String notes) {
         AdminAction action = new AdminAction();
         action.setAdminId(adminId);

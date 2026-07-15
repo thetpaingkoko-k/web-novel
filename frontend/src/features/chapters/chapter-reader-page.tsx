@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import type { RefObject } from "react"
 import { isAxiosError } from "axios"
-import { ChevronLeft, ChevronRight, Clock, Heart, Library, Lock } from "lucide-react"
+import { ChevronLeft, ChevronRight, Clock, Heart, Library, Lock, Maximize, Minimize } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 import { QueryError } from "@/components/query-error"
@@ -50,26 +51,45 @@ function blockCopy(event: React.SyntheticEvent) {
  * decorative (aria-hidden) and self-contained: it drives an element's transform
  * directly via a ref, so it never re-renders the reader or touches the
  * completion/reading-progress logic.
+ *
+ * In fullscreen mode the page's scroll moves inside the fullscreened container
+ * rather than the window, so the bar tracks that element when `scrollRef` is
+ * active.
  */
-function ReadingProgress() {
+function ReadingProgress({
+  scrollRef,
+  active,
+}: {
+  scrollRef: RefObject<HTMLElement | null>
+  active: boolean
+}) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
+    const target: HTMLElement | Window = active && scrollRef.current ? scrollRef.current : window
     let raf = 0
     function onScroll() {
       cancelAnimationFrame(raf)
       raf = requestAnimationFrame(() => {
-        const scrollable = document.documentElement.scrollHeight - window.innerHeight
-        const ratio = scrollable > 0 ? Math.min(1, Math.max(0, window.scrollY / scrollable)) : 0
+        let scrollable: number
+        let top: number
+        if (target instanceof Window) {
+          scrollable = document.documentElement.scrollHeight - window.innerHeight
+          top = window.scrollY
+        } else {
+          scrollable = target.scrollHeight - target.clientHeight
+          top = target.scrollTop
+        }
+        const ratio = scrollable > 0 ? Math.min(1, Math.max(0, top / scrollable)) : 0
         if (ref.current) ref.current.style.transform = `scaleX(${ratio})`
       })
     }
-    window.addEventListener("scroll", onScroll, { passive: true })
+    target.addEventListener("scroll", onScroll, { passive: true })
     onScroll()
     return () => {
-      window.removeEventListener("scroll", onScroll)
+      target.removeEventListener("scroll", onScroll)
       cancelAnimationFrame(raf)
     }
-  }, [])
+  }, [active, scrollRef])
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-50 h-1" aria-hidden="true">
       <div
@@ -97,6 +117,51 @@ export function ChapterReaderPage() {
   const updateProgress = useUpdateReadingProgress(chapter?.bookId ?? Number.NaN)
   const reader = useReaderPreferences()
 
+  // Fullscreen reading. We drive an immersive full-viewport layout via
+  // `isFullscreen` and, when available, also request the native Fullscreen API
+  // on the same container so browser chrome hides too. Either way the container
+  // becomes the scroll root, which the progress bar and completion tracking
+  // read from below.
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const toggleFullscreen = useCallback(() => {
+    const el = containerRef.current
+    if (!el) return
+    setIsFullscreen((current) => {
+      const next = !current
+      if (next) {
+        el.requestFullscreen?.().catch(() => {})
+      } else if (document.fullscreenElement) {
+        document.exitFullscreen?.().catch(() => {})
+      }
+      return next
+    })
+  }, [])
+
+  // Keep state in sync when the user leaves native fullscreen (ESC / browser UI).
+  useEffect(() => {
+    function onFsChange() {
+      if (!document.fullscreenElement) setIsFullscreen(false)
+    }
+    document.addEventListener("fullscreenchange", onFsChange)
+    return () => document.removeEventListener("fullscreenchange", onFsChange)
+  }, [])
+
+  // ESC exits the immersive layout even when the Fullscreen API isn't used
+  // (e.g. rejected/unsupported), so the toggle is always reversible.
+  useEffect(() => {
+    if (!isFullscreen) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setIsFullscreen(false)
+        if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [isFullscreen])
+
   const content = chapter?.content ?? ""
   const paragraphs = useMemo(() => splitParagraphs(content), [content])
   const readingMinutes = useMemo(() => estimateReadingMinutes(content), [content])
@@ -115,32 +180,41 @@ export function ChapterReaderPage() {
   useEffect(() => {
     if (!chapter || !isAuthenticated) return
     const chapterId = chapter.chapterId
+    // In fullscreen the container scrolls, not the window — track whichever is active.
+    const target: HTMLElement | Window =
+      isFullscreen && containerRef.current ? containerRef.current : window
+
+    function scrollableHeight() {
+      return target instanceof Window
+        ? document.documentElement.scrollHeight - window.innerHeight
+        : target.scrollHeight - target.clientHeight
+    }
 
     function markComplete() {
       if (completedChapterRef.current === chapterId) return
       completedChapterRef.current = chapterId
       updateProgress.mutate(chapterId)
-      window.removeEventListener("scroll", onScroll)
+      target.removeEventListener("scroll", onScroll)
     }
     function onScroll() {
-      const scrollable = document.documentElement.scrollHeight - window.innerHeight
-      const ratio = scrollable > 0 ? window.scrollY / scrollable : 1
+      const scrollable = scrollableHeight()
+      const top = target instanceof Window ? window.scrollY : target.scrollTop
+      const ratio = scrollable > 0 ? top / scrollable : 1
       if (ratio >= COMPLETION_SCROLL_RATIO) markComplete()
     }
 
     // Short chapters that never scroll: complete after a minimum dwell time.
     const timer = window.setTimeout(() => {
-      const scrollable = document.documentElement.scrollHeight - window.innerHeight
-      if (scrollable <= 0) markComplete()
+      if (scrollableHeight() <= 0) markComplete()
     }, COMPLETION_DWELL_MS)
-    window.addEventListener("scroll", onScroll, { passive: true })
+    target.addEventListener("scroll", onScroll, { passive: true })
 
     return () => {
-      window.removeEventListener("scroll", onScroll)
+      target.removeEventListener("scroll", onScroll)
       window.clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapter?.chapterId, isAuthenticated])
+  }, [chapter?.chapterId, isAuthenticated, isFullscreen])
 
   if (isError) {
     if (isAxiosError<AccessDeniedError>(error) && error.response?.status === 403) {
@@ -227,8 +301,14 @@ export function ChapterReaderPage() {
     // The outer column is wide enough for the widest reading setting (60rem);
     // the header/like/nav/comments each re-center themselves in a narrower
     // column so only the reading surface grows with `reader.maxWidthValue`.
-    <div className="mx-auto flex w-full max-w-[64rem] flex-col gap-6 sm:gap-8">
-      <ReadingProgress />
+    <div
+      ref={containerRef}
+      className={cn(
+        "mx-auto flex w-full max-w-[64rem] flex-col gap-6 sm:gap-8",
+        isFullscreen && "fixed inset-0 z-50 max-w-none overflow-y-auto bg-background px-4 py-6 sm:px-8"
+      )}
+    >
+      <ReadingProgress scrollRef={containerRef} active={isFullscreen} />
 
       {/* Sticky, unobtrusive reader bar — back nav, chapter label, and settings
           stay reachable while scrolling (Webtoon/Webnovel-style). */}
@@ -245,7 +325,22 @@ export function ChapterReaderPage() {
         <span className="mx-auto hidden shrink-0 text-xs font-medium text-muted-foreground sm:block">
           {t("chapters.chapterLabel", { number: chapter.chapterNumber })}
         </span>
-        <div className="ml-auto shrink-0 sm:ml-0">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 rounded-full text-muted-foreground hover:text-foreground"
+            aria-pressed={isFullscreen}
+            aria-label={isFullscreen ? t("chapters.exitFullscreen") : t("chapters.enterFullscreen")}
+            title={isFullscreen ? t("chapters.exitFullscreen") : t("chapters.enterFullscreen")}
+            onClick={toggleFullscreen}
+          >
+            {isFullscreen ? (
+              <Minimize className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Maximize className="h-4 w-4" aria-hidden="true" />
+            )}
+          </Button>
           <ReaderControls controller={reader} />
         </div>
       </div>

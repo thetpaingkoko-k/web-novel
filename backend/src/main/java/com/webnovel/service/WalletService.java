@@ -25,6 +25,12 @@ public class WalletService {
         return toResponse(w);
     }
 
+    /** All active wallets a reader may choose to pay into at subscription time (FR-6.1). */
+    @Transactional(readOnly = true)
+    public List<WalletResponse> listActive() {
+        return wallets.findByActiveTrueOrderByIdDesc().stream().map(WalletService::toResponse).toList();
+    }
+
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('ADMIN')")
     public List<WalletResponse> list() {
@@ -37,6 +43,7 @@ public class WalletService {
         AdminWallet w = new AdminWallet();
         w.setProvider(req.provider());
         w.setWalletNumber(req.walletNumber());
+        w.setAccountName(req.accountName());
         w.setQrImageUrl(req.qrImageUrl());
         w.setActive(true);
         return toResponse(wallets.save(w));
@@ -52,7 +59,7 @@ public class WalletService {
     }
 
     static WalletResponse toResponse(AdminWallet w) {
-        return new WalletResponse(w.getId(), w.getProvider(), w.getWalletNumber(), w.isActive(),
-                w.getQrImageUrl());
+        return new WalletResponse(w.getId(), w.getProvider(), w.getWalletNumber(),
+                w.getAccountName(), w.isActive(), w.getQrImageUrl());
     }
 }

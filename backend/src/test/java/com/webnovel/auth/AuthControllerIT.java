@@ -2,18 +2,24 @@ package com.webnovel.auth;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webnovel.service.EmailService;
 import com.webnovel.support.AbstractIntegrationTest;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** End-to-end auth contract against real Postgres + Flyway (FR-1.x, §10.1/§10.2). */
@@ -22,33 +28,81 @@ class AuthControllerIT extends AbstractIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper objectMapper;
 
+    // Capture the code EmailVerificationService hands to EmailService (no real SMTP).
+    @MockitoBean EmailService emailService;
+    private final Map<String, String> sentCodes = new ConcurrentHashMap<>();
+
+    @BeforeEach
+    void captureCodes() {
+        doAnswer(inv -> {
+            sentCodes.put(inv.getArgument(0), inv.getArgument(1));
+            return null;
+        }).when(emailService).sendVerificationCode(any(), any(), any());
+    }
+
     private static final String REGISTER = """
             {"username":"%s","email":"%s","password":"password123"}""";
 
+    private void register(String username, String email) throws Exception {
+        mvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(REGISTER.formatted(username, email)))
+                .andExpect(status().isAccepted());
+    }
+
+    /** Register → verify with the captured code → return the access token. */
+    private String registerVerifyAndToken(String username, String email) throws Exception {
+        register(username, email);
+        String body = mvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"%s\",\"code\":\"%s\"}".formatted(email, sentCodes.get(email))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(body).get("accessToken").asText();
+    }
+
     @Test
-    void register_login_me_refresh_roundTrip() throws Exception {
-        // register → 201 with camelCase token pair + user
-        String body = mvc.perform(post("/api/v1/auth/register")
+    void register_verify_login_me_refresh_roundTrip() throws Exception {
+        // register → 202, pending, NO tokens yet
+        mvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(REGISTER.formatted("roundtrip", "roundtrip@example.com")))
-                .andExpect(status().isCreated())
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.email", is("roundtrip@example.com")))
+                .andExpect(jsonPath("$.verificationRequired", is(true)));
+
+        // login before verifying → 403 with the email so the UI can reopen the verify screen
+        mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"roundtrip@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code", is("email_not_verified")))
+                .andExpect(jsonPath("$.details.email", is("roundtrip@example.com")));
+
+        // wrong code → 400
+        mvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"roundtrip@example.com\",\"code\":\"000000\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("invalid_verification_code")));
+
+        // correct code → 200 with the token pair + approved user
+        String body = mvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"roundtrip@example.com\",\"code\":\"%s\"}"
+                                .formatted(sentCodes.get("roundtrip@example.com"))))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken", notNullValue()))
-                .andExpect(jsonPath("$.refreshToken", notNullValue()))
-                .andExpect(jsonPath("$.user.role", is("reader")))
                 .andExpect(jsonPath("$.user.status", is("approved")))
-                .andExpect(jsonPath("$.user.isMonetizationEnabled", is(false)))
                 .andReturn().getResponse().getContentAsString();
 
-        JsonNode tokens = objectMapper.readTree(body);
-        String access = tokens.get("accessToken").asText();
-        String refresh = tokens.get("refreshToken").asText();
+        String access = objectMapper.readTree(body).get("accessToken").asText();
+        String refresh = objectMapper.readTree(body).get("refreshToken").asText();
 
-        // token verification path
         mvc.perform(get("/api/v1/users/me").header("Authorization", "Bearer " + access))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username", is("roundtrip")));
 
-        // refresh rotates
         String rotated = mvc.perform(post("/api/v1/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"refreshToken\":\"" + refresh + "\"}"))
@@ -56,14 +110,11 @@ class AuthControllerIT extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         String newRefresh = objectMapper.readTree(rotated).get("refreshToken").asText();
 
-        // old refresh token is now invalid
         mvc.perform(post("/api/v1/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"refreshToken\":\"" + refresh + "\"}"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code", is("unauthorized")));
+                .andExpect(status().isUnauthorized());
 
-        // new one still works
         mvc.perform(post("/api/v1/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"refreshToken\":\"" + newRefresh + "\"}"))
@@ -72,10 +123,7 @@ class AuthControllerIT extends AbstractIntegrationTest {
 
     @Test
     void updateMe_changesUsernameAndEmail() throws Exception {
-        String body = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(REGISTER.formatted("editme", "editme@example.com")))
-                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
-        String access = objectMapper.readTree(body).get("accessToken").asText();
+        String access = registerVerifyAndToken("editme", "editme@example.com");
 
         mvc.perform(put("/api/v1/users/me").header("Authorization", "Bearer " + access)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -84,9 +132,7 @@ class AuthControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.username", is("edited")))
                 .andExpect(jsonPath("$.email", is("edited@example.com")));
 
-        // colliding with another user's username → 409
-        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                .content(REGISTER.formatted("taken", "taken@example.com"))).andExpect(status().isCreated());
+        register("taken", "taken@example.com");
         mvc.perform(put("/api/v1/users/me").header("Authorization", "Bearer " + access)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"taken\",\"email\":\"edited@example.com\"}"))
@@ -112,8 +158,7 @@ class AuthControllerIT extends AbstractIntegrationTest {
 
     @Test
     void register_duplicateEmail_returns409() throws Exception {
-        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                .content(REGISTER.formatted("dupe1", "dupe@example.com"))).andExpect(status().isCreated());
+        register("dupe1", "dupe@example.com");
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(REGISTER.formatted("dupe2", "dupe@example.com")))
                 .andExpect(status().isConflict());

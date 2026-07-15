@@ -96,6 +96,11 @@ export function PaymentsQueuePage() {
                       provider: p.walletProvider,
                     })}
                   </p>
+                  {p.walletAccountName && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {t("admin.paidTo", { name: p.walletAccountName })}
+                    </p>
+                  )}
                   <span className="font-display mt-1 block text-lg font-semibold text-foreground">
                     {t("earnings.mmk", { amount: p.amount })}
                     <span className="ml-2 text-xs font-normal text-muted-foreground">

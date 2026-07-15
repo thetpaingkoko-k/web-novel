@@ -35,3 +35,8 @@ build/
 ### Uploaded images (runtime) ###
 /images/*
 !/images/.gitkeep
+
+### Local secrets — NEVER commit (contain API keys / passwords) ###
+run-dev.sh
+.env
+.env.local

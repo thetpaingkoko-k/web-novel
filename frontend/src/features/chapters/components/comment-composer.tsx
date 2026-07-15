@@ -1,5 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMemo } from "react"
+import { isAxiosError } from "axios"
+import { BookOpen } from "lucide-react"
+import { useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -21,6 +23,9 @@ export function CommentComposer({ chapterId, parentCommentId, onPosted, autoFocu
   const { t } = useTranslation()
   const postComment = usePostComment(chapterId)
   const schema = useMemo(() => buildCommentSchema(t), [t])
+  // The backend blocks commenting until the reader has recorded a view of the
+  // chapter (403 comment.must_read_first); we surface a friendly inline hint.
+  const [mustReadFirst, setMustReadFirst] = useState(false)
 
   const {
     register,
@@ -33,6 +38,7 @@ export function CommentComposer({ chapterId, parentCommentId, onPosted, autoFocu
   })
 
   const onSubmit = handleSubmit((values) => {
+    setMustReadFirst(false)
     postComment.mutate(
       { content: values.content, parentCommentId, spoiler: false },
       {
@@ -40,7 +46,17 @@ export function CommentComposer({ chapterId, parentCommentId, onPosted, autoFocu
           reset()
           onPosted?.()
         },
-        onError: () => toast.error(t("common.genericError")),
+        onError: (error) => {
+          const code = isAxiosError(error)
+            ? (error.response?.data as { code?: string } | undefined)?.code
+            : undefined
+          if (code === "comment.must_read_first") {
+            setMustReadFirst(true)
+            toast.error(t("comments.mustReadFirst"))
+            return
+          }
+          toast.error(t("common.genericError"))
+        },
       }
     )
   })
@@ -67,6 +83,12 @@ export function CommentComposer({ chapterId, parentCommentId, onPosted, autoFocu
         />
         <FieldError errors={[errors.content]} />
       </Field>
+      {mustReadFirst && (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <BookOpen className="size-3.5 shrink-0" aria-hidden="true" />
+          {t("comments.mustReadFirst")}
+        </p>
+      )}
       <div className="flex justify-end">
         <Button type="submit" size="sm" disabled={postComment.isPending}>
           {t("comments.post")}

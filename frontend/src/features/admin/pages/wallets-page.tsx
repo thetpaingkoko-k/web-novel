@@ -49,6 +49,7 @@ export function WalletsPage() {
       z.object({
         provider: z.enum(["KBZPay", "WavePay", "AYAPay", "other"]),
         walletNumber: z.string().min(1, t("validation.required")),
+        accountName: z.string().max(100, t("admin.walletAccountNameTooLong")),
         qrImageUrl: z.string(),
       }),
     [t]
@@ -64,12 +65,12 @@ export function WalletsPage() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { provider: "KBZPay", walletNumber: "", qrImageUrl: "" },
+    defaultValues: { provider: "KBZPay", walletNumber: "", accountName: "", qrImageUrl: "" },
   })
 
   const onSubmit = handleSubmit((values) => {
     addWallet.mutate(
-      { ...values, qrImageUrl: values.qrImageUrl || null },
+      { ...values, accountName: values.accountName || null, qrImageUrl: values.qrImageUrl || null },
       {
       onSuccess: () => {
         toast.success(t("admin.walletAdded"))
@@ -120,6 +121,15 @@ export function WalletsPage() {
                 <Input id="wallet-number" aria-invalid={!!errors.walletNumber} {...register("walletNumber")} />
                 <FieldError errors={[errors.walletNumber]} />
               </Field>
+              <Field data-invalid={!!errors.accountName}>
+                <FieldLabel htmlFor="wallet-account-name">{t("admin.walletAccountName")}</FieldLabel>
+                <Input
+                  id="wallet-account-name"
+                  aria-invalid={!!errors.accountName}
+                  {...register("accountName")}
+                />
+                <FieldError errors={[errors.accountName]} />
+              </Field>
               <Field>
                 <FieldLabel htmlFor="wallet-qr">{t("admin.walletQr")}</FieldLabel>
                 <ImageUploadField
@@ -160,9 +170,14 @@ export function WalletsPage() {
                     <WalletCards className="size-5" aria-hidden />
                   </span>
                 )}
-                <div className="flex min-w-0 flex-col gap-1">
+                <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="font-medium">{wallet.provider}</span>
-                  <span className="text-muted-foreground">{wallet.walletNumber}</span>
+                  <span className="text-muted-foreground tabular-nums">{wallet.walletNumber}</span>
+                  {wallet.accountName && (
+                    <span className="truncate text-xs text-muted-foreground">
+                      {wallet.accountName}
+                    </span>
+                  )}
                 </div>
                 <StatusPill
                   tone={wallet.isActive ? "success" : "muted"}

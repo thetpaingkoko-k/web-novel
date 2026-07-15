@@ -1,5 +1,6 @@
-import { Clock, Flag, Gavel, ShieldCheck, X } from "lucide-react"
+import { Clock, Flag, Gavel, ShieldCheck, User, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { useReportQueue, useResolveReport } from "@/features/moderation/api"
@@ -66,7 +67,43 @@ export function ReportsQueuePage() {
                       {t("moderation.targetType." + report.targetType)}
                     </StatusPill>
                   </div>
-                  <p className="mt-1 line-clamp-3 text-sm text-foreground">{report.reason}</p>
+
+                  {/* What was reported — the actual content, so the admin can act. */}
+                  <div className="mt-2 rounded-xl border border-border/60 bg-muted/40 p-2.5">
+                    <p className="text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase">
+                      {t("moderation.reportedContent")}
+                    </p>
+                    <p className="mt-0.5 line-clamp-3 text-sm text-foreground">
+                      {report.targetContent ?? (
+                        <span className="text-muted-foreground italic">
+                          {t("moderation.contentUnavailable")}
+                        </span>
+                      )}
+                    </p>
+                    {report.targetAuthorUsername && (
+                      <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <User className="size-3" aria-hidden="true" />
+                        {report.targetAuthorId != null ? (
+                          <Link
+                            to={`/authors/${report.targetAuthorId}`}
+                            className="underline-offset-2 hover:text-primary hover:underline"
+                          >
+                            {t("moderation.byAuthor", { author: report.targetAuthorUsername })}
+                          </Link>
+                        ) : (
+                          t("moderation.byAuthor", { author: report.targetAuthorUsername })
+                        )}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Why it was reported — the reporter's reason. */}
+                  <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {t("moderation.reasonLabel")}
+                    </span>{" "}
+                    {report.reason}
+                  </p>
                 </div>
               </div>
               <div className="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-border/60 bg-muted/30 px-4 py-3">

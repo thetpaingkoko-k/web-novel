@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { http, HttpResponse } from "msw"
 import { describe, expect, it } from "vitest"
 import { AuditLogPage } from "@/features/admin/pages/audit-log-page"
@@ -50,5 +51,27 @@ describe("AuditLogPage", () => {
     // The new payment action types render with their own labels.
     expect(screen.getByText("Payment approved")).toBeInTheDocument()
     expect(screen.getByText("Payment rejected")).toBeInTheDocument()
+  })
+
+  it("deletes an audit entry after confirmation", async () => {
+    const user = userEvent.setup()
+    let deletedId: number | undefined
+    server.use(
+      http.get("/api/v1/admin/actions", () => HttpResponse.json([action(5, "ban")])),
+      http.delete("/api/v1/admin/actions/5", () => {
+        deletedId = 5
+        return new HttpResponse(null, { status: 204 })
+      })
+    )
+
+    renderAuditLog()
+
+    await screen.findByText("target-5")
+    await user.click(screen.getByRole("button", { name: /delete entry/i }))
+    // Confirm in the alert dialog (its action shares the "Delete entry" label).
+    const buttons = await screen.findAllByRole("button", { name: /delete entry/i })
+    await user.click(buttons[buttons.length - 1])
+
+    await waitFor(() => expect(deletedId).toBe(5))
   })
 })

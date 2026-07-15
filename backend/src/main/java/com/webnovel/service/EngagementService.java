@@ -19,6 +19,7 @@ import com.webnovel.repository.BookRepository;
 import com.webnovel.repository.ChapterCommentRepository;
 import com.webnovel.repository.ChapterLikeRepository;
 import com.webnovel.repository.ChapterRepository;
+import com.webnovel.repository.ChapterViewRepository;
 import com.webnovel.repository.ReadingProgressRepository;
 import com.webnovel.security.AppUserPrincipal;
 import java.time.OffsetDateTime;
@@ -36,6 +37,7 @@ public class EngagementService {
     private final ChapterRepository chapters;
     private final ChapterLikeRepository likes;
     private final ChapterCommentRepository comments;
+    private final ChapterViewRepository views;
     private final ReadingProgressRepository progress;
     private final BookRepository books;
     private final AdminActionService adminActions;
@@ -72,6 +74,11 @@ public class EngagementService {
     @Transactional
     public CommentResponse addComment(AppUserPrincipal reader, Long chapterId, CommentRequest req) {
         requireChapter(chapterId);
+        // FR-8.2: you may only discuss a chapter you have actually read. Subscription is not
+        // required — only a recorded view of this chapter. Admins and the book's author bypass.
+        if (!reader.isAdmin() && !views.existsByChapterIdAndReaderId(chapterId, reader.getId())) {
+            throw new ForbiddenException("comment.must_read_first");
+        }
         if (req.parentCommentId() != null
                 && !comments.existsByIdAndChapterId(req.parentCommentId(), chapterId)) {
             throw new NotFoundException("comment.parent_not_found");

@@ -9,6 +9,7 @@ import com.webnovel.service.ChapterService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 /** Chapter edit, read, and publish (PROJECT SPEC.md §10.3). */
@@ -24,6 +25,13 @@ public class ChapterController {
     @PutMapping("/{id}")
     public ChapterResponse update(@PathVariable Long id, @Valid @RequestBody ChapterUpdateRequest req) {
         return chapterService.update(SecurityUtils.requirePrincipal(), id, req);
+    }
+
+    /** Delete a chapter: authors may remove their own drafts; admins may remove any chapter. */
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        chapterService.delete(SecurityUtils.requirePrincipal(), id);
     }
 
     /** Read a chapter (access-controlled, §9.1). Public for free books; premium requires a subscription. */

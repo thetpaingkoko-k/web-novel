@@ -1,10 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { AlertTriangle, CalendarClock, FileText, Maximize2, Minimize2, PenLine, Send, Timer, Type } from "lucide-react"
+import { isAxiosError } from "axios"
+import { AlertTriangle, CalendarClock, FileText, Lock, Maximize2, Minimize2, PenLine, Send, Timer, Trash2, Type } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/features/admin/components/confirm-dialog"
 import { QueryError } from "@/components/query-error"
 import { StudioHero } from "@/components/studio-hero"
 import { Button } from "@/components/ui/button"
@@ -15,7 +17,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/features/auth/auth-context"
-import { useChapter, useCreateChapter, useSubmitChapterForPublish, useUpdateChapter } from "@/features/chapters/api"
+import {
+  useChapter,
+  useCreateChapter,
+  useDeleteChapter,
+  useSubmitChapterForPublish,
+  useUpdateChapter,
+} from "@/features/chapters/api"
 import { buildChapterSchema, type ChapterFormSchema } from "./schemas"
 
 function countWords(text: string) {
@@ -52,6 +60,7 @@ export function ChapterEditorPage() {
   const { data: chapter, isLoading, isError, refetch } = useChapter(chapterId)
   const createChapter = useCreateChapter(isEditMode ? (chapter?.bookId ?? Number.NaN) : bookId)
   const updateChapter = useUpdateChapter(chapterId)
+  const deleteChapter = useDeleteChapter(chapter?.bookId ?? Number.NaN)
   const submitForPublish = useSubmitChapterForPublish()
   const schema = useMemo(() => buildChapterSchema(t), [t])
 
@@ -111,9 +120,22 @@ export function ChapterEditorPage() {
   }
 
   const isProfessional = user?.role === "professional_author"
-  const isPending = createChapter.isPending || updateChapter.isPending || submitForPublish.isPending
+  const isAdmin = user?.role === "admin"
+  // PUT /chapters/{id} is admin-only: a non-admin author can create a chapter
+  // and publish/delete a draft, but can't edit an existing chapter's content —
+  // they revise by deleting the draft and adding a new one.
+  const canEditContent = !isEditMode || isAdmin
+  const isDraft = chapter?.status === "draft"
+  // Authors may delete their own draft OR rejected chapters (others are admin-only).
+  const canDeleteChapter = chapter?.status === "draft" || chapter?.status === "rejected"
+  const isPending =
+    createChapter.isPending ||
+    updateChapter.isPending ||
+    submitForPublish.isPending ||
+    deleteChapter.isPending
 
   function saveOnly(values: ChapterFormSchema) {
+    if (!canEditContent) return
     const mutation = isEditMode ? updateChapter : createChapter
     mutation.mutate(values, {
       onSuccess: (saved) => {
@@ -124,35 +146,65 @@ export function ChapterEditorPage() {
     })
   }
 
+  function publishChapter(id: number, scheduledFor?: string) {
+    submitForPublish.mutate(
+      { chapterId: id, scheduledFor },
+      {
+        onSuccess: (published) => {
+          toast.success(
+            published.status === "scheduled"
+              ? t("author.chapterScheduled")
+              : published.status === "published"
+                ? t("author.chapterPublished")
+                : t("author.chapterSubmittedForReview")
+          )
+          navigate(`/author/books/${published.bookId}/edit`)
+        },
+        onError: () => toast.error(t("common.genericError")),
+      }
+    )
+  }
+
   function saveAndSubmit(values: ChapterFormSchema) {
+    // datetime-local gives "YYYY-MM-DDTHH:mm"; the backend expects an ISO-8601
+    // offset datetime.
+    const scheduledFor = values.scheduledFor
+      ? new Date(values.scheduledFor).toISOString()
+      : undefined
+
+    // Non-admin authors editing an existing chapter can't PUT content, so we
+    // publish the chapter directly without a content update.
+    if (isEditMode && !canEditContent) {
+      publishChapter(chapterId, scheduledFor)
+      return
+    }
+
     const mutation = isEditMode ? updateChapter : createChapter
     mutation.mutate(values, {
-      onSuccess: (saved) => {
-        // datetime-local gives "YYYY-MM-DDTHH:mm"; the backend expects an
-        // ISO-8601 offset datetime.
-        const scheduledFor = values.scheduledFor
-          ? new Date(values.scheduledFor).toISOString()
+      // Publish the chapter we just saved by id — on create the URL param has
+      // no id yet, so we can't rely on the mutation being bound to it.
+      onSuccess: (saved) => publishChapter(saved.chapterId, scheduledFor),
+      onError: () => toast.error(t("common.genericError")),
+    })
+  }
+
+  function onDeleteDraft() {
+    if (!chapter) return
+    deleteChapter.mutate(chapter.chapterId, {
+      onSuccess: () => {
+        toast.success(t("author.chapterDeleted"))
+        navigate(`/author/books/${chapter.bookId}/edit`)
+      },
+      onError: (error) => {
+        const code = isAxiosError(error)
+          ? (error.response?.data as { code?: string } | undefined)?.code
           : undefined
-        // Publish the chapter we just saved by id — on create the URL param
-        // has no id yet, so we can't rely on the mutation being bound to it.
-        submitForPublish.mutate(
-          { chapterId: saved.chapterId, scheduledFor },
-          {
-            onSuccess: (published) => {
-              toast.success(
-                published.status === "scheduled"
-                  ? t("author.chapterScheduled")
-                  : published.status === "published"
-                    ? t("author.chapterPublished")
-                    : t("author.chapterSubmittedForReview")
-              )
-              navigate(`/author/books/${published.bookId}/edit`)
-            },
-            onError: () => toast.error(t("common.genericError")),
-          }
+        toast.error(
+          code === "chapter.delete_draft_only"
+            ? t("author.deleteDraftOnly")
+            : t("common.genericError")
         )
       },
-      onError: () => toast.error(t("common.genericError")),
     })
   }
 
@@ -179,6 +231,13 @@ export function ChapterEditorPage() {
         </div>
       )}
 
+      {!focusMode && !canEditContent && (
+        <div className="flex items-start gap-2 rounded-xl border border-border/70 bg-muted/50 p-3 text-sm text-muted-foreground">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{t("author.contentLockedNote")}</span>
+        </div>
+      )}
+
       <form noValidate className="flex flex-col gap-6">
         {!focusMode && (
           <Card>
@@ -186,7 +245,13 @@ export function ChapterEditorPage() {
               <FieldGroup>
                 <Field data-invalid={!!errors.title}>
                   <FieldLabel htmlFor="chapter-title">{t("author.chapterTitle")}</FieldLabel>
-                  <Input id="chapter-title" aria-invalid={!!errors.title} {...register("title")} />
+                  <Input
+                    id="chapter-title"
+                    aria-invalid={!!errors.title}
+                    readOnly={!canEditContent}
+                    className={cn(!canEditContent && "cursor-not-allowed opacity-70")}
+                    {...register("title")}
+                  />
                   {/* The chapter number is assigned automatically (next in the book). */}
                   <FieldDescription>
                     {isEditMode && chapter
@@ -246,9 +311,11 @@ export function ChapterEditorPage() {
             <Textarea
               id="chapter-content"
               aria-invalid={!!errors.content}
+              readOnly={!canEditContent}
               className={cn(
                 "reading-prose resize-y border-border/70 bg-background leading-relaxed focus-visible:ring-primary/40",
-                focusMode ? "min-h-[78vh]" : "min-h-[60vh]"
+                focusMode ? "min-h-[78vh]" : "min-h-[60vh]",
+                !canEditContent && "cursor-not-allowed opacity-80"
               )}
               placeholder={t("author.chapterContentPlaceholder")}
               {...register("content")}
@@ -282,26 +349,71 @@ export function ChapterEditorPage() {
         {/* Sticky action bar — stays reachable in long chapters. */}
         <div className="sticky bottom-4 z-20">
           <div className="glass flex flex-wrap items-center gap-2 rounded-2xl border border-border/70 p-3 shadow-lg">
-            <Button
-              type="button"
-              disabled={isPending}
-              onClick={handleSubmit(saveAndSubmit)}
-              className="glow-brand-hover"
-            >
-              <Send className="h-4 w-4" aria-hidden="true" />
-              {isProfessional ? t("author.publish") : t("author.submitForReview")}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isPending}
-              onClick={handleSubmit(saveOnly)}
-            >
-              {t("author.saveDraft")}
-            </Button>
-            <span className="ml-auto hidden pr-1 text-xs text-muted-foreground sm:inline">
-              {t("author.saveShortcutHint")}
-            </span>
+            {canEditContent ? (
+              <>
+                <Button
+                  type="button"
+                  disabled={isPending}
+                  onClick={handleSubmit(saveAndSubmit)}
+                  className="glow-brand-hover"
+                >
+                  <Send className="h-4 w-4" aria-hidden="true" />
+                  {isProfessional || isAdmin ? t("author.publish") : t("author.submitForReview")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={handleSubmit(saveOnly)}
+                >
+                  {t("author.saveDraft")}
+                </Button>
+                <span className="ml-auto hidden pr-1 text-xs text-muted-foreground sm:inline">
+                  {t("author.saveShortcutHint")}
+                </span>
+              </>
+            ) : (
+              <>
+                {isDraft && (
+                  <Button
+                    type="button"
+                    disabled={isPending}
+                    onClick={handleSubmit(saveAndSubmit)}
+                    className="glow-brand-hover"
+                  >
+                    <Send className="h-4 w-4" aria-hidden="true" />
+                    {isProfessional ? t("author.publish") : t("author.submitForReview")}
+                  </Button>
+                )}
+                {canDeleteChapter && (
+                  <ConfirmDialog
+                    trigger={
+                      <Button type="button" variant="outline" disabled={isPending}>
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        {t("author.deleteChapter")}
+                      </Button>
+                    }
+                    title={t("author.deleteChapterConfirmTitle")}
+                    description={t("author.deleteChapterConfirmBody")}
+                    confirmLabel={t("author.deleteChapter")}
+                    icon={Trash2}
+                    onConfirm={onDeleteDraft}
+                  />
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={isPending}
+                  className="ml-auto"
+                  onClick={() => {
+                    if (chapter) navigate(`/author/books/${chapter.bookId}/edit`)
+                    else navigate(-1)
+                  }}
+                >
+                  {t("common.back")}
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </form>

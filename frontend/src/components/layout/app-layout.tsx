@@ -45,8 +45,17 @@ export function AppLayout() {
 
 function SiteHeader() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { user, isAuthenticated, logout } = useAuth()
   const isAuthor = Boolean(user && AUTHOR_ROLES.includes(user.role))
+
+  // Leave for a clean public route BEFORE clearing the session so a protected
+  // route can't capture the current path as `from` and bleed it into the next
+  // login (e.g. an admin landing on a reader's subscription page).
+  function handleLogout() {
+    navigate("/", { replace: true })
+    logout.mutate()
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-md">
@@ -69,7 +78,7 @@ function SiteHeader() {
               username={user?.username ?? ""}
               userId={user?.userId}
               role={user?.role}
-              onLogout={() => logout.mutate()}
+              onLogout={handleLogout}
             />
           ) : (
             <div className="hidden items-center gap-2 sm:flex">
@@ -239,8 +248,14 @@ function UserMenu({
 
 function MobileMenu() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { user, isAuthenticated, logout } = useAuth()
   const isAuthor = Boolean(user && AUTHOR_ROLES.includes(user.role))
+
+  function handleLogout() {
+    navigate("/", { replace: true })
+    logout.mutate()
+  }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -287,7 +302,7 @@ function MobileMenu() {
             <DropdownMenuItem asChild>
               <Link to="/account">{t("nav.account")}</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onClick={() => logout.mutate()}>
+            <DropdownMenuItem variant="destructive" onClick={handleLogout}>
               {t("nav.logout")}
             </DropdownMenuItem>
           </>

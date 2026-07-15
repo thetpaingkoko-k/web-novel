@@ -24,12 +24,14 @@ export function RegisterPage() {
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { username: "", email: "", password: "" },
+    defaultValues: { username: "", email: "", password: "", confirmPassword: "" },
   })
 
-  const onSubmit = handleSubmit((values) => {
+  const onSubmit = handleSubmit(({ confirmPassword: _confirmPassword, ...values }) => {
+    // `confirmPassword` is a client-side guard only — never sent to the API.
     registerUser.mutate(values, {
-      onSuccess: () => navigate("/"),
+      // Registration no longer logs in — go verify the emailed code.
+      onSuccess: (data) => navigate("/verify-email", { state: { email: data.email } }),
       onError: () => toast.error(t("auth.registerFailed")),
     })
   })
@@ -73,6 +75,15 @@ export function RegisterPage() {
           autoComplete="new-password"
           error={errors.password?.message}
           {...register("password")}
+        />
+        <IconInput
+          id="register-confirm-password"
+          icon={Lock}
+          label={t("auth.confirmPassword")}
+          type="password"
+          autoComplete="new-password"
+          error={errors.confirmPassword?.message}
+          {...register("confirmPassword")}
         />
         <Button type="submit" className="mt-1 h-11 w-full" disabled={registerUser.isPending}>
           {t("auth.registerSubmit")}

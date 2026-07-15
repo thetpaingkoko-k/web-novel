@@ -9,5 +9,7 @@ public interface AdminWalletRepository extends JpaRepository<AdminWallet, Long> 
 
     Optional<AdminWallet> findFirstByActiveTrueOrderByIdDesc();
 
+    List<AdminWallet> findByActiveTrueOrderByIdDesc();
+
     List<AdminWallet> findAllByOrderByIdDesc();
 }

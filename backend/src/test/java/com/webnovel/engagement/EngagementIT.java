@@ -23,6 +23,14 @@ class EngagementIT extends AuthTestSupport {
                 .andExpect(status().isOk());
     }
 
+    /** Records a chapter view for the given (authenticated) reader — the comment gate (FR-8.2). */
+    private void recordView(String token, long chapterId, String session) throws Exception {
+        mvc.perform(post("/api/v1/chapters/{id}/view", chapterId).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sessionId\":\"" + session + "\",\"deviceFingerprint\":\"" + session + "d\"}"))
+                .andExpect(status().isOk());
+    }
+
     private String relogin(String email) throws Exception {
         String body = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + email + "\",\"password\":\"password123\"}"))
@@ -84,7 +92,13 @@ class EngagementIT extends AuthTestSupport {
         mvc.perform(get("/api/v1/chapters/{id}", chapterId))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.likedByMe", is(false)));
 
-        // reader comments on the chapter
+        // a reader who has not read the chapter cannot discuss it (FR-8.2) → 403
+        mvc.perform(post("/api/v1/chapters/{id}/comments", chapterId).header("Authorization", bearer(reader))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"too soon\"}"))
+                .andExpect(status().isForbidden());
+
+        // after recording a view of the chapter, the reader may comment (subscription NOT required)
+        recordView(reader, chapterId, "enreaderS");
         mvc.perform(post("/api/v1/chapters/{id}/comments", chapterId).header("Authorization", bearer(reader))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"Loved it\"}"))
                 .andExpect(status().isCreated());
@@ -128,6 +142,7 @@ class EngagementIT extends AuthTestSupport {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"chapterId\":" + chapterId + "}"))
                 .andExpect(status().isOk());
 
+        recordView(reader, chapterId, "delreaderS"); // FR-8.2 comment gate: must have read it
         String commentBody = mvc.perform(post("/api/v1/chapters/{id}/comments", chapterId)
                         .header("Authorization", bearer(reader))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"to be deleted\"}"))
@@ -175,6 +190,7 @@ class EngagementIT extends AuthTestSupport {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"chapterId\":" + chapterId + "}"))
                 .andExpect(status().isOk());
 
+        recordView(reader, chapterId, "hidereaderS"); // FR-8.2 comment gate: must have read it
         String commentBody = mvc.perform(post("/api/v1/chapters/{id}/comments", chapterId)
                         .header("Authorization", bearer(reader))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"spammy\"}"))

@@ -14,15 +14,17 @@ import { useAuth } from "@/features/auth/auth-context"
 import { AuthorBadge } from "@/features/authors/author-badge"
 import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button"
 import { ReportDialog } from "@/features/moderation/report-dialog"
+import { useSubscriptionTo } from "@/features/subscriptions/api"
 import { useBook, useReadingProgress } from "./api"
 
 export function BookDetailPage() {
   const { bookId } = useParams<{ bookId: string }>()
   const { t } = useTranslation()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const id = Number(bookId)
   const { data: book, isLoading, isError, refetch } = useBook(id)
   const { data: progress } = useReadingProgress(id, isAuthenticated)
+  const { subscription } = useSubscriptionTo(book?.authorId ?? Number.NaN, isAuthenticated)
 
   if (isError) {
     return <QueryError message={t("books.notFound")} onRetry={() => refetch()} />
@@ -166,18 +168,26 @@ export function BookDetailPage() {
                   </Button>
                 )
               )}
-              {book.isPremium && (
-                <Button asChild variant="secondary" className="w-fit">
-                  <Link to={`/authors/${book.authorId}/subscribe`}>
-                    {t("books.subscribeToRead")}
-                  </Link>
-                </Button>
-              )}
+              {book.isPremium &&
+                (subscription ? (
+                  <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-success/10 px-3 py-1.5 text-sm font-medium text-success">
+                    <CheckCircle2 className="size-4" aria-hidden="true" />
+                    {subscription.status === "pending_payment"
+                      ? t("subscribe.status.pending_payment")
+                      : t("subscribe.subscribedBadge")}
+                  </span>
+                ) : (
+                  <Button asChild variant="secondary" className="w-fit">
+                    <Link to={`/authors/${book.authorId}/subscribe`}>
+                      {t("books.subscribeToRead")}
+                    </Link>
+                  </Button>
+                ))}
               <BookmarkButton bookId={book.bookId} />
               <Button asChild variant="outline" className="w-fit">
                 <Link to={`/books/${book.bookId}/debates`}>{t("debates.discussions")}</Link>
               </Button>
-              {isAuthenticated && (
+              {isAuthenticated && user?.userId !== book.authorId && (
                 <ReportDialog
                   targetType="book"
                   targetId={book.bookId}

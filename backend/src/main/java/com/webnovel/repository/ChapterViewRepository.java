@@ -8,6 +8,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChapterViewRepository extends JpaRepository<ChapterView, Long> {
 
+    /** True once a signed-in reader has a recorded view of this chapter (comment gate, FR-8.2). */
+    boolean existsByChapterIdAndReaderId(Long chapterId, Long readerId);
+
     /**
      * Unique-view dedup (§9.2, FR-5.2): true if any view for this chapter and the same
      * session OR device fingerprint exists within the window. Uses the

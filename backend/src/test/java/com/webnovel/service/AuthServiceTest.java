@@ -16,6 +16,8 @@ import com.webnovel.dto.auth.AuthResponse;
 import com.webnovel.dto.auth.GoogleLoginRequest;
 import com.webnovel.dto.auth.LoginRequest;
 import com.webnovel.dto.auth.RegisterRequest;
+import com.webnovel.dto.auth.RegistrationResponse;
+import com.webnovel.dto.auth.VerifyEmailRequest;
 import com.webnovel.dto.user.UserResponse;
 import com.webnovel.exception.ApiException;
 import com.webnovel.exception.ConflictException;
@@ -29,6 +31,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,15 +62,18 @@ class AuthServiceTest {
             new BigDecimal("20"), new BigDecimal("5000"), new BigDecimal("5000"), 30,
             new AppProperties.Cors(List.of("http://localhost:5173")),
             new AppProperties.Uploads("images"),
-            new AppProperties.Google("client-id.apps.googleusercontent.com"));
+            new AppProperties.Google("client-id.apps.googleusercontent.com"),
+            new AppProperties.Mail("noreply@test", "", false,
+                    Duration.ofMinutes(10), Duration.ofSeconds(60)));
 
     @Mock GoogleTokenVerifier googleTokenVerifier;
+    @Mock EmailVerificationService emailVerification;
 
     @BeforeEach
     void setUp() {
         jwtService = new JwtService(props);
-        service = new AuthService(
-                users, refreshTokens, passwordEncoder, jwtService, googleTokenVerifier, userService, props);
+        service = new AuthService(users, refreshTokens, passwordEncoder, jwtService,
+                googleTokenVerifier, emailVerification, userService, props);
     }
 
     private User persistedUser(String rawPassword) {
@@ -82,7 +88,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void register_createsReaderApproved_andIssuesTokens() {
+    void register_createsPendingReader_andSendsCode() {
         when(users.existsByEmail(any())).thenReturn(false);
         when(users.existsByUsername(any())).thenReturn(false);
         when(users.save(any(User.class))).thenAnswer(inv -> {
@@ -90,23 +96,24 @@ class AuthServiceTest {
             u.setId(1L);
             return u;
         });
-        when(userService.toResponse(any())).thenReturn(
-                new UserResponse(1L, "alice", "alice@example.com", Role.reader, UserStatus.approved, false));
 
-        AuthResponse res = service.register(
-                new RegisterRequest("alice", "alice@example.com", "password123"));
+        RegistrationResponse res = service.register(
+                new RegisterRequest("alice", "alice@example.com", "password123"), Locale.ENGLISH);
 
-        assertThat(res.accessToken()).isNotBlank();
-        assertThat(res.refreshToken()).isNotBlank();
-        assertThat(res.user().role()).isEqualTo(Role.reader);
-        assertThat(res.user().status()).isEqualTo(UserStatus.approved);
+        assertThat(res.email()).isEqualTo("alice@example.com");
+        assertThat(res.verificationRequired()).isTrue();
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(users).save(saved.capture());
+        assertThat(saved.getValue().getStatus()).isEqualTo(UserStatus.pending);
+        assertThat(saved.getValue().getAuthProvider()).isEqualTo(AuthProvider.LOCAL);
+        verify(emailVerification).issueAndSend(saved.getValue(), Locale.ENGLISH);
     }
 
     @Test
     void register_duplicateEmail_throwsConflict() {
         when(users.existsByEmail("alice@example.com")).thenReturn(true);
         assertThatThrownBy(() -> service.register(
-                new RegisterRequest("alice", "alice@example.com", "password123")))
+                new RegisterRequest("alice", "alice@example.com", "password123"), Locale.ENGLISH))
                 .isInstanceOf(ConflictException.class)
                 .extracting("messageKey").isEqualTo("auth.email_taken");
     }
@@ -127,6 +134,40 @@ class AuthServiceTest {
         assertThatThrownBy(() -> service.login(new LoginRequest("alice@example.com", "password123")))
                 .isInstanceOf(ApiException.class)
                 .extracting("messageKey").isEqualTo("auth.account_blocked");
+    }
+
+    @Test
+    void login_pendingUser_throwsEmailNotVerified() {
+        User u = persistedUser("password123");
+        u.setStatus(UserStatus.pending);
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
+        assertThatThrownBy(() -> service.login(new LoginRequest("alice@example.com", "password123")))
+                .isInstanceOf(ApiException.class)
+                .extracting("code").isEqualTo(ErrorCode.email_not_verified);
+    }
+
+    @Test
+    void verifyEmail_validCode_approvesAndIssuesTokens() {
+        User u = persistedUser("password123");
+        u.setStatus(UserStatus.pending);
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
+        when(userService.toResponse(any())).thenReturn(
+                new UserResponse(1L, "alice", "alice@example.com", Role.reader, UserStatus.approved, false));
+
+        AuthResponse res = service.verifyEmail(new VerifyEmailRequest("alice@example.com", "123456"));
+
+        assertThat(res.accessToken()).isNotBlank();
+        assertThat(u.getStatus()).isEqualTo(UserStatus.approved);
+        verify(emailVerification).verifyAndConsume(u, "123456");
+    }
+
+    @Test
+    void verifyEmail_alreadyApproved_throwsAlreadyVerified() {
+        User u = persistedUser("password123"); // approved by default
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
+        assertThatThrownBy(() -> service.verifyEmail(new VerifyEmailRequest("alice@example.com", "123456")))
+                .isInstanceOf(ConflictException.class)
+                .extracting("code").isEqualTo(ErrorCode.already_verified);
     }
 
     @Test

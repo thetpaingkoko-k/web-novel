@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router"
 import { AppLayout } from "@/components/layout/app-layout"
 import { AdminLayout } from "@/features/admin/admin-layout"
+import { AnalyticsPage } from "@/features/admin/pages/analytics-page"
 import { AuditLogPage } from "@/features/admin/pages/audit-log-page"
 import { ChaptersQueuePage } from "@/features/admin/pages/chapters-queue-page"
 import { PaymentsQueuePage } from "@/features/admin/pages/payments-queue-page"
@@ -13,6 +14,7 @@ import { WithdrawalsQueuePage } from "@/features/admin/pages/withdrawals-queue-p
 import { AccountPage } from "@/features/auth/account-page"
 import { LoginPage } from "@/features/auth/login-page"
 import { RegisterPage } from "@/features/auth/register-page"
+import { VerifyEmailPage } from "@/features/auth/verify-email-page"
 import { AuthorApplicationPage } from "@/features/authors/author-application-page"
 import { MyListPage } from "@/features/bookmarks/my-list-page"
 import { AuthorProfilePage } from "@/features/authors/author-profile-page"
@@ -48,6 +50,7 @@ export const router = createBrowserRouter([
       { path: "authors/:authorId/feed", element: <AuthorFeedPage /> },
       { path: "login", element: <LoginPage /> },
       { path: "register", element: <RegisterPage /> },
+      { path: "verify-email", element: <VerifyEmailPage /> },
       {
         element: <ProtectedRoute />,
         children: [
@@ -88,6 +91,7 @@ export const router = createBrowserRouter([
               { path: "payments", element: <PaymentsQueuePage /> },
               { path: "withdrawals", element: <WithdrawalsQueuePage /> },
               { path: "wallets", element: <WalletsPage /> },
+              { path: "analytics", element: <AnalyticsPage /> },
               { path: "reports", element: <ReportsQueuePage /> },
               { path: "audit", element: <AuditLogPage /> },
             ],

@@ -95,6 +95,9 @@ export function PaymentDetailDialog({ payment }: PaymentDetailDialogProps) {
             <DetailRow label={t("admin.field.reader")}>{payment.readerUsername}</DetailRow>
             <DetailRow label={t("admin.field.targetAuthor")}>{payment.authorUsername}</DetailRow>
             <DetailRow label={t("admin.field.provider")}>{payment.walletProvider}</DetailRow>
+            <DetailRow label={t("admin.field.walletAccountName")}>
+              {payment.walletAccountName ?? t("admin.field.notProvided")}
+            </DetailRow>
             <DetailRow label={t("admin.field.amount")}>
               {t("earnings.mmk", { amount: payment.amount })}
             </DetailRow>

@@ -51,14 +51,43 @@ public class ChapterService {
         return toResponse(chapter);
     }
 
+    /**
+     * Edit a chapter's title/content. Authors may no longer modify written content —
+     * only admins can (to correct/moderate). Authors revise a draft by deleting and
+     * re-adding it.
+     */
     @Transactional
     public ChapterResponse update(AppUserPrincipal principal, Long chapterId, ChapterUpdateRequest req) {
+        if (!principal.isAdmin()) {
+            throw new ForbiddenException("content.edit_admin_only");
+        }
         Chapter chapter = chapters.findById(chapterId)
                 .orElseThrow(() -> new NotFoundException("chapter.not_found"));
-        requireOwnedBook(principal, chapter.getBookId());
         chapter.setTitle(req.title());
         chapter.setContent(req.content());
         return toResponse(chapter);
+    }
+
+    /**
+     * Delete a chapter. Authors may delete only their own {@code draft} chapters
+     * (to discard/redo before publishing); admins may delete any chapter, published
+     * or not (child views/likes/comments cascade at the DB level).
+     */
+    @Transactional
+    public void delete(AppUserPrincipal principal, Long chapterId) {
+        Chapter chapter = chapters.findById(chapterId)
+                .orElseThrow(() -> new NotFoundException("chapter.not_found"));
+        if (principal.isAdmin()) {
+            chapters.delete(chapter);
+            return;
+        }
+        requireOwnedBook(principal, chapter.getBookId());
+        // Authors may discard chapters that were never (or are no longer) live: their
+        // own drafts and rejected chapters. Published/scheduled/pending stay admin-only.
+        if (chapter.getStatus() != ChapterStatus.draft && chapter.getStatus() != ChapterStatus.rejected) {
+            throw new ForbiddenException("chapter.delete_draft_only");
+        }
+        chapters.delete(chapter);
     }
 
     /** Access-controlled read (§9.1). Unpublished chapters are visible only to the author/admin. */

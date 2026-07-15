@@ -44,6 +44,13 @@ public class AdminModerationController {
         return adminActions.recent(limit);
     }
 
+    /** Delete a single audit-log entry. 204 on success, 404 if it does not exist. */
+    @DeleteMapping("/actions/{id}")
+    @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    public void deleteAuditEntry(@PathVariable Long id) {
+        adminActions.delete(id);
+    }
+
     /** Hide a comment (sets status {@code hidden}); audited. Returns the updated comment. */
     @PutMapping("/comments/{commentId}/hide")
     public CommentResponse hideComment(@PathVariable Long commentId) {

@@ -1,7 +1,10 @@
-import { History, ScrollText } from "lucide-react"
+import { isAxiosError } from "axios"
+import { History, ScrollText, Trash2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
 import type { AdminActionLog, AdminActionType } from "@/types/admin"
-import { useAuditLog } from "../api"
+import { useAuditLog, useDeleteAuditAction } from "../api"
 import {
   AdminAvatar,
   AdminStat,
@@ -9,6 +12,7 @@ import {
   StatusPill,
   type AdminTone,
 } from "../components/admin-primitives"
+import { ConfirmDialog } from "../components/confirm-dialog"
 import { QueueShell } from "../components/queue-shell"
 
 const ACTION_TONE: Record<AdminActionType, AdminTone> = {
@@ -108,6 +112,22 @@ export function AuditLogPage() {
 
 function AuditCard({ action }: { action: AdminActionLog }) {
   const { t } = useTranslation()
+  const deleteAction = useDeleteAuditAction()
+
+  function onDelete() {
+    deleteAction.mutate(action.adminActionId, {
+      onSuccess: () => toast.success(t("admin.auditDeleted")),
+      onError: (error) => {
+        const code = isAxiosError(error)
+          ? (error.response?.data as { code?: string } | undefined)?.code
+          : undefined
+        toast.error(
+          code === "adminaction.not_found" ? t("admin.auditNotFound") : t("common.genericError")
+        )
+      },
+    })
+  }
+
   return (
     <li className="group hover-lift flex flex-col gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-sm transition-colors hover:border-primary/30">
       <div className="flex items-start justify-between gap-2">
@@ -122,9 +142,29 @@ function AuditCard({ action }: { action: AdminActionLog }) {
             </div>
           </div>
         </div>
-        <StatusPill tone={ACTION_TONE[action.actionType] ?? "muted"} className="shrink-0">
-          {t(`admin.auditActionTypes.${action.actionType}`, action.actionType)}
-        </StatusPill>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <StatusPill tone={ACTION_TONE[action.actionType] ?? "muted"}>
+            {t(`admin.auditActionTypes.${action.actionType}`, action.actionType)}
+          </StatusPill>
+          <ConfirmDialog
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground hover:text-destructive"
+                aria-label={t("admin.deleteAuditEntry")}
+                disabled={deleteAction.isPending}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            }
+            title={t("admin.deleteAuditConfirmTitle")}
+            description={t("admin.deleteAuditConfirmBody")}
+            confirmLabel={t("admin.deleteAuditEntry")}
+            icon={Trash2}
+            onConfirm={onDelete}
+          />
+        </div>
       </div>
       <div className="rounded-xl bg-muted/40 px-3 py-2.5 text-sm">
         <div className="truncate font-medium" title={action.targetLabel ?? `#${action.targetId}`}>

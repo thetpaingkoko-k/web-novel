@@ -94,6 +94,44 @@ export const handlers = [
     })
   }),
 
+  // Manual signup → pending (202), no tokens. Verification comes next.
+  http.post("/api/v1/auth/register", async ({ request }) => {
+    const body = (await request.json()) as { email: string }
+    return HttpResponse.json({ email: body.email, verificationRequired: true }, { status: 202 })
+  }),
+
+  // Verify code: "123456" succeeds (returns tokens), anything else is rejected.
+  http.post("/api/v1/auth/verify-email", async ({ request }) => {
+    const body = (await request.json()) as { email: string; code: string }
+    if (body.code !== "123456") {
+      return HttpResponse.json(
+        errorBody("invalid_verification_code", "That code is incorrect or has expired"),
+        { status: 400 }
+      )
+    }
+    return HttpResponse.json({
+      accessToken: "verified-access-token",
+      refreshToken: "verified-refresh-token",
+      user: {
+        userId: 2,
+        username: "verified",
+        email: body.email,
+        role: "reader",
+        status: "approved",
+        isMonetizationEnabled: false,
+      },
+    })
+  }),
+
+  // Resend: email "toosoon@example.com" hits the cooldown (429); otherwise 204.
+  http.post("/api/v1/auth/resend-code", async ({ request }) => {
+    const body = (await request.json()) as { email: string }
+    if (body.email === "toosoon@example.com") {
+      return HttpResponse.json(errorBody("resend_too_soon", "Please wait"), { status: 429 })
+    }
+    return new HttpResponse(null, { status: 204 })
+  }),
+
   http.get("/api/v1/books", () => HttpResponse.json(mockBookList)),
   http.get("/api/v1/books/:bookId", () => HttpResponse.json(mockBookDetail)),
 
@@ -118,9 +156,22 @@ export const handlers = [
       walletId: 1,
       provider: "KBZPay",
       walletNumber: "09123456789",
+      accountName: "WebNovel Payments",
       isActive: true,
       qrImageUrl: null,
     })
+  ),
+  http.get("/api/v1/wallets", () =>
+    HttpResponse.json([
+      {
+        walletId: 1,
+        provider: "KBZPay",
+        walletNumber: "09123456789",
+        accountName: "WebNovel Payments",
+        isActive: true,
+        qrImageUrl: null,
+      },
+    ])
   ),
   http.get("/api/v1/subscriptions/me", () => HttpResponse.json([])),
   http.post("/api/v1/authors/:authorId/payment-submissions", () =>

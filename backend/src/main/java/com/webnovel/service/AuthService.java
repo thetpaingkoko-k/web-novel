@@ -10,7 +10,11 @@ import com.webnovel.dto.auth.AuthResponse;
 import com.webnovel.dto.auth.GoogleLoginRequest;
 import com.webnovel.dto.auth.LoginRequest;
 import com.webnovel.dto.auth.RegisterRequest;
+import com.webnovel.dto.auth.RegistrationResponse;
+import com.webnovel.dto.auth.ResendCodeRequest;
+import com.webnovel.dto.auth.VerifyEmailRequest;
 import com.webnovel.exception.ApiException;
+import com.webnovel.exception.BadRequestException;
 import com.webnovel.exception.ConflictException;
 import com.webnovel.exception.ErrorCode;
 import com.webnovel.repository.RefreshTokenRepository;
@@ -20,6 +24,8 @@ import com.webnovel.security.GoogleTokenVerifier.GoogleUser;
 import com.webnovel.security.JwtService;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Locale;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,11 +42,18 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final GoogleTokenVerifier googleTokenVerifier;
+    private final EmailVerificationService emailVerification;
     private final UserService userService;
     private final AppProperties props;
 
+    /**
+     * Manual signup (FR-1.1). Creates the account as {@code pending} and emails a
+     * 6-digit code; no tokens are issued and login stays blocked until the code is
+     * verified via {@link #verifyEmail}. (Google signups skip this — see
+     * {@link #loginWithGoogle}.)
+     */
     @Transactional
-    public AuthResponse register(RegisterRequest req) {
+    public RegistrationResponse register(RegisterRequest req, Locale locale) {
         if (users.existsByEmail(req.email())) {
             throw new ConflictException("auth.email_taken");
         }
@@ -52,10 +65,41 @@ public class AuthService {
         user.setEmail(req.email());
         user.setPasswordHash(passwordEncoder.encode(req.password()));
         user.setAuthProvider(AuthProvider.LOCAL);
-        user.setRole(Role.reader);          // FR-1.2
-        user.setStatus(UserStatus.approved); // FR-1.2
+        user.setRole(Role.reader);           // FR-1.2
+        user.setStatus(UserStatus.pending);  // FR-1.2 — awaits email verification
+        users.save(user);
+
+        emailVerification.issueAndSend(user, locale);
+        return new RegistrationResponse(user.getEmail(), true);
+    }
+
+    /** Verifies the emailed code, flips the account to {@code approved}, and logs in. */
+    @Transactional
+    public AuthResponse verifyEmail(VerifyEmailRequest req) {
+        User user = users.findByEmail(req.email())
+                // Generic error avoids revealing which emails exist.
+                .orElseThrow(() -> new BadRequestException(
+                        ErrorCode.invalid_verification_code, "auth.invalid_verification_code"));
+        if (user.getStatus() != UserStatus.pending) {
+            throw new ConflictException(ErrorCode.already_verified, "auth.already_verified");
+        }
+        emailVerification.verifyAndConsume(user, req.code());
+        user.setStatus(UserStatus.approved);
         users.save(user);
         return issueTokens(user);
+    }
+
+    /** Re-sends a verification code to a still-pending account (rate-limited). */
+    @Transactional
+    public void resendCode(ResendCodeRequest req, Locale locale) {
+        User user = users.findByEmail(req.email())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND, ErrorCode.not_found, "auth.user_not_found"));
+        if (user.getStatus() != UserStatus.pending) {
+            throw new ConflictException(ErrorCode.already_verified, "auth.already_verified");
+        }
+        emailVerification.assertResendAllowed(user);
+        emailVerification.issueAndSend(user, locale);
     }
 
     @Transactional
@@ -68,6 +112,11 @@ public class AuthService {
                         HttpStatus.UNAUTHORIZED, ErrorCode.unauthorized, "auth.invalid_credentials"));
         if (user.isBlocked()) {
             throw new ApiException(HttpStatus.FORBIDDEN, ErrorCode.forbidden, "auth.account_blocked");
+        }
+        if (user.getStatus() == UserStatus.pending) {
+            // Login blocked until verified; details.email lets the frontend open the verify screen.
+            throw new ApiException(HttpStatus.FORBIDDEN, ErrorCode.email_not_verified,
+                    "auth.email_not_verified", Map.of("email", user.getEmail()));
         }
         return issueTokens(user);
     }

@@ -19,10 +19,11 @@ interface PostItemProps {
 
 export function PostItem({ post, threadId, locked, depth = 0 }: PostItemProps) {
   const { t } = useTranslation()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const [replying, setReplying] = useState(false)
   const vote = useVotePost(threadId)
   const score = post.upvoteCount - post.downvoteCount
+  const isOwn = user != null && post.authorId === user.userId
 
   return (
     <div className={depth > 0 ? "border-l pl-4" : undefined}>
@@ -70,7 +71,9 @@ export function PostItem({ post, threadId, locked, depth = 0 }: PostItemProps) {
                 {t("debates.reply")}
               </Button>
             )}
-            {isAuthenticated && <ReportDialog targetType="debate_post" targetId={post.postId} />}
+            {isAuthenticated && !isOwn && (
+              <ReportDialog targetType="debate_post" targetId={post.postId} />
+            )}
           </div>
           {replying && (
             <div className="pt-1">

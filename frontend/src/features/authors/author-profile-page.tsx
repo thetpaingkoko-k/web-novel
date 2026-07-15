@@ -7,11 +7,13 @@ import { EmptyState } from "@/components/empty-state"
 import { QueryError } from "@/components/query-error"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { BadgeCheck } from "lucide-react"
 import { useAuth } from "@/features/auth/auth-context"
 import { useBooks } from "@/features/books/api"
 import { useAuthorFeed } from "@/features/feed/api"
 import { FeedPostCard } from "@/features/feed/components/feed-post-card"
 import { ReportDialog } from "@/features/moderation/report-dialog"
+import { useSubscriptionTo } from "@/features/subscriptions/api"
 import { useAuthorProfile } from "./api"
 import { AuthorBadge } from "./author-badge"
 
@@ -24,6 +26,7 @@ export function AuthorProfilePage() {
   const { data: author, isLoading, isError, refetch } = useAuthorProfile(authorId)
   const books = useBooks({ authorId })
   const feed = useAuthorFeed(authorId)
+  const { subscription } = useSubscriptionTo(authorId, isAuthenticated)
 
   if (isError) {
     return <QueryError message={t("authors.notFound")} onRetry={() => refetch()} />
@@ -68,18 +71,26 @@ export function AuthorProfilePage() {
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            {canSubscribe && (
-              <>
-                <span className="text-sm text-muted-foreground">
-                  {t("subscribe.priceLabel", { price: author.monthlySubscriptionPrice })}
+            {canSubscribe &&
+              (subscription ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-sm font-medium text-success">
+                  <BadgeCheck className="size-4" aria-hidden="true" />
+                  {subscription.status === "pending_payment"
+                    ? t("subscribe.status.pending_payment")
+                    : t("subscribe.subscribedBadge")}
                 </span>
-                <Button asChild size="sm" className="glow-brand">
-                  <Link to={`/authors/${authorId}/subscribe`}>
-                    {t("authors.subscribeAction")}
-                  </Link>
-                </Button>
-              </>
-            )}
+              ) : (
+                <>
+                  <span className="text-sm text-muted-foreground">
+                    {t("subscribe.priceLabel", { price: author.monthlySubscriptionPrice })}
+                  </span>
+                  <Button asChild size="sm" className="glow-brand">
+                    <Link to={`/authors/${authorId}/subscribe`}>
+                      {t("authors.subscribeAction")}
+                    </Link>
+                  </Button>
+                </>
+              ))}
             {isAuthenticated && user?.userId !== authorId && (
               <ReportDialog
                 targetType="user"

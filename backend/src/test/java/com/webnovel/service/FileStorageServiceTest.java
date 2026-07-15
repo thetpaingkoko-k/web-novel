@@ -29,7 +29,9 @@ class FileStorageServiceTest {
                 new BigDecimal("20"), new BigDecimal("5000"), new BigDecimal("5000"), 30,
                 new AppProperties.Cors(List.of("http://localhost:5173")),
                 new AppProperties.Uploads(tempDir.toString()),
-                new AppProperties.Google(""));
+                new AppProperties.Google(""),
+                new AppProperties.Mail("noreply@test", "", false,
+                        Duration.ofMinutes(10), Duration.ofSeconds(60)));
         return new FileStorageService(new LocalImageStore(props));
     }
 

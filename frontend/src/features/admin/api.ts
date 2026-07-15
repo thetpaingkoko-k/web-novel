@@ -5,6 +5,7 @@ import type {
   AdminUser,
   ApprovalKind,
   NewWalletRequest,
+  PaymentAnalytics,
   PaymentSubmissionReview,
   PendingChapterReview,
   PendingUser,
@@ -225,5 +226,28 @@ export function useAuditLog() {
   return useQuery({
     queryKey: ["admin", "actions"] as const,
     queryFn: () => getList<AdminActionLog>("/admin/actions"),
+  })
+}
+
+/** Delete an audit-log entry. `DELETE /admin/actions/{id}` → 204 (404 adminaction.not_found). */
+export function useDeleteAuditAction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (adminActionId: number) => {
+      await apiClient.delete(`/admin/actions/${adminActionId}`)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "actions"] }),
+  })
+}
+
+// ---- Payment analytics ----
+
+export function usePaymentAnalytics() {
+  return useQuery({
+    queryKey: ["admin", "analytics", "payments"] as const,
+    queryFn: async () => {
+      const { data } = await apiClient.get<PaymentAnalytics>("/admin/analytics/payments")
+      return data
+    },
   })
 }

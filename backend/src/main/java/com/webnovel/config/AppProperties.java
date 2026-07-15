@@ -15,13 +15,20 @@ public record AppProperties(
         int subscriptionDays,
         Cors cors,
         Uploads uploads,
-        Google google) {
+        Google google,
+        Mail mail) {
 
     public record Jwt(String secret, Duration accessTtl, Duration refreshTtl) {}
 
     /** Google Sign-In. {@code clientId} is the OAuth Web client ID; tokens whose
      *  audience differs are rejected. Blank disables the {@code /auth/google} endpoint. */
     public record Google(String clientId) {}
+
+    /** Email verification (manual signup) via the Resend HTTP API. {@code enabled=false}
+     *  (or a blank {@code resendApiKey}) logs codes to the console instead of sending;
+     *  {@code codeTtl}/{@code resendCooldown} bound the flow. */
+    public record Mail(String from, String resendApiKey, boolean enabled,
+                       Duration codeTtl, Duration resendCooldown) {}
 
     public record Cors(List<String> allowedOrigins) {}
 

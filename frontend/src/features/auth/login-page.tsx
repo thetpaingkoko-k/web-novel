@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation, useNavigate } from "react-router"
 import { toast } from "sonner"
+import axios from "axios"
 import { Lock, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "./auth-context"
@@ -36,7 +37,17 @@ export function LoginPage() {
   const onSubmit = handleSubmit((values) => {
     login.mutate(values, {
       onSuccess: () => navigate(redirectTo, { replace: true }),
-      onError: () => toast.error(t("auth.invalidCredentials")),
+      onError: (error) => {
+        // Unverified account → route to the verify screen instead of a dead-end error.
+        const code = axios.isAxiosError(error)
+          ? (error.response?.data as { code?: string } | undefined)?.code
+          : undefined
+        if (code === "email_not_verified") {
+          navigate("/verify-email", { state: { email: values.email } })
+          return
+        }
+        toast.error(t("auth.invalidCredentials"))
+      },
     })
   })
 

@@ -1,5 +1,6 @@
 import {
   Banknote,
+  BarChart3,
   FileCheck,
   ScrollText,
   ShieldCheck,
@@ -47,6 +48,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
       { to: "/admin/payments", key: "admin.tabs.payments", icon: Wallet },
       { to: "/admin/withdrawals", key: "admin.tabs.withdrawals", icon: Banknote },
       { to: "/admin/wallets", key: "admin.tabs.wallets", icon: WalletCards },
+      { to: "/admin/analytics", key: "admin.tabs.analytics", icon: BarChart3 },
     ],
   },
   {

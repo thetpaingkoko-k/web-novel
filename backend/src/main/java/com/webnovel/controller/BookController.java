@@ -55,6 +55,13 @@ public class BookController {
         return bookService.getDetail(id, SecurityUtils.currentPrincipal());
     }
 
+    /** Delete a book (admin only). Chapters and all related rows cascade. */
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        bookService.delete(SecurityUtils.requirePrincipal(), id);
+    }
+
     @PostMapping("/{bookId}/chapters")
     public ResponseEntity<ChapterResponse> uploadChapter(
             @PathVariable Long bookId, @Valid @RequestBody ChapterCreateRequest req) {
