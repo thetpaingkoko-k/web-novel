@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
+import axios from "axios"
 import { Lock, Mail, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "./auth-context"
@@ -30,9 +31,20 @@ export function RegisterPage() {
   const onSubmit = handleSubmit(({ confirmPassword: _confirmPassword, ...values }) => {
     // `confirmPassword` is a client-side guard only — never sent to the API.
     registerUser.mutate(values, {
-      // Registration no longer logs in — go verify the emailed code.
+      // Registration no longer logs in — go verify the emailed code. A still-pending
+      // email is resumed server-side (202), so it also lands here.
       onSuccess: (data) => navigate("/verify-email", { state: { email: data.email } }),
-      onError: () => toast.error(t("auth.registerFailed")),
+      onError: (error) => {
+        const code = axios.isAxiosError(error)
+          ? (error.response?.data as { code?: string } | undefined)?.code
+          : undefined
+        // This email is a Google account — send them to the Google button.
+        if (code === "email_registered_with_google") {
+          toast.error(t("auth.registeredWithGoogle"))
+          return
+        }
+        toast.error(t("auth.registerFailed"))
+      },
     })
   })
 

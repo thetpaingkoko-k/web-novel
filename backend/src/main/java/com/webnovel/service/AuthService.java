@@ -61,8 +61,13 @@ public class AuthService {
     public RegistrationResponse register(RegisterRequest req) {
         User existing = users.findByEmail(req.email()).orElse(null);
         if (existing != null) {
-            // A verified (or Google) account owns this email — a real conflict.
+            // A verified account owns this email — a real conflict.
             if (existing.getStatus() != UserStatus.pending) {
+                // Point Google users at the right button instead of a vague "taken".
+                if (existing.getAuthProvider() == AuthProvider.GOOGLE) {
+                    throw new ConflictException(
+                            ErrorCode.email_registered_with_google, "auth.email_registered_with_google");
+                }
                 throw new ConflictException("auth.email_taken");
             }
             // The email was registered but never verified: don't block the user —

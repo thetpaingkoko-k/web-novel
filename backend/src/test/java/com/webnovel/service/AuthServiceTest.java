@@ -116,11 +116,25 @@ class AuthServiceTest {
         User verified = new User();
         verified.setEmail("alice@example.com");
         verified.setStatus(UserStatus.approved);
+        verified.setAuthProvider(AuthProvider.LOCAL);
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(verified));
         assertThatThrownBy(() -> service.register(
                 new RegisterRequest("alice", "alice@example.com", "password123")))
                 .isInstanceOf(ConflictException.class)
                 .extracting("messageKey").isEqualTo("auth.email_taken");
+    }
+
+    @Test
+    void register_googleEmail_throwsConflictPointingToGoogle() {
+        User google = new User();
+        google.setEmail("g@example.com");
+        google.setStatus(UserStatus.approved);
+        google.setAuthProvider(AuthProvider.GOOGLE);
+        when(users.findByEmail("g@example.com")).thenReturn(Optional.of(google));
+        assertThatThrownBy(() -> service.register(
+                new RegisterRequest("guser", "g@example.com", "password123")))
+                .isInstanceOf(ConflictException.class)
+                .extracting("messageKey").isEqualTo("auth.email_registered_with_google");
     }
 
     @Test

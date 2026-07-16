@@ -75,6 +75,7 @@
     "hasAccount": "Already have an account?",
     "invalidCredentials": "Invalid email or password",
     "registerFailed": "Couldn't create your account. Try a different email or username.",
+    "registeredWithGoogle": "This email is registered with Google. Use \"Sign in with Google\" below.",
     "genericError": "Something went wrong, please try again",
     "brandTagline": "Where every story finds its reader.",
     "showPassword": "Show password",

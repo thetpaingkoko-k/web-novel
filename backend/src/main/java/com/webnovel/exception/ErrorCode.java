@@ -16,6 +16,7 @@ public enum ErrorCode {
     already_has_thread,
     book_window_full,
     email_registered_with_password,
+    email_registered_with_google,
     email_not_verified,
     invalid_verification_code,
     already_verified,

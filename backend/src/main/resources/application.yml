@@ -54,7 +54,7 @@ app:
     # Fall back to Resend's shared sender only if the domain isn't verified yet —
     # in that test mode mail reaches only the address the Resend account signed up
     # with, so use the real domain for live signups.
-    from: ${MAIL_FROM:noreply@novelspire.dpdns.org}
+    from: ${MAIL_FROM:NovelSpire <noreply@novelspire.dpdns.org>}
     # API key (starts with re_...). NEVER hardcode — supply via env only.
     resend-api-key: ${RESEND_API_KEY:}
     # Real sending is ON by default. It still only sends when a key is present;
