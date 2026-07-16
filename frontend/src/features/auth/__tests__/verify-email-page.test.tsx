@@ -54,12 +54,11 @@ describe("VerifyEmailPage", () => {
     expect(screen.queryByText("home page")).not.toBeInTheDocument()
   })
 
-  it("starts a cooldown after resending the code", async () => {
-    const user = userEvent.setup()
+  it("auto-sends a code on mount and starts a cooldown", async () => {
     renderVerifyPage(withEmail())
 
-    await user.click(screen.getByRole("button", { name: /resend code/i }))
-
+    // No click needed: reaching the page sends the code and disables "resend"
+    // until the cooldown elapses.
     expect(await screen.findByRole("button", { name: /resend in/i })).toBeDisabled()
   })
 

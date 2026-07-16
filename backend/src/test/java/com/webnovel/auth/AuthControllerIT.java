@@ -50,9 +50,18 @@ class AuthControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isAccepted());
     }
 
-    /** Register → verify with the captured code → return the access token. */
+    /** Issues + sends the code — what the client does on reaching the verify screen. */
+    private void sendCode(String email) throws Exception {
+        mvc.perform(post("/api/v1/auth/resend-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"%s\"}".formatted(email)))
+                .andExpect(status().isNoContent());
+    }
+
+    /** Register → send + verify with the captured code → return the access token. */
     private String registerVerifyAndToken(String username, String email) throws Exception {
         register(username, email);
+        sendCode(email);
         String body = mvc.perform(post("/api/v1/auth/verify-email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"%s\",\"code\":\"%s\"}".formatted(email, sentCodes.get(email))))
@@ -78,6 +87,9 @@ class AuthControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code", is("email_not_verified")))
                 .andExpect(jsonPath("$.details.email", is("roundtrip@example.com")));
+
+        // reaching the verify screen sends the code (client calls /resend-code)
+        sendCode("roundtrip@example.com");
 
         // wrong code → 400
         mvc.perform(post("/api/v1/auth/verify-email")
@@ -157,10 +169,27 @@ class AuthControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void register_duplicateEmail_returns409() throws Exception {
-        register("dupe1", "dupe@example.com");
+    void register_verifiedEmail_returns409() throws Exception {
+        registerVerifyAndToken("dupe1", "dupe@example.com"); // email is now a verified account
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(REGISTER.formatted("dupe2", "dupe@example.com")))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void register_pendingEmail_resumesVerification() throws Exception {
+        register("pend1", "pending@example.com"); // pending, never verified
+        // Re-registering the still-pending email is allowed (no 409) and refreshes creds.
+        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content(REGISTER.formatted("pend2", "pending@example.com")))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.verificationRequired", is(true)));
+        sendCode("pending@example.com");
+        mvc.perform(post("/api/v1/auth/verify-email").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"pending@example.com\",\"code\":\"%s\"}"
+                                .formatted(sentCodes.get("pending@example.com"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.username", is("pend2")))
+                .andExpect(jsonPath("$.user.status", is("approved")));
     }
 }

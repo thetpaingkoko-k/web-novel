@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { Navigate, useLocation, useNavigate } from "react-router"
@@ -33,6 +33,9 @@ export function VerifyEmailPage() {
   const { verifyEmail, resendCode } = useAuth()
   const schema = useMemo(() => buildVerifyCodeSchema(t), [t])
   const [cooldown, setCooldown] = useState(0)
+  // Guards the auto-send so it fires once per mount (not on every re-render, and
+  // not twice under React StrictMode's double-invoked effects in dev).
+  const autoSentRef = useRef(false)
 
   const email = (location.state as { email?: string })?.email
 
@@ -50,6 +53,36 @@ export function VerifyEmailPage() {
     const id = setTimeout(() => setCooldown((c) => c - 1), 1000)
     return () => clearTimeout(id)
   }, [cooldown])
+
+  // Send the code as soon as the page opens, so the user never has to click
+  // "resend" for the first code. Registration itself no longer emails — this is
+  // the single, page-triggered send. Fires exactly once per mount.
+  useEffect(() => {
+    if (!email || autoSentRef.current) return
+    autoSentRef.current = true
+    resendCode.mutate(
+      { email },
+      {
+        // Subtitle already tells the user a code was sent; just start the cooldown
+        // so the manual "resend" button is disabled for the next 60s.
+        onSuccess: () => setCooldown(RESEND_COOLDOWN_SECONDS),
+        onError: (error) => {
+          const code = errorCode(error)
+          if (code === "resend_too_soon") {
+            // A recent code is still valid (e.g. arriving here from a login attempt).
+            setCooldown(RESEND_COOLDOWN_SECONDS)
+          } else if (code === "already_verified") {
+            toast.info(t("auth.alreadyVerified"))
+            navigate("/login", { replace: true })
+          } else {
+            toast.error(t("auth.genericError"))
+          }
+        },
+      }
+    )
+    // Depend only on `email`: the ref guard already prevents duplicate sends, and
+    // the mutation/navigation handles are stable enough for a fire-once effect.
+  }, [email])
 
   // No email in navigation state → nothing to verify against.
   if (!email) return <Navigate to="/register" replace />

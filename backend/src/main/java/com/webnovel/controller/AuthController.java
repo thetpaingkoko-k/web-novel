@@ -27,11 +27,14 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /** Manual signup → account is pending; a 6-digit code is emailed. No tokens yet. */
+    /**
+     * Manual signup → account is pending. No tokens yet, and no code is sent here:
+     * the verification code is emailed when the client opens the verify screen and
+     * calls {@code /resend-code}.
+     */
     @PostMapping("/register")
-    public ResponseEntity<RegistrationResponse> register(
-            @Valid @RequestBody RegisterRequest req, Locale locale) {
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(authService.register(req, locale));
+    public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegisterRequest req) {
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(authService.register(req));
     }
 
     /** Submit the emailed code → account approved + logged in (token pair). */

@@ -37,6 +37,13 @@ class EmailVerificationIT extends AuthTestSupport {
                 .andExpect(status().isAccepted());
     }
 
+    /** Issues + sends the code — what the client does on reaching the verify screen. */
+    private void sendCode(String email) throws Exception {
+        mvc.perform(post("/api/v1/auth/resend-code").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"%s\"}".formatted(email)))
+                .andExpect(status().isNoContent());
+    }
+
     private void verify(String email) throws Exception {
         mvc.perform(post("/api/v1/auth/verify-email").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"%s\",\"code\":\"%s\"}".formatted(email, sentCodes.get(email))))
@@ -46,7 +53,8 @@ class EmailVerificationIT extends AuthTestSupport {
     @Test
     void resend_withinCooldown_returns429() throws Exception {
         register("cooldown", "cooldown@example.com");
-        // Immediate resend is inside the 60s cooldown window.
+        sendCode("cooldown@example.com"); // first send (on reaching the verify screen)
+        // A second send inside the 60s cooldown window is rejected.
         mvc.perform(post("/api/v1/auth/resend-code").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"cooldown@example.com\"}"))
                 .andExpect(status().isTooManyRequests())
@@ -56,6 +64,7 @@ class EmailVerificationIT extends AuthTestSupport {
     @Test
     void resend_forVerifiedAccount_returns409() throws Exception {
         register("done", "done@example.com");
+        sendCode("done@example.com");
         verify("done@example.com");
         mvc.perform(post("/api/v1/auth/resend-code").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"done@example.com\"}"))
@@ -73,6 +82,7 @@ class EmailVerificationIT extends AuthTestSupport {
     @Test
     void verify_forAlreadyVerifiedAccount_returns409() throws Exception {
         register("twice", "twice@example.com");
+        sendCode("twice@example.com");
         verify("twice@example.com");
         // A second verify with any code → already verified.
         mvc.perform(post("/api/v1/auth/verify-email").contentType(MediaType.APPLICATION_JSON)

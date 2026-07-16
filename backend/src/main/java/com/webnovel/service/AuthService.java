@@ -47,15 +47,36 @@ public class AuthService {
     private final AppProperties props;
 
     /**
-     * Manual signup (FR-1.1). Creates the account as {@code pending} and emails a
-     * 6-digit code; no tokens are issued and login stays blocked until the code is
-     * verified via {@link #verifyEmail}. (Google signups skip this — see
-     * {@link #loginWithGoogle}.)
+     * Manual signup (FR-1.1). Creates the account as {@code pending}; no tokens are
+     * issued and login stays blocked until the code is verified via
+     * {@link #verifyEmail}. The 6-digit code is <em>not</em> emailed here — it is
+     * issued and sent when the client reaches the verification screen (which calls
+     * {@link #resendCode}). Deferring the send to that point makes the code arrive
+     * exactly when the user is ready to enter it, keeps a single page-triggered
+     * send (no duplicate email, no clash with the resend cooldown), and avoids
+     * emailing users who abandon signup before the verify step. (Google signups
+     * skip verification entirely — see {@link #loginWithGoogle}.)
      */
     @Transactional
-    public RegistrationResponse register(RegisterRequest req, Locale locale) {
-        if (users.existsByEmail(req.email())) {
-            throw new ConflictException("auth.email_taken");
+    public RegistrationResponse register(RegisterRequest req) {
+        User existing = users.findByEmail(req.email()).orElse(null);
+        if (existing != null) {
+            // A verified (or Google) account owns this email — a real conflict.
+            if (existing.getStatus() != UserStatus.pending) {
+                throw new ConflictException("auth.email_taken");
+            }
+            // The email was registered but never verified: don't block the user —
+            // let them resume signup. Refresh the pending account's credentials so a
+            // corrected username/password takes effect, then send them to the verify
+            // screen (which emails a fresh code), exactly like a first-time signup.
+            if (!existing.getUsername().equals(req.username())
+                    && users.existsByUsername(req.username())) {
+                throw new ConflictException("auth.username_taken");
+            }
+            existing.setUsername(req.username());
+            existing.setPasswordHash(passwordEncoder.encode(req.password()));
+            users.save(existing);
+            return new RegistrationResponse(existing.getEmail(), true);
         }
         if (users.existsByUsername(req.username())) {
             throw new ConflictException("auth.username_taken");
@@ -69,7 +90,6 @@ public class AuthService {
         user.setStatus(UserStatus.pending);  // FR-1.2 — awaits email verification
         users.save(user);
 
-        emailVerification.issueAndSend(user, locale);
         return new RegistrationResponse(user.getEmail(), true);
     }
 

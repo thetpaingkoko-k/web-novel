@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.webnovel.config.AppProperties;
@@ -31,7 +32,6 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -88,8 +88,8 @@ class AuthServiceTest {
     }
 
     @Test
-    void register_createsPendingReader_andSendsCode() {
-        when(users.existsByEmail(any())).thenReturn(false);
+    void register_createsPendingReader_withoutSendingCode() {
+        when(users.findByEmail(any())).thenReturn(Optional.empty());
         when(users.existsByUsername(any())).thenReturn(false);
         when(users.save(any(User.class))).thenAnswer(inv -> {
             User u = inv.getArgument(0);
@@ -98,7 +98,7 @@ class AuthServiceTest {
         });
 
         RegistrationResponse res = service.register(
-                new RegisterRequest("alice", "alice@example.com", "password123"), Locale.ENGLISH);
+                new RegisterRequest("alice", "alice@example.com", "password123"));
 
         assertThat(res.email()).isEqualTo("alice@example.com");
         assertThat(res.verificationRequired()).isTrue();
@@ -106,16 +106,44 @@ class AuthServiceTest {
         verify(users).save(saved.capture());
         assertThat(saved.getValue().getStatus()).isEqualTo(UserStatus.pending);
         assertThat(saved.getValue().getAuthProvider()).isEqualTo(AuthProvider.LOCAL);
-        verify(emailVerification).issueAndSend(saved.getValue(), Locale.ENGLISH);
+        // The code is sent when the client reaches the verify screen (/resend-code),
+        // not during registration.
+        verifyNoInteractions(emailVerification);
     }
 
     @Test
-    void register_duplicateEmail_throwsConflict() {
-        when(users.existsByEmail("alice@example.com")).thenReturn(true);
+    void register_verifiedEmail_throwsConflict() {
+        User verified = new User();
+        verified.setEmail("alice@example.com");
+        verified.setStatus(UserStatus.approved);
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(verified));
         assertThatThrownBy(() -> service.register(
-                new RegisterRequest("alice", "alice@example.com", "password123"), Locale.ENGLISH))
+                new RegisterRequest("alice", "alice@example.com", "password123")))
                 .isInstanceOf(ConflictException.class)
                 .extracting("messageKey").isEqualTo("auth.email_taken");
+    }
+
+    @Test
+    void register_pendingEmail_resumesWithoutConflict() {
+        User pending = new User();
+        pending.setId(7L);
+        pending.setUsername("aliceold");
+        pending.setEmail("alice@example.com");
+        pending.setStatus(UserStatus.pending);
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(pending));
+        when(users.existsByUsername("alice")).thenReturn(false);
+        when(users.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        RegistrationResponse res = service.register(
+                new RegisterRequest("alice", "alice@example.com", "newpassword123"));
+
+        assertThat(res.email()).isEqualTo("alice@example.com");
+        assertThat(res.verificationRequired()).isTrue();
+        // No new account — the existing pending one is reused with refreshed creds.
+        assertThat(pending.getUsername()).isEqualTo("alice");
+        assertThat(passwordEncoder.matches("newpassword123", pending.getPasswordHash())).isTrue();
+        // Still no send here; the verify screen emails the code (/resend-code).
+        verifyNoInteractions(emailVerification);
     }
 
     @Test

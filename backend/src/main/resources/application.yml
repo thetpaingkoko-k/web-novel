@@ -1,6 +1,11 @@
 spring:
   application:
     name: webnovel-backend
+  # Optionally load local secrets (e.g. RESEND_API_KEY) from a gitignored `.env`
+  # in the working dir, parsed as properties. Real OS env vars still override it,
+  # so prod (Koyeb) is unaffected; the file is simply absent there.
+  config:
+    import: optional:file:.env[.properties]
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   docker:
@@ -45,10 +50,11 @@ app:
   mail:
     # Email delivery via Resend's HTTP API (https://api.resend.com) — sends over
     # 443, which works where outbound SMTP is blocked (this network, most PaaS).
-    # From address: Resend's shared sender needs no domain; a verified domain lets
-    # you use your own address. In Resend test mode, mail only reaches the address
-    # you signed up with.
-    from: ${MAIL_FROM:onboarding@resend.dev}
+    # From address: must be on a domain verified in Resend (novelspire.dpdns.org).
+    # Fall back to Resend's shared sender only if the domain isn't verified yet —
+    # in that test mode mail reaches only the address the Resend account signed up
+    # with, so use the real domain for live signups.
+    from: ${MAIL_FROM:noreply@novelspire.dpdns.org}
     # API key (starts with re_...). NEVER hardcode — supply via env only.
     resend-api-key: ${RESEND_API_KEY:}
     # Real sending is ON by default. It still only sends when a key is present;
