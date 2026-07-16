@@ -139,6 +139,26 @@ class ModerationAdminIT extends AuthTestSupport {
                 .andExpect(jsonPath("$[0].targetLabel", is("spam"))); // the report's reason, not "report #N"
     }
 
+    /** CHANGE 4: admins moderate directly and cannot file reports → 403 forbidden. */
+    @Test
+    void adminCannotFileReport() throws Exception {
+        String adminToken = seedAdminAndGetToken("noreportadmin@webnovel.local");
+        mvc.perform(post("/api/v1/reports").header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"targetType":"book","targetId":1,"reason":"spam"}"""))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code", is("forbidden")));
+
+        // a regular reader can still file one
+        String reader = registerAndGetToken("canreport", "canreport@example.com");
+        mvc.perform(post("/api/v1/reports").header("Authorization", bearer(reader))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"targetType":"book","targetId":1,"reason":"spam"}"""))
+                .andExpect(status().isCreated());
+    }
+
     @Test
     void suspendedUser_isBlockedAtTheFilter() throws Exception {
         String token = registerAndGetToken("victim", "victim@example.com");

@@ -50,30 +50,18 @@ export function CommentItem({ comment, chapterId, depth = 0 }: CommentItemProps)
     isHidden && isAdmin && "opacity-70"
   )
 
-  // Removed comments (and any hidden comment that somehow reaches a non-admin)
-  // keep their place and replies but show only a muted placeholder.
+  // A deleted comment is hard-deleted server-side and simply absent from the
+  // list; a stray hidden comment must never leak to a non-admin. In both cases
+  // render nothing for the comment itself — no tombstone — but keep any replies
+  // so the thread stays intact, promoting them into this node's place.
   if (isRemoved || (isHidden && !isAdmin)) {
+    if (comment.replies.length === 0) return null
     return (
-      <div className={containerClass}>
-        <div className="flex gap-3 py-1">
-          <div
-            className="mt-0.5 flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground"
-            aria-hidden="true"
-          >
-            &mdash;
-          </div>
-          <p className="self-center text-sm text-muted-foreground italic">
-            {t("comments.deletedPlaceholder")}
-          </p>
-        </div>
-        {comment.replies.length > 0 && (
-          <div className="mt-2 flex flex-col gap-3">
-            {comment.replies.map((reply) => (
-              <CommentItem key={reply.commentId} comment={reply} chapterId={chapterId} depth={depth + 1} />
-            ))}
-          </div>
-        )}
-      </div>
+      <>
+        {comment.replies.map((reply) => (
+          <CommentItem key={reply.commentId} comment={reply} chapterId={chapterId} depth={depth} />
+        ))}
+      </>
     )
   }
 

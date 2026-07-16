@@ -225,19 +225,21 @@ function UserMenu({
             </Link>
           </DropdownMenuItem>
         )}
+        {/* Readers and authors can subscribe to authors, so both reach their
+            subscriptions; only readers get the become-author entry. */}
+        {(role === "reader" || isAuthor) && (
+          <DropdownMenuItem asChild>
+            <Link to="/subscriptions/me">
+              <Sparkles className="size-4" /> {t("nav.mySubscriptions")}
+            </Link>
+          </DropdownMenuItem>
+        )}
         {role === "reader" && (
-          <>
-            <DropdownMenuItem asChild>
-              <Link to="/subscriptions/me">
-                <Sparkles className="size-4" /> {t("nav.mySubscriptions")}
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/authors/apply">
-                <PenLine className="size-4" /> {t("nav.becomeAuthor")}
-              </Link>
-            </DropdownMenuItem>
-          </>
+          <DropdownMenuItem asChild>
+            <Link to="/authors/apply">
+              <PenLine className="size-4" /> {t("nav.becomeAuthor")}
+            </Link>
+          </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={onLogout}>

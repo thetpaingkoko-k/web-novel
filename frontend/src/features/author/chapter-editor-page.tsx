@@ -4,7 +4,7 @@ import { AlertTriangle, CalendarClock, FileText, Lock, Maximize2, Minimize2, Pen
 import { useEffect, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
-import { useNavigate, useParams } from "react-router"
+import { Link, useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/features/admin/components/confirm-dialog"
 import { QueryError } from "@/components/query-error"
@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/features/auth/auth-context"
+import { useBook } from "@/features/books/api"
 import {
   useChapter,
   useCreateChapter,
@@ -58,6 +59,11 @@ export function ChapterEditorPage() {
   const [focusMode, setFocusMode] = useState(false)
 
   const { data: chapter, isLoading, isError, refetch } = useChapter(chapterId)
+  // The owning book — in create mode it's the URL param; in edit mode it comes
+  // from the loaded chapter. We read its chapter list to detect an existing
+  // draft so we can steer the author away from orphaning it (see below).
+  const effectiveBookId = isEditMode ? (chapter?.bookId ?? Number.NaN) : bookId
+  const { data: book } = useBook(effectiveBookId)
   const createChapter = useCreateChapter(isEditMode ? (chapter?.bookId ?? Number.NaN) : bookId)
   const updateChapter = useUpdateChapter(chapterId)
   const deleteChapter = useDeleteChapter(chapter?.bookId ?? Number.NaN)
@@ -134,6 +140,15 @@ export function ChapterEditorPage() {
     submitForPublish.isPending ||
     deleteChapter.isPending
 
+  // A book may hold only one draft at a time — publishing a new chapter while an
+  // earlier draft is still unpublished would orphan it (backend rejects this
+  // with `chapter.existing_draft`). Detect any OTHER draft in the book so we can
+  // proactively block the Publish action and point the author to that draft.
+  const existingDraft = book?.chapters.find(
+    (c) => c.status === "draft" && c.chapterId !== (isEditMode ? chapterId : -1)
+  )
+  const publishBlockedByDraft = Boolean(existingDraft)
+
   function saveOnly(values: ChapterFormSchema) {
     if (!canEditContent) return
     const mutation = isEditMode ? updateChapter : createChapter
@@ -160,7 +175,16 @@ export function ChapterEditorPage() {
           )
           navigate(`/author/books/${published.bookId}/edit`)
         },
-        onError: () => toast.error(t("common.genericError")),
+        onError: (error) => {
+          const code = isAxiosError(error)
+            ? (error.response?.data as { code?: string } | undefined)?.code
+            : undefined
+          toast.error(
+            code === "existing_draft"
+              ? t("author.existingDraft")
+              : t("common.genericError")
+          )
+        },
       }
     )
   }
@@ -228,6 +252,18 @@ export function ChapterEditorPage() {
         <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <span>{t("author.rejectionReason", { reason: chapter.rejectionReason })}</span>
+        </div>
+      )}
+
+      {!focusMode && publishBlockedByDraft && existingDraft && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+          <span>{t("author.existingDraft")}</span>
+          <Button asChild variant="outline" size="xs" className="ml-auto">
+            <Link to={`/author/chapters/${existingDraft.chapterId}/edit`}>
+              {t("author.openExistingDraft")}
+            </Link>
+          </Button>
         </div>
       )}
 
@@ -353,7 +389,7 @@ export function ChapterEditorPage() {
               <>
                 <Button
                   type="button"
-                  disabled={isPending}
+                  disabled={isPending || publishBlockedByDraft}
                   onClick={handleSubmit(saveAndSubmit)}
                   className="glow-brand-hover"
                 >
@@ -377,7 +413,7 @@ export function ChapterEditorPage() {
                 {isDraft && (
                   <Button
                     type="button"
-                    disabled={isPending}
+                    disabled={isPending || publishBlockedByDraft}
                     onClick={handleSubmit(saveAndSubmit)}
                     className="glow-brand-hover"
                   >

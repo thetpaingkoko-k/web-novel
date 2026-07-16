@@ -50,7 +50,8 @@ export function DebateThreadPage() {
     )
   }
 
-  const canModerate = user?.role === "admin" || user?.userId === thread.creatorId
+  const isAdmin = user?.role === "admin"
+  const canModerate = isAdmin || user?.userId === thread.creatorId
   const isOpen = thread.status === "open"
 
   function changeStatus(status: ThreadStatus) {
@@ -125,6 +126,7 @@ export function DebateThreadPage() {
       </div>
 
       {isAuthenticated &&
+        !isAdmin &&
         (isOpen ? (
           <div className="rounded-xl border bg-card p-4">
             <PostComposer threadId={threadId} />

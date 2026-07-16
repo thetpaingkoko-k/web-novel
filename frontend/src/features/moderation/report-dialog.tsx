@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { z } from "zod"
+import { useAuth } from "@/features/auth/auth-context"
 import type { ReportTargetType } from "@/types/moderation"
 import { useFileReport } from "./api"
 
@@ -45,6 +46,7 @@ interface ReportDialogProps {
 
 export function ReportDialog({ targetType, targetId, trigger }: ReportDialogProps) {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const fileReport = useFileReport()
   const presets = PRESETS[targetType]
@@ -100,6 +102,10 @@ export function ReportDialog({ targetType, targetId, trigger }: ReportDialogProp
       }
     )
   })
+
+  // Admins moderate content directly; they don't file reports. Hiding here keeps
+  // every report entry point (comments, debate posts, books, profiles) covered.
+  if (user?.role === "admin") return null
 
   return (
     <Dialog

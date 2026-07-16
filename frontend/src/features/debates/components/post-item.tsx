@@ -24,6 +24,8 @@ export function PostItem({ post, threadId, locked, depth = 0 }: PostItemProps) {
   const vote = useVotePost(threadId)
   const score = post.upvoteCount - post.downvoteCount
   const isOwn = user != null && post.authorId === user.userId
+  // Admins moderate discussions; they don't contribute replies.
+  const isAdmin = user?.role === "admin"
 
   return (
     <div className={depth > 0 ? "border-l pl-4" : undefined}>
@@ -61,7 +63,7 @@ export function PostItem({ post, threadId, locked, depth = 0 }: PostItemProps) {
           </div>
           <p className="text-sm whitespace-pre-wrap">{post.content}</p>
           <div className="flex items-center gap-1">
-            {isAuthenticated && !locked && depth < 4 && (
+            {isAuthenticated && !isAdmin && !locked && depth < 4 && (
               <Button
                 variant="ghost"
                 size="xs"

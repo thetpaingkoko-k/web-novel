@@ -21,13 +21,14 @@ export function BookDetailPage() {
   const { bookId } = useParams<{ bookId: string }>()
   const { t } = useTranslation()
   const { isAuthenticated, user } = useAuth()
-  // Subscribing is reader-only: only readers query their subscription. The CTA still
-  // shows to guests (signup/login funnel), just not to authenticated admins/authors.
-  const isReader = user?.role === "reader"
+  // Readers and authors can subscribe to premium books by other authors; admins
+  // can't, and no one subscribes to their own book. The CTA still shows to guests
+  // (signup/login funnel).
+  const isAdmin = user?.role === "admin"
   const id = Number(bookId)
   const { data: book, isLoading, isError, refetch } = useBook(id)
   const { data: progress } = useReadingProgress(id, isAuthenticated)
-  const { subscription } = useSubscriptionTo(book?.authorId ?? Number.NaN, isReader)
+  const { subscription } = useSubscriptionTo(book?.authorId ?? Number.NaN, isAuthenticated && !isAdmin)
 
   if (isError) {
     return <QueryError message={t("books.notFound")} onRetry={() => refetch()} />
@@ -172,7 +173,7 @@ export function BookDetailPage() {
                 )
               )}
               {book.isPremium &&
-                (!isAuthenticated || isReader) &&
+                (!isAuthenticated || (!isAdmin && user?.userId !== book.authorId)) &&
                 (subscription ? (
                   <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-success/10 px-3 py-1.5 text-sm font-medium text-success">
                     <CheckCircle2 className="size-4" aria-hidden="true" />
@@ -223,7 +224,10 @@ export function BookDetailPage() {
           <ol className="flex flex-col divide-y divide-border/70 overflow-hidden rounded-2xl border border-border/70">
             {book.chapters.map((chapter) => {
               const isRead = readChapterIds.has(chapter.chapterId)
-              const isLocked = book.isPremium && !isRead
+              // Free-preview chapters of a premium book are readable without a
+              // subscription, so they never carry the paywall lock.
+              const isPreview = book.isPremium && chapter.preview
+              const isLocked = book.isPremium && !isRead && !chapter.preview
               return (
                 <li key={chapter.chapterId}>
                   <Link
@@ -252,6 +256,12 @@ export function BookDetailPage() {
                       <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-primary">
                         <CheckCircle2 className="size-4" aria-hidden="true" />
                         <span className="sr-only sm:not-sr-only">{t("books.read")}</span>
+                      </span>
+                    )}
+                    {isPreview && (
+                      <span className="flex shrink-0 items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                        <Sparkles className="size-3.5" aria-hidden="true" />
+                        <span className="sr-only sm:not-sr-only">{t("books.freePreview")}</span>
                       </span>
                     )}
                     {isLocked && (

@@ -151,10 +151,12 @@
     "likesLabel": "likes",
     "chaptersCount": "{{count}} chapters",
     "read": "Read",
+    "freePreview": "Free preview",
     "subscribeToRead": "Subscribe to read"
   },
   "chapters": {
     "chapterLabel": "Chapter {{number}}",
+    "freePreview": "Free preview",
     "publishedOn": "Published {{date}}",
     "prevChapter": "Previous",
     "nextChapter": "Next",
@@ -202,7 +204,6 @@
     "deleteTitle": "Delete comment?",
     "deleteBody": "This removes your comment. Any replies to it are kept.",
     "deleted": "Comment deleted",
-    "deletedPlaceholder": "[deleted]",
     "tooLong": "Comments can be at most 2000 characters",
     "hide": "Hide",
     "hideTitle": "Hide this comment?",
@@ -449,6 +450,8 @@
     "deleteChapterConfirmBody": "This draft chapter will be permanently deleted. This action can't be undone.",
     "chapterDeleted": "Chapter deleted",
     "deleteDraftOnly": "Only draft or rejected chapters can be deleted.",
+    "existingDraft": "This book already has a draft chapter. Publish or delete it before publishing another.",
+    "openExistingDraft": "Open the existing draft",
     "contentLockedNote": "Published or written content can't be edited. To revise a draft, delete it and add a new chapter."
   },
   "imageUpload": {

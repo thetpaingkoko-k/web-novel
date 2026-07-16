@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { RefObject } from "react"
 import { isAxiosError } from "axios"
-import { ChevronLeft, ChevronRight, Clock, Heart, Library, Lock, Maximize, Minimize } from "lucide-react"
+import { ChevronLeft, ChevronRight, Clock, Heart, Library, Lock, Maximize, Minimize, Sparkles } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 import { QueryError } from "@/components/query-error"
@@ -350,9 +350,17 @@ export function ChapterReaderPage() {
         <div className="bg-mesh pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden="true" />
         <div className="relative flex flex-col gap-5 p-6 sm:p-8">
           <div className="flex flex-col gap-3">
-            <span className="brand-gradient inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide text-primary-foreground uppercase">
-              {t("chapters.chapterLabel", { number: chapter.chapterNumber })}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="brand-gradient inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide text-primary-foreground uppercase">
+                {t("chapters.chapterLabel", { number: chapter.chapterNumber })}
+              </span>
+              {chapter.preview && (
+                <span className="inline-flex w-fit items-center gap-1 rounded-full bg-success/10 px-3 py-1 text-xs font-semibold tracking-wide text-success uppercase">
+                  <Sparkles className="h-3 w-3" aria-hidden="true" />
+                  {t("chapters.freePreview")}
+                </span>
+              )}
+            </div>
             <h1 className="font-display text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl">
               {chapter.title}
             </h1>

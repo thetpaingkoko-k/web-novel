@@ -13,7 +13,9 @@ export function DebateListPage() {
   const { t } = useTranslation()
   const { bookId: bookIdParam } = useParams<{ bookId: string }>()
   const bookId = Number(bookIdParam)
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
+  // Admins moderate discussions; they don't start or contribute to them.
+  const isAdmin = user?.role === "admin"
   const { data, isLoading, isError, refetch } = useDebateThreads(bookId)
 
   return (
@@ -38,7 +40,7 @@ export function DebateListPage() {
               </Link>
             </div>
           </div>
-          {isAuthenticated && <CreateThreadDialog bookId={bookId} />}
+          {isAuthenticated && !isAdmin && <CreateThreadDialog bookId={bookId} />}
         </div>
       </header>
 

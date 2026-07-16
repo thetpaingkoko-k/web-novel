@@ -122,9 +122,10 @@ public class EngagementService {
     }
 
     /**
-     * Soft-deletes the caller's own comment (sets {@link CommentStatus#removed}) so reply
-     * threads stay intact — {@link #listComments} still returns the node. 403 if the caller
-     * is not the comment's author, 404 if it does not exist.
+     * Hard-deletes the caller's own comment: the row is removed entirely and never
+     * appears in the thread again (no "[deleted]" tombstone). Any replies cascade away
+     * with it (the {@code parent_comment_id} FK is {@code ON DELETE CASCADE}). 403 if the
+     * caller is not the comment's author, 404 if it does not exist.
      */
     @Transactional
     public void deleteComment(AppUserPrincipal reader, Long commentId) {
@@ -133,8 +134,7 @@ public class EngagementService {
         if (!comment.getReaderId().equals(reader.getId())) {
             throw new ForbiddenException("comment.not_author");
         }
-        comment.setStatus(CommentStatus.removed);
-        comments.save(comment);
+        comments.delete(comment);
     }
 
     /**

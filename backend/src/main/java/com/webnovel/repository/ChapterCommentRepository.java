@@ -14,9 +14,8 @@ public interface ChapterCommentRepository extends JpaRepository<ChapterComment, 
 
     /**
      * A chapter's comment thread with the joined author username (§4.1.1 read model).
-     * Includes {@code removed} nodes (soft-deleted by their author) so reply threads
-     * stay intact — the client renders a "[deleted]" placeholder; only moderator-hidden
-     * comments are excluded.
+     * Author deletion is a hard delete (the row is gone, no tombstone), so only
+     * moderator-hidden comments are excluded here.
      */
     @Query("""
             select new com.webnovel.dto.engagement.CommentResponse(

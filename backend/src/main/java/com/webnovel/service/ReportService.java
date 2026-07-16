@@ -12,6 +12,7 @@ import com.webnovel.dto.moderation.ReportRequest;
 import com.webnovel.dto.moderation.ReportResponse;
 import com.webnovel.dto.moderation.ResolveReportRequest;
 import com.webnovel.exception.BadRequestException;
+import com.webnovel.exception.ForbiddenException;
 import com.webnovel.exception.NotFoundException;
 import com.webnovel.repository.BookRepository;
 import com.webnovel.repository.ChapterCommentRepository;
@@ -39,6 +40,10 @@ public class ReportService {
 
     @Transactional
     public ReportResponse file(AppUserPrincipal reporter, ReportRequest req) {
+        // Admins moderate content directly and never file reports (FR-12/FR-13).
+        if (reporter.isAdmin()) {
+            throw new ForbiddenException("report.admin_cannot_report");
+        }
         // FR-12.1: you cannot report content you authored (or report yourself).
         Long ownerId = resolveOwner(req.targetType(), req.targetId());
         if (ownerId != null && ownerId.equals(reporter.getId())) {

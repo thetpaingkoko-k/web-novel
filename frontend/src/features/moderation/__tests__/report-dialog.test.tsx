@@ -1,24 +1,59 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { http, HttpResponse } from "msw"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import { Toaster } from "@/components/ui/sonner"
+import { AuthProvider } from "@/features/auth/auth-context"
 import { ReportDialog } from "@/features/moderation/report-dialog"
 import { server } from "@/test/mocks/server"
 import "@/i18n"
 
 function renderReportDialog() {
-  const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
   return render(
     <QueryClientProvider client={queryClient}>
-      <ReportDialog targetType="chapter_comment" targetId={5} />
-      <Toaster />
+      <AuthProvider>
+        <ReportDialog targetType="chapter_comment" targetId={5} />
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   )
 }
 
+/** Sign an admin in so the report entry point can be gated off. */
+function authenticateAdmin() {
+  localStorage.setItem("webnovel_access_token", "test-access-token")
+  localStorage.setItem("webnovel_refresh_token", "test-refresh-token")
+  server.use(
+    http.get("/api/v1/users/me", () =>
+      HttpResponse.json({
+        userId: 99,
+        username: "admin",
+        email: "admin@example.com",
+        role: "admin",
+        status: "approved",
+        isMonetizationEnabled: false,
+      })
+    )
+  )
+}
+
 describe("ReportDialog", () => {
+  afterEach(() => localStorage.clear())
+
+  it("renders nothing for an admin (admins moderate directly, don't report)", async () => {
+    authenticateAdmin()
+    renderReportDialog()
+
+    // Once the admin identity resolves, the report trigger drops out entirely.
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /report/i })).not.toBeInTheDocument()
+    )
+  })
+
   it("composes a report from a preset reason plus details", async () => {
     const user = userEvent.setup()
     let received: unknown

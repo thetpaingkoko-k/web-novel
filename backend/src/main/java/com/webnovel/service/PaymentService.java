@@ -45,6 +45,10 @@ public class PaymentService {
     /** §9.3: create/reuse a pending subscription, run the duplicate check, persist the submission. */
     @Transactional
     public PaymentSubmissionResponse submit(Long readerId, Long authorId, PaymentSubmissionRequest req) {
+        // A user cannot subscribe to / pay themselves (authors may subscribe only to OTHER authors).
+        if (authorId.equals(readerId)) {
+            throw new BadRequestException("subscription.cannot_subscribe_self");
+        }
         AdminWallet wallet = wallets.findById(req.walletId())
                 .orElseThrow(() -> new NotFoundException("wallet.none_active"));
         if (!wallet.isActive()) {

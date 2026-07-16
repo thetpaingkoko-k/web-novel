@@ -103,13 +103,16 @@ public class ChapterService {
         if (chapter.getStatus() != ChapterStatus.published && !privileged) {
             throw new NotFoundException("chapter.not_found"); // don't leak unpublished chapters
         }
+        // First 10% of a premium book's published chapters are a free preview (owner/admin/preview
+        // all bypass the subscription gate).
+        boolean preview = accessControl.isFreePreview(book, chapter);
         if (chapter.getStatus() == ChapterStatus.published) {
-            accessControl.assertCanAccess(viewer, book); // premium gating (owner/admin bypass inside)
+            accessControl.assertCanAccessChapter(viewer, book, chapter);
         }
         boolean likedByMe = viewer
                 .map(v -> chapterLikes.existsByChapterIdAndReaderId(chapterId, v.getId()))
                 .orElse(false);
-        return toResponse(chapter, likedByMe);
+        return toResponse(chapter, likedByMe, preview);
     }
 
     Book requireOwnedBook(AppUserPrincipal principal, Long bookId) {
@@ -120,15 +123,18 @@ public class ChapterService {
         return book;
     }
 
-    /** Authoring/review paths don't resolve the viewer's like; {@code likedByMe} is {@code false}. */
+    /**
+     * Authoring/review paths don't resolve the viewer's like or preview eligibility;
+     * {@code likedByMe} and {@code preview} are {@code false}.
+     */
     public static ChapterResponse toResponse(Chapter c) {
-        return toResponse(c, false);
+        return toResponse(c, false, false);
     }
 
-    public static ChapterResponse toResponse(Chapter c, boolean likedByMe) {
+    public static ChapterResponse toResponse(Chapter c, boolean likedByMe, boolean preview) {
         return new ChapterResponse(
                 c.getId(), c.getBookId(), c.getChapterNumber(), c.getTitle(), c.getContent(),
                 c.getStatus(), c.getLikeCount(), c.getUniqueViewCount(), c.getCompletionCount(),
-                c.getRejectionReason(), c.getPublishedAt(), likedByMe);
+                c.getRejectionReason(), c.getPublishedAt(), likedByMe, preview);
     }
 }

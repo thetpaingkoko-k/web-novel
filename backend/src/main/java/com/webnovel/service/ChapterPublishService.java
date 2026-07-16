@@ -9,6 +9,8 @@ import com.webnovel.dto.content.AdminChapterRow;
 import com.webnovel.dto.content.ChapterResponse;
 import com.webnovel.dto.content.PublishRequest;
 import com.webnovel.exception.BadRequestException;
+import com.webnovel.exception.ErrorCode;
+import com.webnovel.exception.ConflictException;
 import com.webnovel.exception.ForbiddenException;
 import com.webnovel.exception.NotFoundException;
 import com.webnovel.repository.AuthorProfileRepository;
@@ -42,6 +44,13 @@ public class ChapterPublishService {
                 .orElseThrow(() -> new NotFoundException("book.not_found"));
         if (!principal.isAdmin() && !book.getAuthorId().equals(principal.getId())) {
             throw new ForbiddenException("content.not_author");
+        }
+
+        // A book must never carry an orphaned draft while another chapter is being published:
+        // the author revises by deleting the existing draft first (FR-3.x). Reject if any OTHER
+        // chapter of this book is still in draft.
+        if (chapters.existsByBookIdAndStatusAndIdNot(book.getId(), ChapterStatus.draft, chapter.getId())) {
+            throw new ConflictException(ErrorCode.existing_draft, "chapter.existing_draft");
         }
 
         boolean professional = authorProfiles.findByUserId(book.getAuthorId())

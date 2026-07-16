@@ -47,6 +47,9 @@ public class DebateService {
 
     @Transactional
     public ThreadResponse createThread(AppUserPrincipal reader, Long bookId, CreateThreadRequest req) {
+        if (reader.isAdmin()) {
+            throw new ForbiddenException("debate.admin_cannot_participate"); // admins moderate, not discuss
+        }
         if (!books.existsById(bookId)) {
             throw new NotFoundException("book.not_found");
         }
@@ -99,6 +102,9 @@ public class DebateService {
 
     @Transactional
     public PostResponse addPost(AppUserPrincipal author, Long threadId, CreatePostRequest req) {
+        if (author.isAdmin()) {
+            throw new ForbiddenException("debate.admin_cannot_participate"); // admins moderate, not discuss
+        }
         DebateThread thread = threads.findById(threadId)
                 .orElseThrow(() -> new NotFoundException("debate.thread_not_found"));
         if (thread.getStatus() != ThreadStatus.open) {

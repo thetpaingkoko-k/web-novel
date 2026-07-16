@@ -148,32 +148,41 @@ class RoleOwnershipIT extends AuthTestSupport {
                 .andExpect(status().isForbidden());
     }
 
-    // ---- PaymentController: reader-only ----------------------------------------------------------
+    // ---- PaymentController: any non-admin (readers AND authors), admin blocked (CHANGE 3) --------
 
     @Test
-    void subscriptionsAndPayments_areReaderOnly() throws Exception {
+    void subscriptionsAndPayments_allowAnyNonAdmin_blockAdmin() throws Exception {
         Fx fx = fixtures("pay_");
 
-        mvc.perform(get("/api/v1/subscriptions/me").header("Authorization", bearer(fx.reader())))
-                .andExpect(status().isOk());
-        for (String t : new String[] {fx.hobby(), fx.pro(), fx.admin()}) {
+        // own subscriptions: readers and authors alike; only admins are blocked at the guard
+        for (String t : new String[] {fx.reader(), fx.hobby(), fx.pro()}) {
             mvc.perform(get("/api/v1/subscriptions/me").header("Authorization", bearer(t)))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isOk());
         }
+        mvc.perform(get("/api/v1/subscriptions/me").header("Authorization", bearer(fx.admin())))
+                .andExpect(status().isForbidden());
 
         String submission = "{\"walletId\":999999,\"screenshotUrl\":\"http://x/y.png\",\"last6Digits\":\"123456\"}";
-        // wrong roles are blocked at the guard (403), before the service runs
-        for (String t : new String[] {fx.hobby(), fx.pro(), fx.admin()}) {
+        // admin is blocked at the guard (403), before the service runs
+        mvc.perform(post("/api/v1/authors/{id}/payment-submissions", fx.proId())
+                        .header("Authorization", bearer(fx.admin()))
+                        .contentType(MediaType.APPLICATION_JSON).content(submission))
+                .andExpect(status().isForbidden());
+
+        // a reader and a (different) author both pass the guard and reach the service
+        // (404: no such wallet), i.e. NOT 403 — authors may subscribe to OTHER authors
+        for (String t : new String[] {fx.reader(), fx.hobby()}) {
             mvc.perform(post("/api/v1/authors/{id}/payment-submissions", fx.proId())
                             .header("Authorization", bearer(t))
                             .contentType(MediaType.APPLICATION_JSON).content(submission))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isNotFound());
         }
-        // the reader passes the guard and reaches the service (404: no such wallet), i.e. NOT 403
+
+        // the professional subscribing to THEMSELVES (proId) is rejected by the self-guard (400)
         mvc.perform(post("/api/v1/authors/{id}/payment-submissions", fx.proId())
-                        .header("Authorization", bearer(fx.reader()))
+                        .header("Authorization", bearer(fx.pro()))
                         .contentType(MediaType.APPLICATION_JSON).content(submission))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isBadRequest());
     }
 
     // ---- EarningsController: professional-author (+admin) only -----------------------------------

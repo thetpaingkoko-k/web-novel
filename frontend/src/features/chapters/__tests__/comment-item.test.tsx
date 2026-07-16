@@ -115,7 +115,7 @@ describe("CommentItem", () => {
     expect(screen.queryByRole("button", { name: /^hide$/i })).not.toBeInTheDocument()
   })
 
-  it("hides a stray hidden comment from non-admins, keeping replies", () => {
+  it("hides a stray hidden comment from non-admins without a tombstone, keeping replies", () => {
     authenticateReader(1)
     renderCommentItem(
       makeComment({
@@ -126,20 +126,30 @@ describe("CommentItem", () => {
     )
 
     expect(screen.queryByText(/should not leak/i)).not.toBeInTheDocument()
-    expect(screen.getByText(/\[deleted\]/i)).toBeInTheDocument()
+    expect(screen.queryByText(/\[deleted\]/i)).not.toBeInTheDocument()
     expect(screen.getByText(/a surviving reply/i)).toBeInTheDocument()
   })
 
-  it("renders a removed comment as a muted placeholder while keeping its replies", () => {
+  it("omits a removed comment entirely (no placeholder) while keeping its replies", () => {
     renderCommentItem(
       makeComment({
         status: "removed",
-        content: "",
+        content: "this comment is gone",
         replies: [makeComment({ commentId: 2, readerId: 2, content: "A surviving reply." })],
       })
     )
 
-    expect(screen.getByText(/\[deleted\]/i)).toBeInTheDocument()
+    expect(screen.queryByText(/this comment is gone/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/\[deleted\]/i)).not.toBeInTheDocument()
     expect(screen.getByText(/a surviving reply/i)).toBeInTheDocument()
+  })
+
+  it("omits a removed comment with no replies (renders nothing)", () => {
+    const { container } = renderCommentItem(
+      makeComment({ status: "removed", content: "gone without a trace", replies: [] })
+    )
+
+    expect(screen.queryByText(/gone without a trace/i)).not.toBeInTheDocument()
+    expect(container).toBeEmptyDOMElement()
   })
 })

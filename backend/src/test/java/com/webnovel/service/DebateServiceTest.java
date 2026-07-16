@@ -11,10 +11,12 @@ import static org.mockito.Mockito.when;
 import com.webnovel.domain.entity.DebateThread;
 import com.webnovel.domain.enums.Role;
 import com.webnovel.domain.enums.ThreadStatus;
+import com.webnovel.dto.debate.CreatePostRequest;
 import com.webnovel.dto.debate.CreateThreadRequest;
 import com.webnovel.dto.debate.ThreadResponse;
 import com.webnovel.exception.ConflictException;
 import com.webnovel.exception.ErrorCode;
+import com.webnovel.exception.ForbiddenException;
 import com.webnovel.repository.BookRepository;
 import com.webnovel.repository.DebatePostRepository;
 import com.webnovel.repository.DebateThreadRepository;
@@ -39,6 +41,25 @@ class DebateServiceTest {
     @InjectMocks DebateService service;
 
     private final AppUserPrincipal reader = new AppUserPrincipal(7L, "reader", Role.reader, false);
+    private final AppUserPrincipal admin = new AppUserPrincipal(1L, "admin", Role.admin, false);
+
+    @Test
+    void createThread_whenAdmin_isForbidden() {
+        assertThatThrownBy(() -> service.createThread(admin, 1L, new CreateThreadRequest("Hi")))
+                .isInstanceOf(ForbiddenException.class)
+                .extracting("code").isEqualTo(ErrorCode.forbidden);
+        verify(threads, never()).save(any());
+        verify(threads, never()).existsByBookIdAndCreatorId(any(), any());
+    }
+
+    @Test
+    void addPost_whenAdmin_isForbidden() {
+        assertThatThrownBy(() -> service.addPost(admin, 5L, new CreatePostRequest("hello", null)))
+                .isInstanceOf(ForbiddenException.class)
+                .extracting("code").isEqualTo(ErrorCode.forbidden);
+        verify(posts, never()).save(any());
+        verify(threads, never()).findById(any());
+    }
 
     @Test
     void createThread_whenReaderAlreadyHasOne_rejects() {

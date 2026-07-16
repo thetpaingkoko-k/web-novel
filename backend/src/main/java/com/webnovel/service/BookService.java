@@ -24,6 +24,7 @@ import com.webnovel.repository.ChapterRepository;
 import com.webnovel.repository.UserRepository;
 import com.webnovel.security.AppUserPrincipal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -31,6 +32,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -162,10 +164,32 @@ public class BookService {
         List<Chapter> list = includeUnpublished
                 ? chapters.findByBookIdOrderByChapterNumberAsc(book.getId())
                 : chapters.findByBookIdAndStatusOrderByChapterNumberAsc(book.getId(), ChapterStatus.published);
+        Set<Long> previewIds = previewChapterIds(book, list);
         return list.stream().map(c -> new ChapterSummary(
                 c.getId(), c.getChapterNumber(), c.getTitle(), c.getStatus(),
                 c.getLikeCount(), c.getUniqueViewCount(), c.getCompletionCount(),
-                c.getPublishedAt())).toList();
+                c.getPublishedAt(), previewIds.contains(c.getId()))).toList();
+    }
+
+    /**
+     * The free-preview chapter ids for a premium book: the first
+     * {@code max(1, round(publishedCount * 10%))} published chapters ordered by
+     * chapterNumber ascending (§9.1). Empty for free books. Computed in-memory from the
+     * already-loaded chapter list to avoid per-row queries.
+     */
+    private Set<Long> previewChapterIds(Book book, List<Chapter> loaded) {
+        if (!book.isPremium()) {
+            return Set.of();
+        }
+        List<Chapter> published = loaded.stream()
+                .filter(c -> c.getStatus() == ChapterStatus.published)
+                .sorted(Comparator.comparing(Chapter::getChapterNumber))
+                .toList();
+        if (published.isEmpty()) {
+            return Set.of();
+        }
+        long n = AccessControlService.previewCount(published.size());
+        return published.stream().limit(n).map(Chapter::getId).collect(Collectors.toSet());
     }
 
     private BookDetailResponse toDetail(Book book, List<ChapterSummary> chapterSummaries) {

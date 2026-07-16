@@ -81,6 +81,12 @@ export interface ChapterSummary {
   uniqueViewCount: number
   completionCount: number
   publishedAt: string | null
+  /**
+   * True when this chapter is a free preview of a premium book (the first ~10%
+   * of chapters). Preview chapters are readable without a subscription and
+   * carry a "Free preview" badge; non-preview premium chapters stay paywalled.
+   */
+  preview: boolean
 }
 
 /** `GET /chapters/{id}` — ChapterResponse (= ChapterSummary + content fields). */

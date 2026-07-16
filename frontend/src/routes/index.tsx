@@ -57,11 +57,18 @@ export const router = createBrowserRouter([
         children: [{ path: "account", element: <AccountPage /> }],
       },
       {
-        // Reader-only: bookmarks, subscriptions, and applying to become an author.
+        // Reader-only: bookmarks and applying to become an author.
         element: <ProtectedRoute allowedRoles={["reader"]} />,
         children: [
           { path: "my-list", element: <MyListPage /> },
           { path: "authors/apply", element: <AuthorApplicationPage /> },
+        ],
+      },
+      {
+        // Subscribing is open to readers and authors (authors may subscribe to
+        // other authors); only admins are excluded.
+        element: <ProtectedRoute allowedRoles={["reader", ...AUTHOR_ROLES]} />,
+        children: [
           { path: "authors/:authorId/subscribe", element: <SubscribePage /> },
           { path: "subscriptions/me", element: <MySubscriptionsPage /> },
         ],

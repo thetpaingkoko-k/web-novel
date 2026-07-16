@@ -43,6 +43,7 @@ export const mockBookDetail: Book = {
       uniqueViewCount: 10,
       completionCount: 6,
       publishedAt: new Date(0).toISOString(),
+      preview: false,
     },
   ],
 }

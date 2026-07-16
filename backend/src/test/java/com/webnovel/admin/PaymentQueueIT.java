@@ -23,6 +23,68 @@ class PaymentQueueIT extends AuthTestSupport {
                 .andExpect(status().isOk());
     }
 
+    private String relogin(String email) throws Exception {
+        String body = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(body).get("accessToken").asText();
+    }
+
+    /**
+     * CHANGE 3: an author-role user can subscribe to (and pay for) ANOTHER author, and the
+     * submission reaches the admin payment queue just like a reader's. Subscribing to oneself
+     * is rejected (400).
+     */
+    @Test
+    void authorCanSubscribeToAnotherAuthor_selfSubscribeRejected() throws Exception {
+        // authorA is the paying subscriber (a professional author, not a plain reader)
+        registerAndGetToken("subauthorA", "subauthorA@example.com");
+        long authorAId = userIdOf("subauthorA@example.com");
+        String adminToken = seedAdminAndGetToken("subadmin@webnovel.local");
+        approve(adminToken, authorAId, ApproveRequest.Kind.verify_author);
+        approve(adminToken, authorAId, ApproveRequest.Kind.enable_monetization);
+        String authorA = relogin("subauthorA@example.com"); // token now carries the author role
+
+        // authorB is the subscription target
+        registerAndGetToken("subauthorB", "subauthorB@example.com");
+        long authorBId = userIdOf("subauthorB@example.com");
+        approve(adminToken, authorBId, ApproveRequest.Kind.verify_author);
+        approve(adminToken, authorBId, ApproveRequest.Kind.enable_monetization);
+
+        String wallet = mvc.perform(post("/api/v1/admin/wallets").header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"provider":"KBZPay","walletNumber":"09-777-000-222","accountName":"WebNovel Co"}"""))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long walletId = objectMapper.readTree(wallet).get("walletId").asLong();
+
+        // author→author subscription payment: allowed (was 403 before widening the auth) → 201
+        mvc.perform(post("/api/v1/authors/{id}/payment-submissions", authorBId)
+                        .header("Authorization", bearer(authorA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"walletId":%d,"screenshotUrl":"https://x/s.png","last6Digits":"654321"}"""
+                                .formatted(walletId)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status", is("pending")));
+
+        // it shows up in the admin queue exactly like a reader's submission
+        mvc.perform(get("/api/v1/admin/payment-submissions?status=pending")
+                        .header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.readerUsername == 'subauthorA')].authorUsername",
+                        is(List.of("subauthorB"))));
+
+        // subscribing to yourself is rejected → 400
+        mvc.perform(post("/api/v1/authors/{id}/payment-submissions", authorAId)
+                        .header("Authorization", bearer(authorA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"walletId":%d,"screenshotUrl":"https://x/s.png","last6Digits":"111111"}"""
+                                .formatted(walletId)))
+                .andExpect(status().isBadRequest());
+    }
+
     @Test
     void paymentQueueRows_carryAuthorAndWalletProvider() throws Exception {
         registerAndGetToken("payauthor", "payauthor@example.com");

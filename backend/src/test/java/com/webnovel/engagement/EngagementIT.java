@@ -121,9 +121,9 @@ class EngagementIT extends AuthTestSupport {
                 .andExpect(jsonPath("$[0].content", is("Loved it")));
     }
 
-    /** §4: an author may soft-delete their own comment; the removed node stays in the thread. */
+    /** §4: an author may hard-delete their own comment; it vanishes entirely from the thread. */
     @Test
-    void deleteOwnComment_softDeletes_keepingThreadWithRemovedStatus() throws Exception {
+    void deleteOwnComment_hardDeletes_removingItFromThread() throws Exception {
         registerAndGetToken("delauthor", "delauthor@example.com");
         long authorId = userIdOf("delauthor@example.com");
         String adminToken = seedAdminAndGetToken("deladmin@webnovel.local");
@@ -158,16 +158,18 @@ class EngagementIT extends AuthTestSupport {
         mvc.perform(delete("/api/v1/comments/{id}", 999999L).header("Authorization", bearer(reader)))
                 .andExpect(status().isNotFound());
 
-        // the comment's author soft-deletes it → 204
+        // the comment's author hard-deletes it → 204
         mvc.perform(delete("/api/v1/comments/{id}", commentId).header("Authorization", bearer(reader)))
                 .andExpect(status().isNoContent());
 
-        // the node is still returned (thread intact) with status = removed
+        // the comment is gone entirely — no tombstone node remains in the thread
         mvc.perform(get("/api/v1/chapters/{id}/comments", chapterId).header("Authorization", bearer(reader)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].commentId", is((int) commentId)))
-                .andExpect(jsonPath("$[0].status", is("removed")));
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        // deleting it again → 404 (the row no longer exists)
+        mvc.perform(delete("/api/v1/comments/{id}", commentId).header("Authorization", bearer(reader)))
+                .andExpect(status().isNotFound());
     }
 
     /** FR-13.6: an admin may hide and later restore a comment; hidden comments drop out of the thread. */
