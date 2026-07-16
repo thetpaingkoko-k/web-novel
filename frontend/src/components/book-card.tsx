@@ -15,7 +15,7 @@ export function BookCard({ book, to }: { book: BookListItem; to?: string }) {
 
   return (
     <Link to={to ?? `/books/${book.bookId}`} className="group hover-lift flex flex-col">
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-2xl border border-border/70 bg-muted shadow-sm ring-0 transition-shadow group-hover:shadow-lg group-hover:shadow-primary/10">
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl border border-border/70 bg-muted shadow-sm ring-0 transition-shadow group-hover:shadow-lg group-hover:shadow-foreground/10">
         {book.coverImageUrl ? (
           <img
             src={resolveUploadUrl(book.coverImageUrl)}
@@ -50,7 +50,7 @@ export function BookCard({ book, to }: { book: BookListItem; to?: string }) {
         )}
       </div>
       <div className="flex flex-1 flex-col gap-0.5 px-0.5 pt-2.5">
-        <h3 className="line-clamp-2 text-sm leading-snug font-semibold transition-colors group-hover:text-primary">
+        <h3 className="font-display line-clamp-2 text-[0.95rem] leading-snug font-semibold transition-colors group-hover:text-primary">
           {book.title}
         </h3>
         <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">

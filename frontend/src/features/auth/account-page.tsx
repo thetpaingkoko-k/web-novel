@@ -61,7 +61,7 @@ export function AccountPage() {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div className="flex items-center gap-4">
-        <span className="brand-gradient flex size-14 items-center justify-center rounded-2xl text-xl font-semibold text-white shadow-sm shadow-primary/30">
+        <span className="brand-gradient flex size-14 items-center justify-center rounded-2xl font-display text-xl font-semibold text-white">
           {initial}
         </span>
         <div className="space-y-1">

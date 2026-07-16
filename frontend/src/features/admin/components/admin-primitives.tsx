@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils"
  * (New file — safe to add; nothing else is modified here.)
  *
  * - `StatusPill`  — a color-coded, tinted status badge using semantic tokens.
- * - `AdminStatStrip` / `AdminStat` — a compact, glassy summary row for queues.
- * - `AdminAvatar` — a gradient identity chip (initials) for request/subject rows.
+ * - `AdminStatStrip` / `AdminStat` — a compact, bordered summary row for queues.
+ * - `AdminAvatar` — an indigo identity chip (initials) for request/subject rows.
  */
 
 export type AdminTone =
@@ -68,10 +68,10 @@ interface AdminStatProps {
   tone?: AdminTone
 }
 
-/** One glassy metric tile inside an {@link AdminStatStrip}. */
+/** One bordered metric tile inside an {@link AdminStatStrip}. */
 export function AdminStat({ label, value, icon: Icon, tone = "primary" }: AdminStatProps) {
   return (
-    <div className="glass hover-lift flex items-center gap-3 rounded-2xl p-3.5">
+    <div className="hover-lift flex items-center gap-3 rounded-xl border border-border bg-card p-3.5">
       {Icon && (
         <span
           className={cn(
@@ -110,7 +110,7 @@ export function AdminAvatar({
 }: {
   name: string
   tone?: AdminTone
-  /** Use the violet→fuchsia brand gradient instead of a flat tint. */
+  /** Use the indigo brand wash instead of a flat tint. */
   brand?: boolean
   className?: string
 }) {

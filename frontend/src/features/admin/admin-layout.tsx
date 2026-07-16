@@ -59,9 +59,9 @@ const NAV_GROUPS: AdminNavGroup[] = [
 
 function tabClasses(isActive: boolean) {
   return cn(
-    "flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-all",
+    "flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-all",
     isActive
-      ? "brand-gradient text-white shadow-sm shadow-primary/30"
+      ? "bg-primary text-primary-foreground shadow-xs"
       : "text-muted-foreground hover:bg-accent hover:text-foreground",
   )
 }

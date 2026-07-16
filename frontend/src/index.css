@@ -2,14 +2,13 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
-@import "@fontsource-variable/space-grotesk";
 @import "@fontsource-variable/lora";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --font-heading: var(--font-display);
-    --font-display: 'Space Grotesk Variable', 'Geist Variable', ui-sans-serif, sans-serif;
+    --font-display: 'Lora Variable', Georgia, 'Times New Roman', serif;
     --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
     --font-reading: 'Lora Variable', Georgia, 'Times New Roman', serif;
     --color-sidebar-ring: var(--sidebar-ring);
@@ -58,93 +57,96 @@
 }
 
 /*
- * VIOLET / PURPLE identity — cool, modern, high-impact ("wow").
- * Primary = vibrant violet; brand gradient runs violet → fuchsia. Neutrals
- * carry a faint cool violet tint. Dark mode is a deep violet-charcoal where the
- * accent genuinely glows. Semantic action colors (success/warning/info/destructive)
- * are provided for color-coded actions (esp. the admin console).
+ * EDITORIAL PAPER-INK identity — calm, literary, flagship-minimal.
+ * Background is a warm off-white "paper"; text is a soft warm-black "ink".
+ * The single brand accent is a deep indigo, used sparingly for actions, links
+ * and active states — everything else stays neutral. Headings are serif (Lora)
+ * for an editorial voice; UI/body is a clean sans (Geist). Dark mode is a warm
+ * near-black charcoal (never violet), where indigo reads a touch brighter.
+ * Semantic action colors (success/warning/info/destructive) remain for the
+ * admin console and status states.
  */
 :root {
-    --background: oklch(0.994 0.003 292);
-    --foreground: oklch(0.21 0.02 292);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.21 0.02 292);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.21 0.02 292);
-    --primary: oklch(0.55 0.243 293);
-    --primary-foreground: oklch(0.99 0.008 293);
-    --secondary: oklch(0.965 0.012 292);
-    --secondary-foreground: oklch(0.3 0.05 293);
-    --muted: oklch(0.965 0.01 292);
-    --muted-foreground: oklch(0.52 0.025 292);
-    --accent: oklch(0.95 0.035 300);
-    --accent-foreground: oklch(0.42 0.16 293);
-    --destructive: oklch(0.58 0.235 20);
-    --success: oklch(0.62 0.16 150);
-    --warning: oklch(0.72 0.16 65);
-    --info: oklch(0.6 0.16 250);
-    --border: oklch(0.905 0.012 292);
-    --input: oklch(0.905 0.012 292);
-    --ring: oklch(0.55 0.243 293);
-    --brand: oklch(0.55 0.243 293);
-    --brand-foreground: oklch(0.99 0.008 293);
-    --brand-from: oklch(0.56 0.25 292);
-    --brand-to: oklch(0.66 0.26 330);
-    --chart-1: oklch(0.55 0.243 293);
-    --chart-2: oklch(0.66 0.26 330);
-    --chart-3: oklch(0.6 0.19 265);
-    --chart-4: oklch(0.7 0.16 200);
-    --chart-5: oklch(0.72 0.16 65);
-    --radius: 0.8rem;
-    --sidebar: oklch(0.985 0.006 292);
-    --sidebar-foreground: oklch(0.21 0.02 292);
-    --sidebar-primary: oklch(0.55 0.243 293);
-    --sidebar-primary-foreground: oklch(0.99 0.008 293);
-    --sidebar-accent: oklch(0.95 0.035 300);
-    --sidebar-accent-foreground: oklch(0.42 0.16 293);
-    --sidebar-border: oklch(0.905 0.012 292);
-    --sidebar-ring: oklch(0.55 0.243 293);
+    --background: oklch(0.985 0.005 83);
+    --foreground: oklch(0.235 0.008 65);
+    --card: oklch(0.997 0.003 83);
+    --card-foreground: oklch(0.235 0.008 65);
+    --popover: oklch(0.997 0.003 83);
+    --popover-foreground: oklch(0.235 0.008 65);
+    --primary: oklch(0.505 0.185 272);
+    --primary-foreground: oklch(0.985 0.01 272);
+    --secondary: oklch(0.955 0.007 80);
+    --secondary-foreground: oklch(0.32 0.03 272);
+    --muted: oklch(0.955 0.006 80);
+    --muted-foreground: oklch(0.505 0.013 72);
+    --accent: oklch(0.945 0.022 274);
+    --accent-foreground: oklch(0.42 0.14 273);
+    --destructive: oklch(0.555 0.2 25);
+    --success: oklch(0.6 0.13 152);
+    --warning: oklch(0.72 0.14 72);
+    --info: oklch(0.56 0.13 250);
+    --border: oklch(0.9 0.006 78);
+    --input: oklch(0.9 0.006 78);
+    --ring: oklch(0.505 0.185 272);
+    --brand: oklch(0.505 0.185 272);
+    --brand-foreground: oklch(0.985 0.01 272);
+    --brand-from: oklch(0.52 0.19 274);
+    --brand-to: oklch(0.45 0.16 264);
+    --chart-1: oklch(0.505 0.185 272);
+    --chart-2: oklch(0.58 0.14 250);
+    --chart-3: oklch(0.62 0.11 210);
+    --chart-4: oklch(0.68 0.13 72);
+    --chart-5: oklch(0.6 0.13 152);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.975 0.005 82);
+    --sidebar-foreground: oklch(0.235 0.008 65);
+    --sidebar-primary: oklch(0.505 0.185 272);
+    --sidebar-primary-foreground: oklch(0.985 0.01 272);
+    --sidebar-accent: oklch(0.945 0.022 274);
+    --sidebar-accent-foreground: oklch(0.42 0.14 273);
+    --sidebar-border: oklch(0.9 0.006 78);
+    --sidebar-ring: oklch(0.505 0.185 272);
 }
 
 .dark {
-    --background: oklch(0.165 0.018 288);
-    --foreground: oklch(0.965 0.006 292);
-    --card: oklch(0.205 0.022 289);
-    --card-foreground: oklch(0.965 0.006 292);
-    --popover: oklch(0.205 0.022 289);
-    --popover-foreground: oklch(0.965 0.006 292);
-    --primary: oklch(0.66 0.24 296);
-    --primary-foreground: oklch(0.16 0.02 289);
-    --secondary: oklch(0.27 0.03 290);
-    --secondary-foreground: oklch(0.95 0.01 292);
-    --muted: oklch(0.255 0.025 290);
-    --muted-foreground: oklch(0.73 0.025 292);
-    --accent: oklch(0.32 0.06 296);
-    --accent-foreground: oklch(0.92 0.05 300);
-    --destructive: oklch(0.68 0.2 20);
-    --success: oklch(0.72 0.17 152);
-    --warning: oklch(0.78 0.16 70);
-    --info: oklch(0.68 0.16 250);
-    --border: oklch(0.98 0.01 292 / 12%);
-    --input: oklch(0.98 0.01 292 / 16%);
-    --ring: oklch(0.66 0.24 296);
-    --brand: oklch(0.66 0.24 296);
-    --brand-foreground: oklch(0.16 0.02 289);
-    --brand-from: oklch(0.62 0.25 290);
-    --brand-to: oklch(0.72 0.24 332);
-    --chart-1: oklch(0.66 0.24 296);
-    --chart-2: oklch(0.72 0.24 332);
-    --chart-3: oklch(0.68 0.18 265);
-    --chart-4: oklch(0.75 0.15 200);
-    --chart-5: oklch(0.78 0.16 70);
-    --sidebar: oklch(0.205 0.022 289);
-    --sidebar-foreground: oklch(0.965 0.006 292);
-    --sidebar-primary: oklch(0.66 0.24 296);
-    --sidebar-primary-foreground: oklch(0.16 0.02 289);
-    --sidebar-accent: oklch(0.32 0.06 296);
-    --sidebar-accent-foreground: oklch(0.92 0.05 300);
-    --sidebar-border: oklch(0.98 0.01 292 / 12%);
-    --sidebar-ring: oklch(0.66 0.24 296);
+    --background: oklch(0.19 0.006 75);
+    --foreground: oklch(0.94 0.005 82);
+    --card: oklch(0.225 0.007 75);
+    --card-foreground: oklch(0.94 0.005 82);
+    --popover: oklch(0.225 0.007 75);
+    --popover-foreground: oklch(0.94 0.005 82);
+    --primary: oklch(0.66 0.155 274);
+    --primary-foreground: oklch(0.17 0.02 274);
+    --secondary: oklch(0.275 0.008 75);
+    --secondary-foreground: oklch(0.93 0.008 82);
+    --muted: oklch(0.265 0.008 75);
+    --muted-foreground: oklch(0.7 0.011 80);
+    --accent: oklch(0.31 0.045 274);
+    --accent-foreground: oklch(0.86 0.06 276);
+    --destructive: oklch(0.66 0.19 25);
+    --success: oklch(0.7 0.15 154);
+    --warning: oklch(0.78 0.15 74);
+    --info: oklch(0.66 0.14 250);
+    --border: oklch(0.97 0.01 82 / 10%);
+    --input: oklch(0.97 0.01 82 / 14%);
+    --ring: oklch(0.66 0.155 274);
+    --brand: oklch(0.66 0.155 274);
+    --brand-foreground: oklch(0.17 0.02 274);
+    --brand-from: oklch(0.66 0.16 276);
+    --brand-to: oklch(0.58 0.15 262);
+    --chart-1: oklch(0.66 0.155 274);
+    --chart-2: oklch(0.66 0.14 250);
+    --chart-3: oklch(0.7 0.11 210);
+    --chart-4: oklch(0.76 0.13 74);
+    --chart-5: oklch(0.7 0.15 154);
+    --sidebar: oklch(0.225 0.007 75);
+    --sidebar-foreground: oklch(0.94 0.005 82);
+    --sidebar-primary: oklch(0.66 0.155 274);
+    --sidebar-primary-foreground: oklch(0.17 0.02 274);
+    --sidebar-accent: oklch(0.31 0.045 274);
+    --sidebar-accent-foreground: oklch(0.86 0.06 276);
+    --sidebar-border: oklch(0.97 0.01 82 / 10%);
+    --sidebar-ring: oklch(0.66 0.155 274);
 }
 
 @layer base {
@@ -155,38 +157,44 @@
     @apply bg-background text-foreground;
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
     }
   html {
     @apply font-sans;
     scroll-behavior: smooth;
     }
-  ::selection {
-    background: color-mix(in oklch, var(--primary) 30%, transparent);
+  /* Serif headings inherit an editorial optical polish. */
+  h1, h2, h3, h4 {
+    font-optical-sizing: auto;
     }
-  /* Slim, cool scrollbars. */
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 22%, transparent);
+    }
+  /* Slim, quiet scrollbars. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklch, var(--foreground) 22%, transparent) transparent;
+    scrollbar-color: color-mix(in oklch, var(--foreground) 20%, transparent) transparent;
     }
 }
 
 @layer utilities {
-  /* Display type — geometric, tight-tracked, for headings & hero. */
+  /* Display type — editorial serif, softly tightened, for headings & hero. */
   .font-display {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.011em;
   }
 
-  /* Brand gradient (violet → fuchsia) — for chips, badges, CTAs, marks. */
+  /* Brand wash (deep indigo) — restrained, for the mark, avatars, active chips.
+     Kept in the blue/indigo family only; no neon, no fuchsia. */
   .brand-gradient {
     background-image: linear-gradient(135deg, var(--brand-from), var(--brand-to));
   }
   .brand-gradient-animated {
     background-image: linear-gradient(120deg, var(--brand-from), var(--brand-to), var(--brand-from));
     background-size: 200% 200%;
-    animation: brand-pan 7s ease infinite;
+    animation: brand-pan 9s ease infinite;
   }
-  /* Gradient text accent. */
+  /* Subtle indigo gradient text — for a single hero accent word. */
   .text-gradient {
     background-image: linear-gradient(120deg, var(--brand-from), var(--brand-to));
     -webkit-background-clip: text;
@@ -194,36 +202,38 @@
     color: transparent;
   }
 
-  /* Frosted glass surface — theme-aware via color-mix on --card. */
+  /* Frosted paper surface — theme-aware via color-mix on --card. Used for
+     sticky bars and overlays; soft, not glassy-flashy. */
   .glass {
-    background-color: color-mix(in oklch, var(--card) 62%, transparent);
-    backdrop-filter: blur(14px) saturate(180%);
-    -webkit-backdrop-filter: blur(14px) saturate(180%);
-    border: 1px solid color-mix(in oklch, var(--foreground) 9%, transparent);
+    background-color: color-mix(in oklch, var(--card) 78%, transparent);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);
   }
 
-  /* Violet glow — the signature "wow" halo for hero CTAs and active cards. */
+  /* Quiet elevation — a hairline ring plus a soft, tight shadow. Replaces the
+     old neon halo with restrained editorial depth. */
   .glow-brand {
     box-shadow:
-      0 0 0 1px color-mix(in oklch, var(--brand) 28%, transparent),
-      0 10px 40px -12px color-mix(in oklch, var(--brand) 60%, transparent);
+      0 0 0 1px color-mix(in oklch, var(--border) 90%, transparent),
+      0 12px 32px -22px color-mix(in oklch, var(--foreground) 55%, transparent);
   }
   .glow-brand-hover {
-    transition: box-shadow 0.25s ease, transform 0.25s ease;
+    transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
   }
   .glow-brand-hover:hover {
     box-shadow:
-      0 0 0 1px color-mix(in oklch, var(--brand) 32%, transparent),
-      0 14px 50px -14px color-mix(in oklch, var(--brand) 68%, transparent);
+      0 0 0 1px color-mix(in oklch, var(--brand) 22%, transparent),
+      0 16px 40px -24px color-mix(in oklch, var(--foreground) 55%, transparent);
   }
 
-  /* Ambient mesh background — layered radial violet/fuchsia washes for heroes. */
+  /* Ambient paper wash — a whisper of warm light and indigo behind heroes.
+     Far quieter than a mesh; it should read as fine paper, not a gradient. */
   .bg-mesh {
     background-color: var(--background);
     background-image:
-      radial-gradient(at 12% 18%, color-mix(in oklch, var(--brand-from) 30%, transparent) 0px, transparent 50%),
-      radial-gradient(at 88% 8%, color-mix(in oklch, var(--brand-to) 28%, transparent) 0px, transparent 46%),
-      radial-gradient(at 72% 88%, color-mix(in oklch, var(--brand) 22%, transparent) 0px, transparent 52%);
+      radial-gradient(at 12% -5%, color-mix(in oklch, var(--brand) 9%, transparent) 0px, transparent 55%),
+      radial-gradient(at 92% 4%, color-mix(in oklch, var(--brand) 5%, transparent) 0px, transparent 48%);
   }
 
   /* Subtle hover lift for cards/tiles. */
@@ -231,7 +241,7 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   }
   .hover-lift:hover {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
   }
 
   /* Immersive long-form reading: serif face, generous rhythm. */

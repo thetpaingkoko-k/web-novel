@@ -27,7 +27,7 @@ export function AuthorFeedPage() {
         >
           <Megaphone className="size-5" />
         </span>
-        <h1 className="font-display text-2xl font-bold tracking-tight">{t("feed.title")}</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">{t("feed.title")}</h1>
       </div>
 
       {isOwner && <FeedComposer authorId={authorId} />}

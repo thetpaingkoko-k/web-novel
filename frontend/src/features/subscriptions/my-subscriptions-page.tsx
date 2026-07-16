@@ -23,7 +23,7 @@ export function MySubscriptionsPage() {
           <BookHeart className="size-6" />
         </span>
         <div className="space-y-1">
-          <h1 className="font-display text-2xl font-bold tracking-tight">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">
             {t("nav.mySubscriptions")}
           </h1>
           <p className="text-sm text-muted-foreground">{t("subscribe.mySubscriptionsSubtitle")}</p>

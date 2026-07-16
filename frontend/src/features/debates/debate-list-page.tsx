@@ -20,7 +20,7 @@ export function DebateListPage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <header className="relative overflow-hidden rounded-3xl border bg-card">
+      <header className="relative overflow-hidden rounded-2xl border bg-card">
         <div className="bg-mesh pointer-events-none absolute inset-0 opacity-40" aria-hidden="true" />
         <div className="relative flex flex-wrap items-start justify-between gap-4 p-6 sm:p-8">
           <div className="flex items-start gap-4">

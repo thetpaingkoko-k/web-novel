@@ -17,12 +17,12 @@ interface StudioHeroProps {
 }
 
 /**
- * Shared "wow" header for the author / writer studio pages: an ambient violet
- * mesh band with a frosted frame, optional glowing icon chip, display-type
+ * Shared editorial header for the author / writer studio pages: a quiet paper
+ * wash band with a hairline frame, optional brand icon chip, serif display
  * title, and a slot for a primary action. Purely presentational.
  *
- * New shared component (violet redesign) — reused by the author dashboard,
- * book/chapter editors, earnings, and author settings.
+ * Shared component (editorial paper-ink identity) — reused by the author
+ * dashboard, book/chapter editors, earnings, and author settings.
  */
 export function StudioHero({
   eyebrow,
@@ -36,13 +36,13 @@ export function StudioHero({
   return (
     <section
       className={cn(
-        "bg-mesh relative overflow-hidden rounded-3xl border border-border/60 p-6 sm:p-8",
+        "bg-mesh relative overflow-hidden rounded-2xl border border-border/70 p-6 sm:p-8",
         className
       )}
     >
-      {/* Soft violet halo bleeding in from the top-right corner. */}
+      {/* Soft indigo halo bleeding in from the top-right corner. */}
       <div
-        className="pointer-events-none absolute -top-24 -right-16 size-64 rounded-full bg-primary/20 blur-3xl"
+        className="pointer-events-none absolute -top-24 -right-16 size-64 rounded-full bg-primary/10 blur-3xl"
         aria-hidden="true"
       />
 

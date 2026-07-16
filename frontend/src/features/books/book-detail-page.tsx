@@ -64,7 +64,7 @@ export function BookDetailPage() {
   return (
     <div className="flex flex-col gap-10">
       {/* Cinematic hero — blurred cover backdrop behind a frosted glass info card. */}
-      <section className="relative isolate -mx-4 overflow-hidden rounded-3xl border border-border/60 px-4 py-8 sm:mx-0 sm:px-8 sm:py-12">
+      <section className="relative isolate -mx-4 overflow-hidden rounded-2xl border border-border/70 px-4 py-8 sm:mx-0 sm:px-8 sm:py-12">
         {/* Backdrop: the cover blown up and blurred, or the ambient mesh. */}
         {coverUrl ? (
           <>
@@ -72,9 +72,9 @@ export function BookDetailPage() {
               src={coverUrl}
               alt=""
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 -z-20 h-full w-full scale-110 object-cover opacity-40 blur-2xl saturate-150"
+              className="pointer-events-none absolute inset-0 -z-20 h-full w-full scale-110 object-cover opacity-30 blur-2xl saturate-100"
             />
-            <div className="pointer-events-none absolute inset-0 -z-10 bg-background/70" />
+            <div className="pointer-events-none absolute inset-0 -z-10 bg-background/80" />
           </>
         ) : (
           <div className="bg-mesh pointer-events-none absolute inset-0 -z-10" />
@@ -107,7 +107,7 @@ export function BookDetailPage() {
                   </span>
                 )}
               </div>
-              <h1 className="font-display text-3xl font-bold text-balance sm:text-4xl">
+              <h1 className="font-display text-3xl font-semibold text-balance sm:text-4xl">
                 {book.title}
               </h1>
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
@@ -211,7 +211,7 @@ export function BookDetailPage() {
       {/* Chapters */}
       <div>
         <div className="mb-4 flex items-baseline justify-between gap-2">
-          <h2 className="text-lg font-medium">{t("books.chapters")}</h2>
+          <h2 className="font-display text-xl font-semibold">{t("books.chapters")}</h2>
           {book.chapters.length > 0 && (
             <span className="text-xs text-muted-foreground">
               {t("books.chaptersCount", { count: book.chapters.length })}

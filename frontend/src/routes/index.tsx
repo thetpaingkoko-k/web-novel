@@ -24,6 +24,7 @@ import { BookEditorPage } from "@/features/author/book-editor-page"
 import { ChapterEditorPage } from "@/features/author/chapter-editor-page"
 import { BookDetailPage } from "@/features/books/book-detail-page"
 import { BooksBrowsePage } from "@/features/books/books-browse-page"
+import { HomePage } from "@/features/home/home-page"
 import { ChapterReaderPage } from "@/features/chapters/chapter-reader-page"
 import { DebateListPage } from "@/features/debates/debate-list-page"
 import { DebateThreadPage } from "@/features/debates/debate-thread-page"
@@ -40,7 +41,7 @@ export const router = createBrowserRouter([
     path: "/",
     element: <AppLayout />,
     children: [
-      { index: true, element: <BooksBrowsePage /> },
+      { index: true, element: <HomePage /> },
       { path: "books", element: <BooksBrowsePage /> },
       { path: "books/:bookId", element: <BookDetailPage /> },
       { path: "books/:bookId/debates", element: <DebateListPage /> },

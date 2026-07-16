@@ -56,19 +56,19 @@ export function AuthorProfilePage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8">
-      {/* Bold author hero over an ambient violet mesh. */}
-      <section className="bg-mesh relative isolate overflow-hidden rounded-3xl border border-border/60 p-6 shadow-sm sm:p-8">
-        <div className="brand-gradient pointer-events-none absolute -top-20 -right-16 -z-10 h-56 w-56 rounded-full opacity-25 blur-3xl" />
+      {/* Author hero over a quiet paper wash. */}
+      <section className="bg-mesh relative isolate overflow-hidden rounded-2xl border border-border/70 p-6 sm:p-8">
+        <div className="pointer-events-none absolute -top-20 -right-16 -z-10 size-56 rounded-full bg-primary/10 blur-3xl" />
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-4">
             <span
-              className="brand-gradient glow-brand flex size-20 shrink-0 items-center justify-center rounded-2xl text-3xl font-bold text-white"
+              className="brand-gradient glow-brand flex size-20 shrink-0 items-center justify-center rounded-2xl font-display text-3xl font-semibold text-white"
               aria-hidden="true"
             >
               {initial}
             </span>
             <div className="flex flex-col gap-1.5">
-              <h1 className="font-display text-3xl font-bold tracking-tight">{author.username}</h1>
+              <h1 className="font-display text-3xl font-semibold tracking-tight">{author.username}</h1>
               <AuthorBadge careerStage={author.careerStage} className="w-fit" />
               <Link
                 to={`/authors/${authorId}/feed`}
@@ -113,8 +113,8 @@ export function AuthorProfilePage() {
           </div>
         </div>
 
-        {/* Glass stat row. */}
-        <div className="glass mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl">
+        {/* Stat row. */}
+        <div className="mt-6 grid grid-cols-2 divide-x divide-border overflow-hidden rounded-xl border border-border">
           <ProfileStat value={booksCount} label={t("authors.books")} />
           <ProfileStat value={postsCount} label={t("authors.postsLabel")} />
         </div>
@@ -179,8 +179,8 @@ export function AuthorProfilePage() {
 
 function ProfileStat({ value, label }: { value: number; label: string }) {
   return (
-    <div className="flex flex-col items-center gap-0.5 bg-card/40 px-4 py-4 text-center">
-      <span className="font-display text-2xl font-bold tabular-nums">
+    <div className="flex flex-col items-center gap-0.5 bg-card px-4 py-4 text-center">
+      <span className="font-display text-2xl font-semibold tabular-nums">
         {value.toLocaleString()}
       </span>
       <span className="text-xs font-medium text-muted-foreground">{label}</span>

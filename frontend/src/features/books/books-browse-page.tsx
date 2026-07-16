@@ -1,5 +1,6 @@
 import { useDeferredValue, useEffect, useState } from "react"
-import { BookOpen, Search, Sparkles } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
+import { BookOpen, LayoutGrid, Search } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router"
 import { BookCard } from "@/components/book-card"
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { GENRES, genreLabelKey } from "@/lib/genres"
+import { genreIcon } from "@/lib/genre-icons"
 import type { BookStatus } from "@/types/content"
 import { useBooks } from "./api"
 
@@ -26,8 +28,10 @@ export function BooksBrowsePage() {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "")
-  const [genre, setGenre] = useState<string>()
-  const [status, setStatus] = useState<BookStatus>()
+  const [genre, setGenre] = useState<string | undefined>(() => searchParams.get("genre") ?? undefined)
+  const [status, setStatus] = useState<BookStatus | undefined>(
+    () => (searchParams.get("status") as BookStatus) || undefined,
+  )
   const deferredSearch = useDeferredValue(search)
 
   // Keep the field in sync when the header search bar navigates here with ?q=.
@@ -35,6 +39,16 @@ export function BooksBrowsePage() {
   useEffect(() => {
     setSearch(queryParam)
   }, [queryParam])
+
+  // Deep links from the home page carry ?genre= / ?status=; adopt them on change.
+  const genreParam = searchParams.get("genre")
+  const statusParam = searchParams.get("status")
+  useEffect(() => {
+    if (genreParam) setGenre(genreParam)
+  }, [genreParam])
+  useEffect(() => {
+    if (statusParam) setStatus(statusParam as BookStatus)
+  }, [statusParam])
 
   // Server-side search: `GET /books?search=` matches title or author username,
   // ANDed with genre/status. Omit the param when blank.
@@ -54,59 +68,53 @@ export function BooksBrowsePage() {
   }
 
   return (
-    <div className="flex flex-col gap-10">
-      {/* Discovery hero — ambient violet mesh, gradient headline, glowing search. */}
-      <section className="bg-mesh relative isolate overflow-hidden rounded-3xl border border-border/60 px-6 py-14 shadow-sm sm:px-10 sm:py-20">
-        {/* Depth: soft violet/fuchsia blooms behind the content. */}
-        <div className="brand-gradient pointer-events-none absolute -top-24 -right-16 -z-10 h-72 w-72 rounded-full opacity-25 blur-3xl" />
-        <div className="brand-gradient pointer-events-none absolute -bottom-28 -left-20 -z-10 h-72 w-72 rounded-full opacity-20 blur-3xl" />
-
-        <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-6 text-center">
-          <span className="glass inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium tracking-wide text-foreground/80">
-            <Sparkles className="size-3.5 text-primary" aria-hidden="true" />
-            {t("books.heroBadge")}
-          </span>
-
-          <h1 className="font-display text-4xl font-bold text-balance sm:text-6xl">
-            {t("books.heroLead")}{" "}
-            <span className="text-gradient">{t("books.heroAccent")}</span>
+    <div className="flex flex-col gap-8">
+      {/* Compact editorial header + search. */}
+      <header className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+            {t("books.browseTitle")}
           </h1>
-
-          <p className="max-w-prose text-pretty text-muted-foreground sm:text-lg">
+          <p className="max-w-prose text-sm text-muted-foreground sm:text-base">
             {t("books.heroSubtitle")}
           </p>
-
-          <div className="glow-brand-hover group relative mt-2 w-full max-w-lg rounded-2xl transition focus-within:ring-2 focus-within:ring-primary/60">
-            <Search
-              className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary"
-              aria-hidden="true"
-            />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("books.searchPlaceholder")}
-              aria-label={t("books.searchPlaceholder")}
-              className="glass h-14 rounded-2xl border-border/60 pl-12 text-base shadow-sm"
-            />
-          </div>
         </div>
-      </section>
 
-      {/* Genre chips — horizontally scrollable on narrow screens. */}
-      <div className="flex flex-col gap-4">
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          <GenreChip active={!genre} label={t("books.allGenres")} onClick={() => setGenre(undefined)} />
+        <div className="group relative w-full max-w-xl">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary"
+            aria-hidden="true"
+          />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("books.searchPlaceholder")}
+            aria-label={t("books.searchPlaceholder")}
+            className="h-12 rounded-xl border-border bg-card pl-12 text-base shadow-sm focus-visible:border-primary/50"
+          />
+        </div>
+      </header>
+
+      {/* Filters — a refined, wrapped pill group plus status + count. */}
+      <div className="flex flex-col gap-4 border-t border-border/70 pt-6">
+        <div className="flex flex-wrap gap-2">
+          <GenreChip
+            active={!genre}
+            icon={LayoutGrid}
+            label={t("books.allGenres")}
+            onClick={() => setGenre(undefined)}
+          />
           {GENRES.map((g) => (
             <GenreChip
               key={g}
               active={genre === g}
+              icon={genreIcon(g)}
               label={t(genreLabelKey(g))}
               onClick={() => setGenre(genre === g ? undefined : g)}
             />
           ))}
         </div>
 
-        {/* Result count + status filter. */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             {!isError && !isLoading && data
@@ -169,10 +177,12 @@ export function BooksBrowsePage() {
 
 function GenreChip({
   active,
+  icon: Icon,
   label,
   onClick,
 }: {
   active: boolean
+  icon: LucideIcon
   label: string
   onClick: () => void
 }) {
@@ -182,12 +192,16 @@ function GenreChip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         active
-          ? "brand-gradient border-transparent text-white shadow-sm glow-brand"
-          : "border-border/70 bg-card text-muted-foreground hover:-translate-y-0.5 hover:border-primary/40 hover:text-foreground",
+          ? "border-transparent bg-primary text-primary-foreground shadow-xs"
+          : "border-border/70 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
       )}
     >
+      <Icon
+        className={cn("size-3.5 shrink-0", active ? "opacity-90" : "text-muted-foreground/80")}
+        aria-hidden="true"
+      />
       {label}
     </button>
   )

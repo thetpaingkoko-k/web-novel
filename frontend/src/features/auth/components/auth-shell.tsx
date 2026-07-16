@@ -1,6 +1,7 @@
-import { BookOpen } from "lucide-react"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router"
+import { Wordmark } from "@/components/wordmark"
 
 interface AuthShellProps {
   title: string
@@ -11,7 +12,7 @@ interface AuthShellProps {
 }
 
 /**
- * Simple, clean, centered auth layout: a glowing brand mark, a compact title,
+ * Simple, clean, centered auth layout: the NovelSpire wordmark, a compact title,
  * and the form in a single card. No marketing panel — deliberately minimal.
  */
 export function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
@@ -20,10 +21,10 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
   return (
     <div className="flex min-h-[78vh] items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center gap-4 text-center">
-          <span className="brand-gradient glow-brand flex size-14 items-center justify-center rounded-2xl text-white">
-            <BookOpen className="size-7" strokeWidth={2.25} />
-          </span>
+        <div className="mb-8 flex flex-col items-center gap-5 text-center">
+          <Link to="/" aria-label="NovelSpire">
+            <Wordmark className="text-3xl" />
+          </Link>
           <div className="space-y-1">
             <h1 className="font-display text-2xl font-semibold tracking-tight">{title}</h1>
             {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}

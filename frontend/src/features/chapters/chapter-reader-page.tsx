@@ -223,7 +223,7 @@ export function ChapterReaderPage() {
       const authorUsername = denial.details?.authorUsername ?? t("access.unknownAuthor")
       return (
         <div className="mx-auto max-w-md py-12">
-          <div className="glow-brand relative overflow-hidden rounded-3xl border bg-card text-center">
+          <div className="glow-brand relative overflow-hidden rounded-2xl border bg-card text-center">
             <div className="bg-mesh pointer-events-none absolute inset-0 opacity-50" aria-hidden="true" />
             <div className="relative flex flex-col items-center gap-6 px-6 py-12 sm:px-10">
               <div className="relative flex h-24 w-24 items-center justify-center">
@@ -272,7 +272,7 @@ export function ChapterReaderPage() {
   if (isLoading || !chapter) {
     return (
       <div className="mx-auto flex max-w-3xl flex-col gap-8">
-        <div className="flex flex-col gap-5 rounded-3xl border bg-card p-6 sm:p-8">
+        <div className="flex flex-col gap-5 rounded-2xl border bg-card p-6 sm:p-8">
           <div className="flex items-center justify-between">
             <Skeleton className="h-6 w-40" />
             <Skeleton className="h-8 w-16 rounded-md" />
@@ -346,7 +346,7 @@ export function ChapterReaderPage() {
       </div>
 
       {/* Chapter header — mesh-accented hero with the chapter title + meta */}
-      <header className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border bg-card">
+      <header className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border bg-card">
         <div className="bg-mesh pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden="true" />
         <div className="relative flex flex-col gap-5 p-6 sm:p-8">
           <div className="flex flex-col gap-3">

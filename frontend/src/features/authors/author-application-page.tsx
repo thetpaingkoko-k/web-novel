@@ -60,7 +60,7 @@ export function AuthorApplicationPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-8">
-      <div className="bg-mesh relative overflow-hidden rounded-3xl border border-border/60 p-8 text-center">
+      <div className="bg-mesh relative overflow-hidden rounded-2xl border border-border/70 p-8 text-center">
         <div
           className="pointer-events-none absolute -top-20 left-1/2 size-56 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl"
           aria-hidden="true"

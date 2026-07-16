@@ -19,8 +19,9 @@ export interface ReaderPreferences {
   theme: ReaderTheme
 }
 
-/** Reading surface colours — cool violet/slate tones only (no warm hues), kept
- * independent of the app light/dark theme so the reader controls the page. */
+/** Reading surface colours — warm paper/ink tones, kept independent of the app
+ * light/dark theme so the reader controls the page. Matches the editorial
+ * identity: warm paper by day, warm charcoal by night (never cool/violet). */
 export interface ReaderSurface {
   /** Inline style for the reading panel (background + text + border colours). */
   style: CSSProperties
@@ -56,10 +57,10 @@ const SURFACES: Record<
   ReaderTheme,
   { background: string; color: string; muted: string; border: string }
 > = {
-  // Cool tones only — soft violet-tinted whites and cool slate/charcoal darks.
-  light: { background: "#f8f9fd", color: "#1c1f2b", muted: "#6a6f80", border: "#e5e7f1" },
-  dim: { background: "#2c313d", color: "#cfd4e2", muted: "#8b91a4", border: "#3c4351" },
-  dark: { background: "#14141d", color: "#d3d5e6", muted: "#888ca3", border: "#282838" },
+  // Warm tones only — soft paper whites and warm sepia/charcoal darks.
+  light: { background: "#faf8f2", color: "#26231d", muted: "#736d60", border: "#eae6db" },
+  dim: { background: "#33302a", color: "#e2ded1", muted: "#a49d8d", border: "#454139" },
+  dark: { background: "#1a1815", color: "#dcd7cb", muted: "#8f897b", border: "#2b2822" },
 }
 
 const FONT_SIZES: ReaderFontSize[] = ["sm", "md", "lg", "xl"]

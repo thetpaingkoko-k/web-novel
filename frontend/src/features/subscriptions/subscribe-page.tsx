@@ -105,7 +105,7 @@ export function SubscribePage() {
             >
               {pending ? <Clock className="size-7" /> : <BadgeCheck className="size-7" />}
             </span>
-            <h1 className="font-display text-xl font-bold tracking-tight">
+            <h1 className="font-display text-xl font-semibold tracking-tight">
               {pending
                 ? t("subscribe.pendingTitle")
                 : t("subscribe.activeTitle", { author: author.username })}
@@ -173,11 +173,11 @@ export function SubscribePage() {
             <Sparkles className="size-4" aria-hidden="true" />
             {t("subscribe.planHeading")}
           </p>
-          <h1 className="font-display mt-2 text-2xl font-bold tracking-tight">
+          <h1 className="font-display mt-2 text-2xl font-semibold tracking-tight">
             {t("subscribe.title", { author: author.username })}
           </h1>
           <p className="mt-4 flex items-baseline gap-1.5">
-            <span className="font-display text-4xl font-bold">{price.toLocaleString()}</span>
+            <span className="font-display text-4xl font-semibold">{price.toLocaleString()}</span>
             <span className="text-sm text-white/85">MMK · {t("subscribe.perMonth")}</span>
           </p>
         </div>

@@ -14,9 +14,9 @@ export function MyListPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Library header over an ambient violet mesh. */}
-      <section className="bg-mesh relative isolate overflow-hidden rounded-3xl border border-border/60 px-6 py-8 shadow-sm sm:px-8 sm:py-10">
-        <div className="brand-gradient pointer-events-none absolute -top-16 -right-12 -z-10 h-48 w-48 rounded-full opacity-20 blur-3xl" />
+      {/* Library header over a quiet paper wash. */}
+      <section className="bg-mesh relative isolate overflow-hidden rounded-2xl border border-border/70 px-6 py-8 sm:px-8 sm:py-10">
+        <div className="pointer-events-none absolute -top-16 -right-12 -z-10 size-48 rounded-full bg-primary/10 blur-3xl" />
         <div className="flex items-center gap-4">
           <span
             className="brand-gradient glow-brand flex size-14 shrink-0 items-center justify-center rounded-2xl text-white"
@@ -25,7 +25,7 @@ export function MyListPage() {
             <BookMarked className="size-7" />
           </span>
           <div className="flex flex-col gap-1">
-            <h1 className="font-display text-3xl font-bold tracking-tight">{t("library.title")}</h1>
+            <h1 className="font-display text-3xl font-semibold tracking-tight">{t("library.title")}</h1>
             <p className="text-sm text-muted-foreground">{t("library.subtitle")}</p>
           </div>
         </div>

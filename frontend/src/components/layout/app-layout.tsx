@@ -2,7 +2,6 @@ import { useState } from "react"
 import { Link, Outlet, useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 import {
-  BookOpen,
   ChevronDown,
   DollarSign,
   LayoutDashboard,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { ModeToggle } from "@/components/mode-toggle"
+import { Wordmark } from "@/components/wordmark"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -26,7 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { cn } from "@/lib/utils"
+import { genreLabelKey } from "@/lib/genres"
 import { useAuth } from "@/features/auth/auth-context"
 
 const AUTHOR_ROLES = ["hobbyist_author", "professional_author"]
@@ -35,7 +35,7 @@ export function AppLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="container mx-auto flex-1 px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-12">
         <Outlet />
       </main>
       <SiteFooter />
@@ -61,7 +61,7 @@ function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-md">
-      <div className="container mx-auto flex h-16 items-center gap-3 px-4 sm:gap-4 sm:px-6">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4 sm:gap-4 sm:px-6">
         <Brand />
 
         <nav className="hidden items-center gap-1 md:flex">
@@ -100,13 +100,13 @@ function SiteHeader() {
 }
 
 function Brand() {
-  const { t } = useTranslation()
   return (
-    <Link to="/" className="flex shrink-0 items-center gap-2">
-      <span className="brand-gradient flex size-9 items-center justify-center rounded-xl text-white shadow-sm shadow-primary/30">
-        <BookOpen className="size-5" strokeWidth={2.25} />
-      </span>
-      <span className="text-lg font-semibold tracking-tight">{t("app.name")}</span>
+    <Link
+      to="/"
+      className="flex shrink-0 items-center rounded-md transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      aria-label="NovelSpire"
+    >
+      <Wordmark className="text-xl" />
     </Link>
   )
 }
@@ -327,21 +327,72 @@ function MobileMenu() {
   )
 }
 
+const FOOTER_GENRES = ["Fantasy", "Romance", "SciFi", "Mystery", "Isekai"] as const
+
+function FooterLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <Link
+      to={to}
+      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+    >
+      {children}
+    </Link>
+  )
+}
+
+function FooterColumn({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <h3 className="text-xs font-semibold tracking-[0.14em] text-foreground/70 uppercase">
+        {title}
+      </h3>
+      <nav className="flex flex-col gap-2.5">{children}</nav>
+    </div>
+  )
+}
+
 function SiteFooter() {
   const { t } = useTranslation()
   return (
-    <footer className={cn("border-t border-border/70 bg-muted/30")}>
-      <div className="container mx-auto flex flex-col items-center justify-between gap-2 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:px-6">
-        <div className="flex items-center gap-2">
-          <span className="brand-gradient flex size-5 items-center justify-center rounded-md text-white">
-            <BookOpen className="size-3" />
-          </span>
-          <span>© {new Date().getFullYear()} {t("app.name")}</span>
+    <footer className="mt-16 border-t border-border/70 bg-muted/25">
+      <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          {/* Brand + tagline */}
+          <div className="flex max-w-xs flex-col gap-4">
+            <Link
+              to="/"
+              className="w-fit rounded-md transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              aria-label="NovelSpire"
+            >
+              <Wordmark className="text-xl" />
+            </Link>
+            <p className="text-sm leading-relaxed text-muted-foreground">{t("footer.tagline")}</p>
+          </div>
+
+          <FooterColumn title={t("footer.explore")}>
+            <FooterLink to="/books">{t("footer.browseAll")}</FooterLink>
+            <FooterLink to="/books?status=ongoing">{t("books.status.ongoing")}</FooterLink>
+            <FooterLink to="/books?status=completed">{t("books.status.completed")}</FooterLink>
+          </FooterColumn>
+
+          <FooterColumn title={t("footer.genres")}>
+            {FOOTER_GENRES.map((g) => (
+              <FooterLink key={g} to={`/books?genre=${g}`}>
+                {t(genreLabelKey(g))}
+              </FooterLink>
+            ))}
+          </FooterColumn>
+
+          <FooterColumn title={t("footer.account")}>
+            <FooterLink to="/login">{t("nav.login")}</FooterLink>
+            <FooterLink to="/register">{t("nav.register")}</FooterLink>
+            <FooterLink to="/register">{t("nav.becomeAuthor")}</FooterLink>
+          </FooterColumn>
         </div>
-        <div className="flex items-center gap-4">
-          <Link to="/books" className="transition-colors hover:text-foreground">
-            {t("nav.browse")}
-          </Link>
+
+        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-border/70 pt-6 text-sm text-muted-foreground sm:flex-row">
+          <span>© {new Date().getFullYear()} {t("app.name")}</span>
+          <span>{t("footer.rights")}</span>
         </div>
       </div>
     </footer>

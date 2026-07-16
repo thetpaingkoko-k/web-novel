@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "WebNovel"
+    "name": "NovelSpire"
   },
   "nav": {
     "browse": "Browse",
@@ -730,5 +730,33 @@
       "approvedPayments": "Approved payments",
       "note": "Reader revenue is the total collected from approved payments. Platform profit is what remains after author earnings."
     }
+  },
+  "home": {
+    "heroBadge": "A home for serialized fiction",
+    "heroLead": "Every story",
+    "heroAccent": "worth staying up for",
+    "heroSubtitle": "Discover original serialized novels from authors around the world. Follow your favorites, and pick up right where you left off.",
+    "startBrowsing": "Start browsing",
+    "joinFree": "Join free",
+    "browseByGenre": "Browse by genre",
+    "viewAll": "View all",
+    "sections": {
+      "continueReading": "Continue reading",
+      "ongoing": "Fresh & ongoing",
+      "completed": "Complete & bingeable",
+      "premium": "Premium picks"
+    },
+    "ctaTitle": "Have a story to tell?",
+    "ctaBody": "Publish your own serialized novel and reach thousands of readers.",
+    "ctaButton": "Start writing",
+    "loadError": "Couldn't load stories right now."
+  },
+  "footer": {
+    "tagline": "A quiet home for serialized fiction — read, follow your favorites, and never lose your place.",
+    "explore": "Explore",
+    "genres": "Genres",
+    "account": "Account",
+    "rights": "All rights reserved.",
+    "browseAll": "Browse all"
   }
 }
