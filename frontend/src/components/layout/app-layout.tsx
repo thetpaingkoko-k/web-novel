@@ -49,11 +49,13 @@ function SiteHeader() {
   const { user, isAuthenticated, logout } = useAuth()
   const isAuthor = Boolean(user && AUTHOR_ROLES.includes(user.role))
 
-  // Leave for a clean public route BEFORE clearing the session so a protected
-  // route can't capture the current path as `from` and bleed it into the next
-  // login (e.g. an admin landing on a reader's subscription page).
-  function handleLogout() {
-    navigate("/", { replace: true })
+  // Await the navigation so we land on a clean public route BEFORE clearing the
+  // session. `navigate` is a deferred transition while logout's cache-clear is an
+  // urgent update; without awaiting, the clear can win the race and the current
+  // protected route redirects to /login capturing its path as `from`, bleeding it
+  // into the next login (e.g. an admin landing on a reader's page).
+  async function handleLogout() {
+    await navigate("/", { replace: true })
     logout.mutate()
   }
 
@@ -252,8 +254,10 @@ function MobileMenu() {
   const { user, isAuthenticated, logout } = useAuth()
   const isAuthor = Boolean(user && AUTHOR_ROLES.includes(user.role))
 
-  function handleLogout() {
-    navigate("/", { replace: true })
+  // Await the navigation to a public route before clearing the session — see the
+  // note on SiteHeader.handleLogout for why the ordering matters.
+  async function handleLogout() {
+    await navigate("/", { replace: true })
     logout.mutate()
   }
   return (

@@ -7,12 +7,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-/** Saved books / "My List" (§4.1.1). All routes require authentication. */
+/** Saved books / "My List" (§4.1.1). Reader-owned feature (§5); readers only. */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('READER')")
 @Tag(name = "Bookmarks")
 public class BookmarkController {
 

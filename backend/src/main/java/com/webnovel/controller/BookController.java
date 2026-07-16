@@ -16,6 +16,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /** Books & chapter upload (PROJECT SPEC.md §10.3). */
@@ -29,12 +30,14 @@ public class BookController {
     private final ChapterService chapterService;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('HOBBYIST_AUTHOR','PROFESSIONAL_AUTHOR')")
     public ResponseEntity<BookDetailResponse> create(@Valid @RequestBody BookCreateRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(bookService.create(SecurityUtils.requirePrincipal(), req));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('HOBBYIST_AUTHOR','PROFESSIONAL_AUTHOR')")
     public BookDetailResponse update(@PathVariable Long id, @Valid @RequestBody BookUpdateRequest req) {
         return bookService.update(SecurityUtils.requirePrincipal(), id, req);
     }
@@ -57,12 +60,14 @@ public class BookController {
 
     /** Delete a book (admin only). Chapters and all related rows cascade. */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         bookService.delete(SecurityUtils.requirePrincipal(), id);
     }
 
     @PostMapping("/{bookId}/chapters")
+    @PreAuthorize("hasAnyRole('HOBBYIST_AUTHOR','PROFESSIONAL_AUTHOR')")
     public ResponseEntity<ChapterResponse> uploadChapter(
             @PathVariable Long bookId, @Valid @RequestBody ChapterCreateRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)

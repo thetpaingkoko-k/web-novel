@@ -52,9 +52,14 @@ export const router = createBrowserRouter([
       { path: "register", element: <RegisterPage /> },
       { path: "verify-email", element: <VerifyEmailPage /> },
       {
+        // Every signed-in user owns their own account page, regardless of role.
         element: <ProtectedRoute />,
+        children: [{ path: "account", element: <AccountPage /> }],
+      },
+      {
+        // Reader-only: bookmarks, subscriptions, and applying to become an author.
+        element: <ProtectedRoute allowedRoles={["reader"]} />,
         children: [
-          { path: "account", element: <AccountPage /> },
           { path: "my-list", element: <MyListPage /> },
           { path: "authors/apply", element: <AuthorApplicationPage /> },
           { path: "authors/:authorId/subscribe", element: <SubscribePage /> },

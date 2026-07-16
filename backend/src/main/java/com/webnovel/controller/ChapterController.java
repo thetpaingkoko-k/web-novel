@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /** Chapter edit, read, and publish (PROJECT SPEC.md §10.3). */
@@ -22,13 +23,16 @@ public class ChapterController {
     private final ChapterService chapterService;
     private final ChapterPublishService chapterPublishService;
 
+    /** Edit chapter content: admin-only moderation path (authors revise by delete + re-add). */
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ChapterResponse update(@PathVariable Long id, @Valid @RequestBody ChapterUpdateRequest req) {
         return chapterService.update(SecurityUtils.requirePrincipal(), id, req);
     }
 
     /** Delete a chapter: authors may remove their own drafts; admins may remove any chapter. */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('HOBBYIST_AUTHOR','PROFESSIONAL_AUTHOR','ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         chapterService.delete(SecurityUtils.requirePrincipal(), id);
@@ -42,6 +46,7 @@ public class ChapterController {
 
     /** Submit for publish (§9.5): direct/scheduled for professionals, pending_review for hobbyists. */
     @PostMapping("/{id}/publish")
+    @PreAuthorize("hasAnyRole('HOBBYIST_AUTHOR','PROFESSIONAL_AUTHOR')")
     public ChapterResponse publish(@PathVariable Long id,
                                    @RequestBody(required = false) PublishRequest req) {
         return chapterPublishService.submitForPublish(SecurityUtils.requirePrincipal(), id, req);

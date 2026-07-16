@@ -38,5 +38,6 @@ build/
 
 ### Local secrets — NEVER commit (contain API keys / passwords) ###
 run-dev.sh
+run-dev.cmd
 .env
 .env.local

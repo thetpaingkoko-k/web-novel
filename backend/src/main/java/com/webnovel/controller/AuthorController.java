@@ -11,6 +11,7 @@ import com.webnovel.service.AuthorService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /** Author application + public profile (PROJECT SPEC.md §10.2). */
@@ -22,22 +23,27 @@ public class AuthorController {
 
     private final AuthorService authorService;
 
+    /** A reader applies for author status (§10.2); non-readers already have a profile. */
     @PostMapping("/apply")
+    @PreAuthorize("hasRole('READER')")
     public UserResponse apply(@Valid @RequestBody AuthorApplyRequest req) {
         return authorService.apply(SecurityUtils.currentUserId(), req);
     }
 
     @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('HOBBYIST_AUTHOR','PROFESSIONAL_AUTHOR')")
     public AuthorMeResponse me() {
         return authorService.getMe(SecurityUtils.currentUserId());
     }
 
     @PutMapping("/me")
+    @PreAuthorize("hasAnyRole('HOBBYIST_AUTHOR','PROFESSIONAL_AUTHOR')")
     public AuthorMeResponse updateMe(@Valid @RequestBody AuthorUpdateRequest req) {
         return authorService.updateMe(SecurityUtils.currentUserId(), req);
     }
 
     @PostMapping("/upgrade-request")
+    @PreAuthorize("hasAnyRole('HOBBYIST_AUTHOR','PROFESSIONAL_AUTHOR')")
     public AuthorMeResponse requestUpgrade() {
         return authorService.requestUpgrade(SecurityUtils.currentUserId());
     }
