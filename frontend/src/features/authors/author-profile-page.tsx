@@ -23,10 +23,13 @@ export function AuthorProfilePage() {
   const authorId = Number(authorIdParam)
 
   const { user, isAuthenticated } = useAuth()
+  // Subscribing is reader-only: only readers query their subscription. The CTA still
+  // shows to guests (signup/login funnel), just not to authenticated admins/authors.
+  const isReader = user?.role === "reader"
   const { data: author, isLoading, isError, refetch } = useAuthorProfile(authorId)
   const books = useBooks({ authorId })
   const feed = useAuthorFeed(authorId)
-  const { subscription } = useSubscriptionTo(authorId, isAuthenticated)
+  const { subscription } = useSubscriptionTo(authorId, isReader)
 
   if (isError) {
     return <QueryError message={t("authors.notFound")} onRetry={() => refetch()} />
@@ -41,7 +44,10 @@ export function AuthorProfilePage() {
     )
   }
 
-  const canSubscribe = author.isMonetizationEnabled && author.monthlySubscriptionPrice != null
+  const canSubscribe =
+    (!isAuthenticated || isReader) &&
+    author.isMonetizationEnabled &&
+    author.monthlySubscriptionPrice != null
   const initial = author.username.trim().charAt(0).toUpperCase() || "?"
   const booksCount = books.data?.length ?? 0
   const postsCount = feed.data?.length ?? 0

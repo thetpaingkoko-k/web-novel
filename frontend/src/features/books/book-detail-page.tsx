@@ -21,10 +21,13 @@ export function BookDetailPage() {
   const { bookId } = useParams<{ bookId: string }>()
   const { t } = useTranslation()
   const { isAuthenticated, user } = useAuth()
+  // Subscribing is reader-only: only readers query their subscription. The CTA still
+  // shows to guests (signup/login funnel), just not to authenticated admins/authors.
+  const isReader = user?.role === "reader"
   const id = Number(bookId)
   const { data: book, isLoading, isError, refetch } = useBook(id)
   const { data: progress } = useReadingProgress(id, isAuthenticated)
-  const { subscription } = useSubscriptionTo(book?.authorId ?? Number.NaN, isAuthenticated)
+  const { subscription } = useSubscriptionTo(book?.authorId ?? Number.NaN, isReader)
 
   if (isError) {
     return <QueryError message={t("books.notFound")} onRetry={() => refetch()} />
@@ -169,6 +172,7 @@ export function BookDetailPage() {
                 )
               )}
               {book.isPremium &&
+                (!isAuthenticated || isReader) &&
                 (subscription ? (
                   <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-success/10 px-3 py-1.5 text-sm font-medium text-success">
                     <CheckCircle2 className="size-4" aria-hidden="true" />
