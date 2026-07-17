@@ -15,6 +15,8 @@ import type { ThreadStatus } from "@/types/debates"
 import { useDebatePosts, useDebateThread, useSetThreadStatus } from "./api"
 import { PostComposer } from "./components/post-composer"
 import { PostItem } from "./components/post-item"
+import { SubscribeToDiscuss } from "./components/subscribe-to-discuss"
+import { useDebateAccess } from "./use-debate-access"
 
 export function DebateThreadPage() {
   const { t } = useTranslation()
@@ -34,6 +36,8 @@ export function DebateThreadPage() {
     refetch: refetchPosts,
   } = useDebatePosts(threadId)
   const setStatus = useSetThreadStatus(threadId)
+  // NaN until the thread (and its bookId) load; the hook no-ops for NaN.
+  const access = useDebateAccess(thread?.bookId ?? Number.NaN)
 
   const tree = useMemo(() => (posts ? buildPostTree(posts) : []), [posts])
 
@@ -127,15 +131,19 @@ export function DebateThreadPage() {
 
       {isAuthenticated &&
         !isAdmin &&
-        (isOpen ? (
-          <div className="rounded-xl border bg-card p-4">
-            <PostComposer threadId={threadId} />
-          </div>
-        ) : (
+        (!isOpen ? (
           <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">
             <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{t("debates.lockedNotice")}</span>
           </div>
+        ) : access.gated && access.authorId != null ? (
+          <SubscribeToDiscuss authorId={access.authorId} authorUsername={access.authorUsername} />
+        ) : (
+          !access.isLoading && (
+            <div className="rounded-xl border bg-card p-4">
+              <PostComposer threadId={threadId} />
+            </div>
+          )
         ))}
 
       {postsError && <QueryError onRetry={() => refetchPosts()} />}

@@ -4,6 +4,7 @@ import type {
   AdminActionLog,
   AdminUser,
   ApprovalKind,
+  AuthorPayout,
   NewWalletRequest,
   PaymentAnalytics,
   PaymentSubmissionReview,
@@ -249,5 +250,13 @@ export function usePaymentAnalytics() {
       const { data } = await apiClient.get<PaymentAnalytics>("/admin/analytics/payments")
       return data
     },
+  })
+}
+
+/** Per-author payout ledger: earned, paid out, and remaining owed to each author. */
+export function useAuthorPayouts() {
+  return useQuery({
+    queryKey: ["admin", "analytics", "author-payouts"] as const,
+    queryFn: () => getList<AuthorPayout>("/admin/analytics/author-payouts"),
   })
 }

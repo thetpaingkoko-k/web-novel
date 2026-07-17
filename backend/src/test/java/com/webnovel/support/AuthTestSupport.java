@@ -35,7 +35,8 @@ public abstract class AuthTestSupport extends AbstractIntegrationTest {
         mvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"username":"%s","email":"%s","password":"password123"}"""
+                                {"username":"%s","email":"%s","password":"password123",\
+                                "gender":"male","birthday":"1990-01-01","acceptedTerms":true}"""
                                 .formatted(username, email)))
                 .andExpect(status().isAccepted());
 

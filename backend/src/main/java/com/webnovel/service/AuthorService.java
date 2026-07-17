@@ -39,6 +39,8 @@ public class AuthorService {
             return p;
         });
         profile.setBio(req.bio());
+        profile.setWritingMotivation(req.writingMotivation());
+        profile.setWritingInterests(req.writingInterests());
         authorProfiles.save(profile);
         user.setStatus(UserStatus.pending); // §4.1.1: application pending until admin review
         return userService.toResponse(user);
@@ -73,9 +75,9 @@ public class AuthorService {
     @Transactional
     public AuthorMeResponse updateMe(Long userId, AuthorUpdateRequest req) {
         AuthorProfile profile = requireProfile(userId);
+        // Only the bio is author-editable here. Payout-wallet details are captured per-withdrawal
+        // (WithdrawalRequest), so they are intentionally not touched by this self-update.
         profile.setBio(req.bio());
-        profile.setPayoutWalletProvider(req.payoutWalletProvider());
-        profile.setPayoutWalletNumber(req.payoutWalletNumber());
         return toMe(userId, profile);
     }
 
@@ -102,7 +104,8 @@ public class AuthorService {
 
     private AuthorMeResponse toMe(Long userId, AuthorProfile p) {
         String username = users.findById(userId).map(User::getUsername).orElse(null);
-        return new AuthorMeResponse(userId, username, p.getBio(), p.getCareerStage(),
+        return new AuthorMeResponse(userId, username, p.getBio(),
+                p.getWritingMotivation(), p.getWritingInterests(), p.getCareerStage(),
                 p.isMonetizationEnabled(), p.getMonthlySubscriptionPrice(),
                 p.getPayoutWalletProvider(), p.getPayoutWalletNumber(),
                 p.getAvailableBalance(), p.getTotalEarned(),

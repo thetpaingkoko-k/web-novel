@@ -1,5 +1,6 @@
 package com.webnovel.service;
 
+import com.webnovel.domain.entity.Book;
 import com.webnovel.domain.entity.DebatePost;
 import com.webnovel.domain.entity.DebateThread;
 import com.webnovel.domain.entity.DebateVote;
@@ -24,6 +25,7 @@ import com.webnovel.security.AppUserPrincipal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,7 @@ public class DebateService {
     private final DebatePostRepository posts;
     private final DebateVoteRepository votes;
     private final BookRepository books;
+    private final AccessControlService accessControl;
 
     // --- threads ---
 
@@ -50,9 +53,9 @@ public class DebateService {
         if (reader.isAdmin()) {
             throw new ForbiddenException("debate.admin_cannot_participate"); // admins moderate, not discuss
         }
-        if (!books.existsById(bookId)) {
-            throw new NotFoundException("book.not_found");
-        }
+        Book book = books.findById(bookId)
+                .orElseThrow(() -> new NotFoundException("book.not_found"));
+        assertCanDiscuss(reader, book); // premium books: subscribers/author/admin only (contract §1)
         // Fast pre-check (the UNIQUE (book_id, creator_id) constraint is the DB backstop, FR-9.1).
         if (threads.existsByBookIdAndCreatorId(bookId, reader.getId())) {
             throw new ConflictException(ErrorCode.already_has_thread, "debate.already_has_thread");
@@ -107,6 +110,9 @@ public class DebateService {
         }
         DebateThread thread = threads.findById(threadId)
                 .orElseThrow(() -> new NotFoundException("debate.thread_not_found"));
+        Book book = books.findById(thread.getBookId())
+                .orElseThrow(() -> new NotFoundException("book.not_found"));
+        assertCanDiscuss(author, book); // same premium gate as createThread (contract §1)
         if (thread.getStatus() != ThreadStatus.open) {
             throw new ConflictException("debate.thread_not_open");
         }
@@ -131,6 +137,25 @@ public class DebateService {
             throw new NotFoundException("debate.thread_not_found");
         }
         return posts.findPostsByThread(threadId, viewer.map(AppUserPrincipal::getId).orElse(null));
+    }
+
+    /**
+     * Premium-book discussion gate (contract §1): non-premium books are open to any reader;
+     * for a premium book the reader must be the book's own author, an admin, or hold an active
+     * subscription to the author. Otherwise 403 {@code no_subscription}, carrying the authorId
+     * so the frontend can route to the subscribe flow. Reads and votes are never gated.
+     */
+    private void assertCanDiscuss(AppUserPrincipal reader, Book book) {
+        if (!book.isPremium()) {
+            return;
+        }
+        if (reader.isAdmin() || book.getAuthorId().equals(reader.getId())) {
+            return;
+        }
+        if (!accessControl.hasActiveSubscription(reader.getId(), book.getAuthorId())) {
+            throw new ForbiddenException(ErrorCode.no_subscription, "debate.subscription_required",
+                    Map.of("authorId", book.getAuthorId()));
+        }
     }
 
     // --- votes (FR-9.5: one vote per post per reader; switch allowed) ---

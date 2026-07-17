@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/features/auth/auth-context"
 import { useDebateThreads } from "./api"
 import { CreateThreadDialog } from "./components/create-thread-dialog"
+import { SubscribeToDiscuss } from "./components/subscribe-to-discuss"
+import { useDebateAccess } from "./use-debate-access"
 
 export function DebateListPage() {
   const { t } = useTranslation()
@@ -16,6 +18,7 @@ export function DebateListPage() {
   const { isAuthenticated, user } = useAuth()
   // Admins moderate discussions; they don't start or contribute to them.
   const isAdmin = user?.role === "admin"
+  const access = useDebateAccess(bookId)
   const { data, isLoading, isError, refetch } = useDebateThreads(bookId)
 
   return (
@@ -40,9 +43,17 @@ export function DebateListPage() {
               </Link>
             </div>
           </div>
-          {isAuthenticated && !isAdmin && <CreateThreadDialog bookId={bookId} />}
+          {isAuthenticated &&
+            !isAdmin &&
+            !access.gated &&
+            !access.isLoading &&
+            <CreateThreadDialog bookId={bookId} />}
         </div>
       </header>
+
+      {isAuthenticated && !isAdmin && access.gated && access.authorId != null && (
+        <SubscribeToDiscuss authorId={access.authorId} authorUsername={access.authorUsername} />
+      )}
 
       {isError && <QueryError onRetry={() => refetch()} />}
 

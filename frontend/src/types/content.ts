@@ -71,6 +71,12 @@ export interface BookFormValues {
   isPremium: boolean
 }
 
+/**
+ * Body for `PUT /books/{id}` — BookUpdateRequest. The title is immutable after
+ * creation, so it is intentionally omitted here (create still carries it).
+ */
+export type BookUpdateValues = Omit<BookFormValues, "title">
+
 /** Chapter row inside BookDetailResponse — ChapterSummary. */
 export interface ChapterSummary {
   chapterId: number

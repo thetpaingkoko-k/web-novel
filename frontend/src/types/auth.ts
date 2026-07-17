@@ -1,5 +1,6 @@
 export type UserRole = "reader" | "hobbyist_author" | "professional_author" | "admin"
 export type UserStatus = "pending" | "approved" | "suspended" | "banned"
+export type Gender = "male" | "female" | "other" | "prefer_not_to_say"
 
 export interface AuthUser {
   userId: number
@@ -9,6 +10,13 @@ export interface AuthUser {
   status: UserStatus
   /** Only meaningful for hobbyist_author/professional_author; false for reader/admin. */
   isMonetizationEnabled: boolean
+  /** Stored upload path (or absolute URL) of the profile picture; null when unset. */
+  avatarUrl: string | null
+  gender: Gender | null
+  /** ISO date `YYYY-MM-DD`, or null when unset. */
+  dateOfBirth: string | null
+  /** ISO-8601 timestamp the account was created (member-since). */
+  createdAt: string | null
 }
 
 export interface AuthTokens {
@@ -25,12 +33,20 @@ export interface RegisterRequest {
   username: string
   email: string
   password: string
+  gender: Gender
+  /** ISO date `YYYY-MM-DD`; must be in the past. */
+  birthday: string
+  /** Must be `true` — the user accepted the terms & conditions. */
+  acceptedTerms: boolean
 }
 
-/** Body for `PUT /users/me` — update the signed-in user's basic profile. */
+/**
+ * Body for `PUT /users/me` — update the signed-in user's basic profile.
+ * Email is immutable for readers and is intentionally NOT part of this body.
+ */
 export interface UpdateProfileRequest {
   username: string
-  email: string
+  avatarUrl: string | null
 }
 
 /** Body for `POST /auth/google` — the ID token ("credential") from Google Identity Services. */

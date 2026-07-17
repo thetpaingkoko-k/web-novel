@@ -107,7 +107,10 @@ public class AdminUserService {
                             u.getRole(), u.getStatus(),
                             p == null ? null : p.getCareerStage(),
                             p != null && p.isMonetizationEnabled(),
-                            p == null ? null : p.getMonthlySubscriptionPrice());
+                            p == null ? null : p.getMonthlySubscriptionPrice(),
+                            p == null ? null : p.getBio(),
+                            p == null ? null : p.getWritingMotivation(),
+                            p == null ? null : p.getWritingInterests());
                 })
                 .toList();
     }

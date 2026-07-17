@@ -25,7 +25,10 @@ public class UserService {
         return toResponse(user);
     }
 
-    /** Update the signed-in user's basic profile ({@code username}, {@code email}) — §10.2, §4.1.1. */
+    /**
+     * Update the signed-in user's basic profile ({@code username}, {@code avatarUrl}) — §10.2, §4.1.1.
+     * Email is immutable via self-service and is never changed here, even if a client sends one.
+     */
     @Transactional
     public UserResponse updateProfile(Long userId, UpdateProfileRequest req) {
         User user = users.findById(userId)
@@ -33,11 +36,8 @@ public class UserService {
         if (!user.getUsername().equals(req.username()) && users.existsByUsername(req.username())) {
             throw new ConflictException("auth.username_taken");
         }
-        if (!user.getEmail().equals(req.email()) && users.existsByEmail(req.email())) {
-            throw new ConflictException("auth.email_taken");
-        }
         user.setUsername(req.username());
-        user.setEmail(req.email());
+        user.setAvatarUrl(req.avatarUrl());
         return toResponse(user);
     }
 
@@ -48,6 +48,8 @@ public class UserService {
                 .orElse(false);
         return new UserResponse(
                 user.getId(), user.getUsername(), user.getEmail(),
-                user.getRole(), user.getStatus(), monetized);
+                user.getRole(), user.getStatus(), monetized,
+                user.getAvatarUrl(), user.getGender(), user.getDateOfBirth(),
+                user.getCreatedAt());
     }
 }

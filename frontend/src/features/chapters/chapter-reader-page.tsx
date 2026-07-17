@@ -271,21 +271,19 @@ export function ChapterReaderPage() {
 
   if (isLoading || !chapter) {
     return (
-      <div className="mx-auto flex max-w-3xl flex-col gap-8">
-        <div className="flex flex-col gap-5 rounded-2xl border bg-card p-6 sm:p-8">
-          <div className="flex items-center justify-between">
-            <Skeleton className="h-6 w-40" />
-            <Skeleton className="h-8 w-16 rounded-md" />
-          </div>
-          <Skeleton className="h-6 w-24 rounded-full" />
-          <Skeleton className="h-10 w-3/4" />
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 py-6 sm:py-8">
+        <Skeleton className="h-9 w-full rounded-full" />
+        <div className="flex flex-col gap-3 px-6 pt-2 sm:px-8">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-9 w-3/4" />
           <Skeleton className="h-4 w-1/3" />
         </div>
-        <div className="flex flex-col gap-3 rounded-2xl border p-6 sm:p-10">
+        <div className="flex flex-col gap-3.5 px-6 sm:px-8">
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-5/6" />
           <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-11/12" />
           <Skeleton className="h-4 w-2/3" />
         </div>
       </div>
@@ -298,110 +296,105 @@ export function ChapterReaderPage() {
   const nextChapter = index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : undefined
 
   return (
-    // The outer column is wide enough for the widest reading setting (60rem);
-    // the header/like/nav/comments each re-center themselves in a narrower
-    // column so only the reading surface grows with `reader.maxWidthValue`.
+    // One centered reading column. The reader-width setting resizes the whole
+    // column, so the bar, title, text, nav and comments always share the same
+    // width and left edge — a clean, borderless, Webtoon-style reading flow.
     <div
       ref={containerRef}
-      className={cn(
-        "mx-auto flex w-full max-w-[64rem] flex-col gap-6 sm:gap-8",
-        isFullscreen && "fixed inset-0 z-50 max-w-none overflow-y-auto bg-background px-4 py-6 sm:px-8"
-      )}
+      className={cn(isFullscreen && "fixed inset-0 z-50 overflow-y-auto bg-background")}
     >
       <ReadingProgress scrollRef={containerRef} active={isFullscreen} />
 
-      {/* Sticky, unobtrusive reader bar — back nav, chapter label, and settings
-          stay reachable while scrolling (Webtoon/Webnovel-style). */}
-      <div className="sticky top-2 z-40 mx-auto flex w-full max-w-2xl items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
-        <Link
-          to={`/books/${chapter.bookId}`}
-          className="inline-flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <Library className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span className="max-w-[38vw] truncate sm:max-w-xs">
-            {book?.title ?? t("chapters.backToBook")}
-          </span>
-        </Link>
-        <span className="mx-auto hidden shrink-0 text-xs font-medium text-muted-foreground sm:block">
-          {t("chapters.chapterLabel", { number: chapter.chapterNumber })}
-        </span>
-        <div className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 rounded-full text-muted-foreground hover:text-foreground"
-            aria-pressed={isFullscreen}
-            aria-label={isFullscreen ? t("chapters.exitFullscreen") : t("chapters.enterFullscreen")}
-            title={isFullscreen ? t("chapters.exitFullscreen") : t("chapters.enterFullscreen")}
-            onClick={toggleFullscreen}
+      <div
+        className={cn(
+          "mx-auto flex w-full flex-col gap-7 py-6 sm:gap-9 sm:py-8",
+          isFullscreen && "px-4 sm:px-6"
+        )}
+        style={{ maxWidth: reader.maxWidthValue }}
+      >
+        {/* Sticky reader bar — back nav, chapter label, and settings stay
+            reachable while scrolling. */}
+        <div className="sticky top-3 z-40 flex w-full items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
+          <Link
+            to={`/books/${chapter.bookId}`}
+            className="inline-flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            {isFullscreen ? (
-              <Minimize className="h-4 w-4" aria-hidden="true" />
-            ) : (
-              <Maximize className="h-4 w-4" aria-hidden="true" />
-            )}
-          </Button>
-          <ReaderControls controller={reader} />
-        </div>
-      </div>
-
-      {/* Chapter header — mesh-accented hero with the chapter title + meta */}
-      <header className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border bg-card">
-        <div className="bg-mesh pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden="true" />
-        <div className="relative flex flex-col gap-5 p-6 sm:p-8">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="brand-gradient inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide text-primary-foreground uppercase">
-                {t("chapters.chapterLabel", { number: chapter.chapterNumber })}
-              </span>
-              {chapter.preview && (
-                <span className="inline-flex w-fit items-center gap-1 rounded-full bg-success/10 px-3 py-1 text-xs font-semibold tracking-wide text-success uppercase">
-                  <Sparkles className="h-3 w-3" aria-hidden="true" />
-                  {t("chapters.freePreview")}
-                </span>
+            <Library className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="max-w-[38vw] truncate sm:max-w-xs">
+              {book?.title ?? t("chapters.backToBook")}
+            </span>
+          </Link>
+          <span className="mx-auto hidden shrink-0 text-xs font-medium text-muted-foreground sm:block">
+            {t("chapters.chapterLabel", { number: chapter.chapterNumber })}
+          </span>
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-full text-muted-foreground hover:text-foreground"
+              aria-pressed={isFullscreen}
+              aria-label={isFullscreen ? t("chapters.exitFullscreen") : t("chapters.enterFullscreen")}
+              title={isFullscreen ? t("chapters.exitFullscreen") : t("chapters.enterFullscreen")}
+              onClick={toggleFullscreen}
+            >
+              {isFullscreen ? (
+                <Minimize className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Maximize className="h-4 w-4" aria-hidden="true" />
               )}
-            </div>
-            <h1 className="font-display text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl">
-              {chapter.title}
-            </h1>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                {t("chapters.readingTime", { minutes: readingMinutes })}
-              </span>
-              {chapter.publishedAt && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span>
-                    {t(
-                      chapter.status === "scheduled"
-                        ? "chapters.scheduledFor"
-                        : "chapters.publishedOn",
-                      {
-                        date: new Date(chapter.publishedAt).toLocaleString(i18n.language, {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }),
-                      }
-                    )}
-                  </span>
-                </>
-              )}
-            </div>
+            </Button>
+            <ReaderControls controller={reader} />
           </div>
         </div>
-      </header>
 
-      {/* Immersive reading surface — reader-themed, width- and size-tuned.
-          Copy/cut/context-menu are blocked here only (a soft deterrent, not DRM;
-          see `.reading-guard` in index.css). Selection elsewhere is untouched. */}
-      <div
-        className="mx-auto w-full rounded-2xl border px-5 py-8 shadow-sm transition-colors sm:px-10 sm:py-12"
-        style={{ maxWidth: reader.maxWidthValue, ...reader.surface.style }}
-      >
+        {/* Chapter opener — a clean, borderless title block. */}
+        <header className="flex flex-col gap-3 px-6 pt-2 sm:px-8">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold tracking-[0.15em] text-primary uppercase">
+              {t("chapters.chapterLabel", { number: chapter.chapterNumber })}
+            </span>
+            {chapter.preview && (
+              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-success uppercase">
+                <Sparkles className="h-3 w-3" aria-hidden="true" />
+                {t("chapters.freePreview")}
+              </span>
+            )}
+          </div>
+          <h1 className="font-display text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-[2.5rem]">
+            {chapter.title}
+          </h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+              {t("chapters.readingTime", { minutes: readingMinutes })}
+            </span>
+            {chapter.publishedAt && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>
+                  {t(
+                    chapter.status === "scheduled"
+                      ? "chapters.scheduledFor"
+                      : "chapters.publishedOn",
+                    {
+                      date: new Date(chapter.publishedAt).toLocaleString(i18n.language, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }),
+                    }
+                  )}
+                </span>
+              </>
+            )}
+          </div>
+        </header>
+
+        {/* Immersive reading surface — borderless, reader-themed, size-tuned.
+            Copy/cut/context-menu are blocked here only (a soft deterrent, not DRM;
+            see `.reading-guard` in index.css). Selection elsewhere is untouched. */}
         <div
-          className="reading-guard reading-prose"
-          style={{ fontSize: reader.fontSizeValue }}
+          className="reading-guard reading-prose w-full px-6 py-8 transition-colors sm:px-8 sm:py-10"
+          style={{ ...reader.surface.style, fontSize: reader.fontSizeValue }}
           onCopy={blockCopy}
           onCut={blockCopy}
           onContextMenu={blockCopy}
@@ -412,39 +405,35 @@ export function ChapterReaderPage() {
             </p>
           ))}
         </div>
-      </div>
 
-      {isAuthenticated && (
-        <div className="flex justify-center">
-          <Button
-            variant="outline"
-            size="lg"
-            className={cn(
-              "hover-lift glow-brand-hover rounded-full px-6",
-              liked && "border-destructive/40 text-destructive"
-            )}
-            aria-pressed={liked}
-            aria-label={t("chapters.likeChapter")}
-            onClick={() => like.mutate(liked, { onSuccess: (result) => setLiked(result.liked) })}
-            disabled={like.isPending}
-          >
-            <Heart className={cn("h-5 w-5 transition-transform", liked && "scale-110 fill-current")} />
-            <span className="tabular-nums">{chapter.likeCount}</span>
-          </Button>
+        {isAuthenticated && (
+          <div className="flex justify-center px-6 sm:px-8">
+            <Button
+              variant="outline"
+              size="lg"
+              className={cn(
+                "hover-lift rounded-full px-6",
+                liked && "border-destructive/40 text-destructive"
+              )}
+              aria-pressed={liked}
+              aria-label={t("chapters.likeChapter")}
+              onClick={() => like.mutate(liked, { onSuccess: (result) => setLiked(result.liked) })}
+              disabled={like.isPending}
+            >
+              <Heart className={cn("h-5 w-5 transition-transform", liked && "scale-110 fill-current")} />
+              <span className="tabular-nums">{chapter.likeCount}</span>
+            </Button>
+          </div>
+        )}
+
+        {/* Bottom navigation */}
+        <div className="w-full px-6 sm:px-8">
+          <ChapterNav bookId={chapter.bookId} prev={prevChapter} next={nextChapter} />
         </div>
-      )}
 
-      {/* Prominent bottom navigation */}
-      <div className="mx-auto w-full max-w-2xl">
-        <ChapterNav
-          bookId={chapter.bookId}
-          prev={prevChapter}
-          next={nextChapter}
-        />
-      </div>
-
-      <div className="mx-auto w-full max-w-2xl">
-        <CommentThread chapterId={chapter.chapterId} />
+        <div className="w-full px-6 sm:px-8">
+          <CommentThread chapterId={chapter.chapterId} />
+        </div>
       </div>
     </div>
   )

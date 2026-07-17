@@ -36,13 +36,26 @@
     "subtitle": "Manage your profile and account details.",
     "username": "Username",
     "email": "Email",
+    "avatar": "Profile picture",
+    "emailReadOnly": "Your email is used to sign in and can't be changed here.",
     "saved": "Profile updated.",
     "profileHeading": "Profile",
-    "profileDescription": "Update the display name and email tied to your account.",
+    "profileDescription": "Update the display name and picture tied to your account.",
     "membershipHeading": "Membership",
     "membershipDescription": "Your role and account status on the platform.",
     "roleLabel": "Role",
-    "statusLabel": "Status"
+    "statusLabel": "Status",
+    "detailsHeading": "Details",
+    "detailsDescription": "Your personal information on file.",
+    "memberSinceLabel": "Member since",
+    "notSet": "Not set",
+    "subscriptionsHeading": "Subscriptions",
+    "subscriptionsDescription": "Authors you currently support.",
+    "noSubscriptions": "You're not subscribed to any authors yet.",
+    "bioHeading": "Author bio",
+    "bioDescription": "Tell readers about yourself. This appears on your public author page.",
+    "bioSaved": "Bio updated.",
+    "bioTooLong": "Bio can be at most 2000 characters"
   },
   "library": {
     "title": "My List",
@@ -100,7 +113,17 @@
     "invalidCode": "That code is incorrect or has expired",
     "alreadyVerified": "This account is already verified. Please log in.",
     "wrongEmail": "Wrong email?",
-    "confirmPassword": "Confirm password"
+    "confirmPassword": "Confirm password",
+    "gender": "Gender",
+    "genderPlaceholder": "Select your gender",
+    "genderOptions": {
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "prefer_not_to_say": "Prefer not to say"
+    },
+    "birthday": "Birthday",
+    "acceptTerms": "I agree to the Terms & Conditions and Privacy Policy."
   },
   "validation": {
     "required": "This field is required",
@@ -108,7 +131,11 @@
     "passwordMin": "Password must be at least 8 characters",
     "usernameMin": "Username must be at least 3 characters",
     "codeInvalid": "Enter the 6-digit code",
-    "passwordMismatch": "Passwords don't match"
+    "passwordMismatch": "Passwords don't match",
+    "genderRequired": "Please select your gender",
+    "birthdayRequired": "Please enter your birthday",
+    "birthdayPast": "Enter a valid date in the past",
+    "termsRequired": "You must accept the terms to continue"
   },
   "books": {
     "browseTitle": "Browse books",
@@ -263,7 +290,11 @@
     "status": {
       "open": "Open",
       "locked": "Locked"
-    }
+    },
+    "subscribeToJoinTitle": "Subscribe to join the discussion",
+    "subscribeToJoinBody": "This is a premium book by {{author}}. Subscribe to unlock discussions and share your take.",
+    "subscribeToJoinCta": "Subscribe to {{author}}",
+    "subscriptionRequired": "You need an active subscription to join this discussion."
   },
   "authors": {
     "notFound": "This author could not be found.",
@@ -280,10 +311,18 @@
     "becomeAuthorTitle": "Become an author",
     "bioLabel": "About you",
     "bioPlaceholder": "Tell readers and our reviewers about yourself and what you write.",
+    "motivationLabel": "Why do you want to write?",
+    "motivationPlaceholder": "Share what draws you to writing and what you hope to achieve.",
+    "interestsLabel": "What do you want to write?",
+    "interestsPlaceholder": "Describe the genres, themes, or kinds of stories you want to create.",
     "applyHint": "An admin reviews every application. Once approved you can create books; monetization is enabled separately.",
     "submitApplication": "Submit application",
     "bioTooShort": "Please write at least 20 characters",
     "bioTooLong": "Bio can be at most 1000 characters",
+    "motivationTooShort": "Please write at least 20 characters",
+    "motivationTooLong": "This can be at most 1000 characters",
+    "interestsTooShort": "Please write at least 20 characters",
+    "interestsTooLong": "This can be at most 1000 characters",
     "settingsTitle": "Author settings",
     "settingsSubtitle": "Your public bio and payout details.",
     "studioEyebrow": "Author studio",
@@ -403,9 +442,11 @@
     "readingTimeMin": "{{count}} min read",
     "chapterContentPlaceholder": "Start writing your chapter…",
     "createBook": "Create book",
+    "createSeries": "Create new series",
     "noBooksYet": "You haven't created any books yet.",
     "editBook": "Edit book",
     "bookTitle": "Title",
+    "titleLockedHint": "The title can't be changed once a book is created.",
     "bookGenre": "Genre",
     "bookCover": "Cover image",
     "bookSynopsis": "Synopsis",
@@ -420,6 +461,9 @@
     "upgradeRequested": "Upgrade request submitted",
     "bookSaved": "Book saved",
     "addChapter": "Add chapter",
+    "manageChapters": "Manage chapters",
+    "earningsCardTitle": "Your earnings",
+    "viewEarnings": "View earnings",
     "viewsCount": "{{count}} views",
     "likesCount": "{{count}} likes",
     "completionsCount": "{{count}} completions",
@@ -541,7 +585,9 @@
       "pending": "Pending",
       "paid": "Paid",
       "rejected": "Rejected"
-    }
+    },
+    "withdrawalTooMuch": "You can withdraw at most {{amount}} MMK — that's your available balance.",
+    "withdrawalBelowMin": "That amount is below the minimum withdrawal."
   },
   "admin": {
     "title": "Admin dashboard",
@@ -728,8 +774,31 @@
       "platformProfit": "Platform profit",
       "authorEarnings": "Author earnings",
       "approvedPayments": "Approved payments",
-      "note": "Reader revenue is the total collected from approved payments. Platform profit is what remains after author earnings."
-    }
+      "note": "Reader revenue is the total collected from approved payments. Platform profit is what remains after author earnings.",
+      "revenueBreakdown": "Revenue breakdown",
+      "revenueBreakdownDesc": "How reader revenue splits between authors and the platform.",
+      "payoutBreakdown": "Author payouts",
+      "payoutBreakdownDesc": "Where authors' credited earnings currently sit.",
+      "remainingHeld": "Remaining balance held",
+      "awaitingPayout": "{{amount}} awaiting payout · {{count}} pending",
+      "paidOut": "Paid out",
+      "pendingPayout": "Pending payout",
+      "available": "Available to withdraw",
+      "authorBalances": "Author balances",
+      "authorBalancesDesc": "How much each author has earned, been paid, and is still owed.",
+      "authorBalancesEmpty": "No authors have earned anything yet.",
+      "colAuthor": "Author",
+      "colEarned": "Earned",
+      "colRemaining": "Remaining",
+      "colTotal": "Total"
+    },
+    "application": {
+      "aboutYou": "About you",
+      "motivation": "Why do you want to write?",
+      "interests": "What do you want to write?"
+    },
+    "console": "Admin",
+    "backToSite": "Back to site"
   },
   "home": {
     "heroBadge": "A home for serialized fiction",

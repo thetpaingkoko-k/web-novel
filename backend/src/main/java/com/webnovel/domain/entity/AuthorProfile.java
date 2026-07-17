@@ -26,6 +26,14 @@ public class AuthorProfile {
     @Column(columnDefinition = "text")
     private String bio;
 
+    /** "Why do you want to write?" — captured on the become-an-author application. */
+    @Column(name = "writing_motivation", columnDefinition = "text")
+    private String writingMotivation;
+
+    /** "What do you want to write?" — captured on the become-an-author application. */
+    @Column(name = "writing_interests", columnDefinition = "text")
+    private String writingInterests;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "career_stage", nullable = false, length = 20)
     private CareerStage careerStage;

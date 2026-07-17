@@ -151,7 +151,25 @@ class PaymentQueueIT extends AuthTestSupport {
                 .andExpect(jsonPath("$.totalReaderRevenue", is(5000.0)))
                 .andExpect(jsonPath("$.totalAuthorEarnings", is(4000.0)))
                 .andExpect(jsonPath("$.platformProfit", is(1000.0)))
-                .andExpect(jsonPath("$.approvedPaymentCount", is(1)));
+                .andExpect(jsonPath("$.approvedPaymentCount", is(1)))
+                // nothing withdrawn yet: the full 4000 net is still held on the author's behalf
+                .andExpect(jsonPath("$.totalPaidOut", is(0)))
+                .andExpect(jsonPath("$.outstandingAuthorBalance", is(4000.0)))
+                .andExpect(jsonPath("$.pendingWithdrawalAmount", is(0)))
+                .andExpect(jsonPath("$.pendingWithdrawalCount", is(0)));
+
+        // the per-author payout ledger lists the author with their earned + remaining amounts
+        mvc.perform(get("/api/v1/admin/analytics/author-payouts").header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.username == 'payauthor')].totalEarned", is(List.of(4000.0))))
+                .andExpect(jsonPath("$[?(@.username == 'payauthor')].availableBalance", is(List.of(4000.0))))
+                .andExpect(jsonPath("$[?(@.username == 'payauthor')].totalPaidOut", is(List.of(0))))
+                .andExpect(jsonPath("$[?(@.username == 'payauthor')].pendingAmount", is(List.of(0))))
+                .andExpect(jsonPath("$[?(@.username == 'payauthor')].pendingCount", is(List.of(0))));
+
+        // the per-author ledger is admin-only
+        mvc.perform(get("/api/v1/admin/analytics/author-payouts").header("Authorization", bearer(reader)))
+                .andExpect(status().isForbidden());
 
         // the analytics dashboard is admin-only
         mvc.perform(get("/api/v1/admin/analytics/payments").header("Authorization", bearer(reader)))

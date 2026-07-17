@@ -80,6 +80,40 @@ class ContentIT extends AuthTestSupport {
     }
 
     @Test
+    void update_leavesTitleImmutable_whileOtherFieldsChange() throws Exception {
+        registerAndGetToken("immut", "immut@example.com");
+        long authorId = userIdOf("immut@example.com");
+        String adminToken = seedAdminAndGetToken("immutadmin@webnovel.local");
+        approve(adminToken, authorId, ApproveRequest.Kind.verify_author);
+        String authorToken = seedRelogin("immut@example.com");
+
+        String bookBody = mvc.perform(post("/api/v1/books").header("Authorization", bearer(authorToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Original Title","genres":["Fantasy"],"status":"draft"}"""))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title", is("Original Title")))
+                .andReturn().getResponse().getContentAsString();
+        long bookId = objectMapper.readTree(bookBody).get("bookId").asLong();
+
+        // Update genre + status (no title in the payload — title is immutable after creation).
+        mvc.perform(put("/api/v1/books/{id}", bookId).header("Authorization", bearer(authorToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"genres":["SciFi"],"status":"ongoing"}"""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title", is("Original Title")))
+                .andExpect(jsonPath("$.genres", is(java.util.List.of("SciFi"))))
+                .andExpect(jsonPath("$.status", is("ongoing")));
+
+        // Detail read confirms the title stuck.
+        mvc.perform(get("/api/v1/books/{id}", bookId).header("Authorization", bearer(authorToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title", is("Original Title")))
+                .andExpect(jsonPath("$.genres", is(java.util.List.of("SciFi"))));
+    }
+
+    @Test
     void chaptersWithoutNumber_areAutoNumberedSequentially() throws Exception {
         registerAndGetToken("autonum", "autonum@example.com");
         long authorId = userIdOf("autonum@example.com");

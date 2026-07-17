@@ -9,6 +9,7 @@ import {
   AdminStatStrip,
   StatusPill,
 } from "../components/admin-primitives"
+import { AuthorApplicationAnswers } from "../components/author-application-answers"
 import { ConfirmDialog } from "../components/confirm-dialog"
 import { QueueShell } from "../components/queue-shell"
 
@@ -91,6 +92,11 @@ export function UsersQueuePage() {
                       </StatusPill>
                     )}
                   </div>
+                  <AuthorApplicationAnswers
+                    bio={user.bio}
+                    writingMotivation={user.writingMotivation}
+                    writingInterests={user.writingInterests}
+                  />
                 </div>
               </div>
 

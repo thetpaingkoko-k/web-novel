@@ -10,9 +10,11 @@ import static org.mockito.Mockito.when;
 import com.webnovel.config.AppProperties;
 import com.webnovel.domain.entity.RefreshToken;
 import com.webnovel.domain.entity.User;
+import com.webnovel.domain.enums.Gender;
 import com.webnovel.domain.enums.Role;
 import com.webnovel.domain.enums.UserStatus;
 import com.webnovel.domain.enums.AuthProvider;
+import java.time.LocalDate;
 import com.webnovel.dto.auth.AuthResponse;
 import com.webnovel.dto.auth.GoogleLoginRequest;
 import com.webnovel.dto.auth.LoginRequest;
@@ -98,7 +100,8 @@ class AuthServiceTest {
         });
 
         RegistrationResponse res = service.register(
-                new RegisterRequest("alice", "alice@example.com", "password123"));
+                new RegisterRequest("alice", "alice@example.com", "password123",
+                        Gender.male, LocalDate.of(1990, 1, 1), true));
 
         assertThat(res.email()).isEqualTo("alice@example.com");
         assertThat(res.verificationRequired()).isTrue();
@@ -119,7 +122,8 @@ class AuthServiceTest {
         verified.setAuthProvider(AuthProvider.LOCAL);
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(verified));
         assertThatThrownBy(() -> service.register(
-                new RegisterRequest("alice", "alice@example.com", "password123")))
+                new RegisterRequest("alice", "alice@example.com", "password123",
+                        Gender.male, LocalDate.of(1990, 1, 1), true)))
                 .isInstanceOf(ConflictException.class)
                 .extracting("messageKey").isEqualTo("auth.email_taken");
     }
@@ -132,7 +136,8 @@ class AuthServiceTest {
         google.setAuthProvider(AuthProvider.GOOGLE);
         when(users.findByEmail("g@example.com")).thenReturn(Optional.of(google));
         assertThatThrownBy(() -> service.register(
-                new RegisterRequest("guser", "g@example.com", "password123")))
+                new RegisterRequest("guser", "g@example.com", "password123",
+                        Gender.male, LocalDate.of(1990, 1, 1), true)))
                 .isInstanceOf(ConflictException.class)
                 .extracting("messageKey").isEqualTo("auth.email_registered_with_google");
     }
@@ -149,7 +154,8 @@ class AuthServiceTest {
         when(users.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
         RegistrationResponse res = service.register(
-                new RegisterRequest("alice", "alice@example.com", "newpassword123"));
+                new RegisterRequest("alice", "alice@example.com", "newpassword123",
+                        Gender.female, LocalDate.of(1992, 5, 6), true));
 
         assertThat(res.email()).isEqualTo("alice@example.com");
         assertThat(res.verificationRequired()).isTrue();
@@ -194,7 +200,8 @@ class AuthServiceTest {
         u.setStatus(UserStatus.pending);
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
         when(userService.toResponse(any())).thenReturn(
-                new UserResponse(1L, "alice", "alice@example.com", Role.reader, UserStatus.approved, false));
+                new UserResponse(1L, "alice", "alice@example.com", Role.reader, UserStatus.approved, false,
+                        null, null, null, null));
 
         AuthResponse res = service.verifyEmail(new VerifyEmailRequest("alice@example.com", "123456"));
 
@@ -251,7 +258,8 @@ class AuthServiceTest {
             return u;
         });
         when(userService.toResponse(any())).thenReturn(
-                new UserResponse(9L, "newbie", "newbie@gmail.com", Role.reader, UserStatus.approved, false));
+                new UserResponse(9L, "newbie", "newbie@gmail.com", Role.reader, UserStatus.approved, false,
+                        null, null, null, null));
 
         AuthResponse res = service.loginWithGoogle(new GoogleLoginRequest("tok"));
 
@@ -274,7 +282,8 @@ class AuthServiceTest {
         existing.setPasswordHash(null);
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(existing));
         when(userService.toResponse(any())).thenReturn(
-                new UserResponse(1L, "alice", "alice@example.com", Role.reader, UserStatus.approved, false));
+                new UserResponse(1L, "alice", "alice@example.com", Role.reader, UserStatus.approved, false,
+                        null, null, null, null));
 
         AuthResponse res = service.loginWithGoogle(new GoogleLoginRequest("tok"));
 

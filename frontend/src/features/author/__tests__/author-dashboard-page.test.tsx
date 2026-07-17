@@ -84,3 +84,57 @@ describe("AuthorDashboardPage upgrade section", () => {
     expect(await screen.findByText(/pending admin review/i)).toBeInTheDocument()
   })
 })
+
+describe("AuthorDashboardPage header + series", () => {
+  it("renders the author name in the header and a create-new-series CTA", async () => {
+    mockHobbyist()
+    server.use(http.get("/api/v1/authors/me", () => HttpResponse.json(authorMe(false))))
+
+    renderDashboard()
+
+    expect(await screen.findByRole("heading", { name: /hobbyist1/i })).toBeInTheDocument()
+    const cta = await screen.findByRole("link", { name: /create new series/i })
+    expect(cta).toHaveAttribute("href", "/author/books/new")
+  })
+
+  it("shows the pro earnings summary card linking to /author/earnings", async () => {
+    tokenStorage.setTokens("token", "refresh")
+    server.use(
+      http.get("/api/v1/users/me", () =>
+        HttpResponse.json({
+          userId: 10,
+          username: "moonlight_writer",
+          email: "author@example.com",
+          role: "professional_author",
+          status: "approved",
+          isMonetizationEnabled: true,
+        })
+      ),
+      http.get("/api/v1/authors/me", () =>
+        HttpResponse.json({
+          authorId: 10,
+          username: "moonlight_writer",
+          bio: "Writes about embers.",
+          careerStage: "professional",
+          isMonetizationEnabled: true,
+          monthlySubscriptionPrice: 5000,
+          payoutWalletProvider: "KBZPay",
+          payoutWalletNumber: "09123456789",
+          availableBalance: 40000,
+          totalEarned: 120000,
+          professionalRequested: false,
+          professionalRequestedAt: null,
+        })
+      )
+    )
+
+    renderDashboard()
+
+    expect(await screen.findByText(/40000 MMK/)).toBeInTheDocument()
+    expect(await screen.findByText(/120000 MMK/)).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /view earnings/i })).toHaveAttribute(
+      "href",
+      "/author/earnings"
+    )
+  })
+})

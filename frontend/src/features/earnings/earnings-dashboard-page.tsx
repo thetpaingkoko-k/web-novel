@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { isAxiosError } from "axios"
 import { BanknoteArrowUp, CheckCircle2, Clock, Coins, Receipt, Wallet } from "lucide-react"
 import { useMemo } from "react"
 import { useForm } from "react-hook-form"
@@ -80,7 +81,22 @@ export function EarningsDashboardPage() {
         toast.success(t("earnings.withdrawalRequested"))
         reset()
       },
-      onError: () => toast.error(t("common.genericError")),
+      onError: (error) => {
+        const code = isAxiosError(error)
+          ? (error.response?.data as { code?: string } | undefined)?.code
+          : undefined
+        if (code === "insufficient_balance") {
+          toast.error(
+            t("earnings.withdrawalTooMuch", {
+              amount: (balance?.availableBalance ?? 0).toLocaleString(),
+            })
+          )
+        } else if (code === "below_minimum") {
+          toast.error(t("earnings.withdrawalBelowMin"))
+        } else {
+          toast.error(t("common.genericError"))
+        }
+      },
     })
   })
 

@@ -14,6 +14,10 @@ export interface AuthorProfile {
 /** Body for `POST /authors/apply` (FR-1.2). Admin later decides the tier. */
 export interface AuthorApplicationRequest {
   bio: string
+  /** "Why do you want to write?" */
+  writingMotivation: string
+  /** "What do you want to write?" */
+  writingInterests: string
 }
 
 /**
@@ -23,6 +27,10 @@ export interface AuthorApplicationRequest {
 export interface MyAuthorProfile extends AuthorProfile {
   payoutWalletProvider: WalletProvider | null
   payoutWalletNumber: string | null
+  /** "Why do you want to write?" — captured at application time. */
+  writingMotivation: string | null
+  /** "What do you want to write?" — captured at application time. */
+  writingInterests: string | null
   availableBalance: number
   totalEarned: number
   /** True once a hobbyist has asked to be upgraded to professional (FR upgrade). */
@@ -32,11 +40,10 @@ export interface MyAuthorProfile extends AuthorProfile {
 }
 
 /**
- * Body for `PUT /authors/me`. The subscription price is NOT here: it is a system
- * baseline set when monetization is enabled and adjustable only by an admin (FR-1.5).
+ * Body for `PUT /authors/me`. Bio-only: the subscription price is an admin-set
+ * baseline (FR-1.5) and payout details are captured per-withdrawal on the
+ * earnings page, so neither belongs here.
  */
 export interface UpdateAuthorProfileRequest {
   bio: string
-  payoutWalletProvider: WalletProvider | null
-  payoutWalletNumber: string | null
 }

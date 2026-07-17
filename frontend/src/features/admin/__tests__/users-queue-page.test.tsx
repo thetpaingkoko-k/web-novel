@@ -25,9 +25,39 @@ const pendingUser = {
   role: "reader",
   status: "pending",
   careerStage: null,
+  bio: null,
+  writingMotivation: null,
+  writingInterests: null,
+}
+
+const applicant = {
+  userId: 12,
+  username: "aspiring_ann",
+  email: "ann@example.com",
+  role: "hobbyist_author",
+  status: "pending",
+  careerStage: "hobbyist",
+  bio: "I have written fan fiction for years.",
+  writingMotivation: "I want to share the stories in my head.",
+  writingInterests: "Slow-burn fantasy romance.",
 }
 
 describe("UsersQueuePage", () => {
+  it("shows an author applicant's onboarding answers next to Approve", async () => {
+    server.use(http.get("/api/v1/admin/users", () => HttpResponse.json([applicant])))
+
+    renderQueue()
+
+    expect(await screen.findByText(/about you/i)).toBeInTheDocument()
+    expect(screen.getByText(/written fan fiction for years/i)).toBeInTheDocument()
+    expect(screen.getByText(/why do you want to write\?/i)).toBeInTheDocument()
+    expect(screen.getByText(/stories in my head/i)).toBeInTheDocument()
+    expect(screen.getByText(/what do you want to write\?/i)).toBeInTheDocument()
+    expect(screen.getByText(/slow-burn fantasy romance/i)).toBeInTheDocument()
+    // Rendered alongside the existing approval control.
+    expect(screen.getByRole("button", { name: /verify author/i })).toBeInTheDocument()
+  })
+
   it("bans a user after confirmation (FR-1.4)", async () => {
     const user = userEvent.setup()
     let banned: boolean | undefined

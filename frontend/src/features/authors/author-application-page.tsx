@@ -28,7 +28,7 @@ export function AuthorApplicationPage() {
     formState: { errors },
   } = useForm<ApplicationFormSchema>({
     resolver: zodResolver(schema),
-    defaultValues: { bio: "" },
+    defaultValues: { bio: "", writingMotivation: "", writingInterests: "" },
   })
 
   // Already an author — nothing to apply for.
@@ -92,13 +92,37 @@ export function AuthorApplicationPage() {
                 <FieldLabel htmlFor="apply-bio">{t("authors.bioLabel")}</FieldLabel>
                 <Textarea
                   id="apply-bio"
-                  rows={6}
+                  rows={5}
                   aria-invalid={!!errors.bio}
                   placeholder={t("authors.bioPlaceholder")}
                   {...register("bio")}
                 />
-                <FieldDescription>{t("authors.applyHint")}</FieldDescription>
                 <FieldError errors={[errors.bio]} />
+              </Field>
+              <Field data-invalid={!!errors.writingMotivation}>
+                <FieldLabel htmlFor="apply-motivation">
+                  {t("authors.motivationLabel")}
+                </FieldLabel>
+                <Textarea
+                  id="apply-motivation"
+                  rows={4}
+                  aria-invalid={!!errors.writingMotivation}
+                  placeholder={t("authors.motivationPlaceholder")}
+                  {...register("writingMotivation")}
+                />
+                <FieldError errors={[errors.writingMotivation]} />
+              </Field>
+              <Field data-invalid={!!errors.writingInterests}>
+                <FieldLabel htmlFor="apply-interests">{t("authors.interestsLabel")}</FieldLabel>
+                <Textarea
+                  id="apply-interests"
+                  rows={4}
+                  aria-invalid={!!errors.writingInterests}
+                  placeholder={t("authors.interestsPlaceholder")}
+                  {...register("writingInterests")}
+                />
+                <FieldDescription>{t("authors.applyHint")}</FieldDescription>
+                <FieldError errors={[errors.writingInterests]} />
               </Field>
               <Button type="submit" className="glow-brand-hover w-fit" disabled={apply.isPending}>
                 {t("authors.submitApplication")}

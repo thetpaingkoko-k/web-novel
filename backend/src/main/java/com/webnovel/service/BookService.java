@@ -66,7 +66,7 @@ public class BookService {
     public BookDetailResponse update(AppUserPrincipal principal, Long bookId, BookUpdateRequest req) {
         Book book = books.findById(bookId).orElseThrow(() -> new NotFoundException("book.not_found"));
         requireOwnerOrAdmin(principal, book);
-        book.setTitle(req.title());
+        // Title is immutable after creation — never set from an update request.
         book.setSynopsis(req.synopsis());
         book.setGenres(toGenreSet(req.genres()));
         book.setCoverImageUrl(req.coverImageUrl());

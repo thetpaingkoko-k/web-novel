@@ -1,4 +1,4 @@
-import { ArrowUpRight, BookOpen, BookPlus, CheckCircle2, Clock, FileText, ListPlus, Pencil, Plus, Sparkles } from "lucide-react"
+import { ArrowUpRight, BookOpen, BookPlus, CheckCircle2, Clock, Coins, FileText, ListPlus, ListTree, Pencil, Plus, Sparkles, Wallet } from "lucide-react"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
@@ -7,16 +7,68 @@ import { resolveUploadUrl } from "@/api/uploads"
 import { EmptyState } from "@/components/empty-state"
 import { QueryError } from "@/components/query-error"
 import { StatCard } from "@/components/stat-card"
-import { StudioHero } from "@/components/studio-hero"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import type { AuthUser } from "@/types/auth"
 import type { BookListItem } from "@/types/content"
+import { cn } from "@/lib/utils"
 import { genreLabelKey } from "@/lib/genres"
 import { useAuth } from "@/features/auth/auth-context"
 import { useAuthorMe, useRequestUpgrade } from "@/features/authors/api"
 import { useMyBooks } from "@/features/books/api"
+
+/** Webtoon-Canvas-style header: the author's avatar + name plus the primary CTA. */
+function DashboardHeader({ user }: { user: AuthUser | null | undefined }) {
+  const { t } = useTranslation()
+  const initial = user?.username?.charAt(0).toUpperCase() ?? "U"
+
+  return (
+    <section className="bg-mesh relative overflow-hidden rounded-2xl border border-border/70 p-6 sm:p-8">
+      <div
+        className="pointer-events-none absolute -top-24 -right-16 size-64 rounded-full bg-primary/10 blur-3xl"
+        aria-hidden="true"
+      />
+      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          {user?.avatarUrl ? (
+            <img
+              src={resolveUploadUrl(user.avatarUrl)}
+              alt=""
+              className="glow-brand size-16 shrink-0 rounded-2xl object-cover"
+            />
+          ) : (
+            <span
+              className="brand-gradient glow-brand flex size-16 shrink-0 items-center justify-center rounded-2xl font-display text-2xl font-semibold text-white"
+              aria-hidden="true"
+            >
+              {initial}
+            </span>
+          )}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
+              {t("author.studioEyebrow")}
+            </span>
+            <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+              {user?.username}
+            </h1>
+            <p className="max-w-prose text-sm text-muted-foreground">
+              {t("author.dashboardSubtitle")}
+            </p>
+          </div>
+        </div>
+
+        <Button asChild size="lg" className="glow-brand-hover w-full shrink-0 sm:w-auto">
+          <Link to="/author/books/new">
+            <Plus className="h-4 w-4" />
+            {t("author.createSeries")}
+          </Link>
+        </Button>
+      </div>
+    </section>
+  )
+}
 
 function UpgradeToProfessionalCard() {
   const { t } = useTranslation()
@@ -63,6 +115,62 @@ function UpgradeToProfessionalCard() {
             {t("author.upgradeCta")}
           </Button>
         )}
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Pro-only earnings snapshot pulled from `GET /authors/me`, linking to /author/earnings. */
+function EarningsSummaryCard() {
+  const { t } = useTranslation()
+  const { user } = useAuth()
+  const isPro = user?.role === "professional_author"
+  const { data: profile } = useAuthorMe(Boolean(isPro))
+
+  if (!isPro || !profile) return null
+
+  return (
+    <Card className="glow-brand-hover relative overflow-hidden border-primary/25 bg-primary/5">
+      <div
+        className="pointer-events-none absolute -top-16 -right-10 size-40 rounded-full bg-primary/15 blur-3xl"
+        aria-hidden="true"
+      />
+      <CardHeader className="relative">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <span className="brand-gradient flex size-8 items-center justify-center rounded-lg text-white">
+            <Coins className="h-4 w-4" aria-hidden="true" />
+          </span>
+          {t("author.earningsCardTitle")}
+        </CardTitle>
+        <CardDescription>{t("earnings.subtitle")}</CardDescription>
+      </CardHeader>
+      <CardContent className="relative flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
+              {t("earnings.availableBalance")}
+            </span>
+            <span className="font-display text-2xl font-semibold tracking-tight tabular-nums">
+              {t("earnings.mmk", { amount: profile.availableBalance })}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Coins className="h-3.5 w-3.5" aria-hidden="true" />
+              {t("earnings.totalEarned")}
+            </span>
+            <span className="font-display text-2xl font-semibold tracking-tight tabular-nums">
+              {t("earnings.mmk", { amount: profile.totalEarned })}
+            </span>
+          </div>
+        </div>
+        <Button variant="outline" asChild className="w-fit">
+          <Link to="/author/earnings">
+            {t("author.viewEarnings")}
+            <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
+        </Button>
       </CardContent>
     </Card>
   )
@@ -122,22 +230,22 @@ function AuthorBookCard({ book }: { book: BookListItem }) {
           </div>
 
           <div className="mt-auto flex flex-wrap gap-2 pt-1">
+            <Button size="sm" className="glow-brand-hover" asChild>
+              <Link to={`/author/books/${book.bookId}/chapters/new`}>
+                <ListPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                {t("author.addChapter")}
+              </Link>
+            </Button>
             <Button size="sm" variant="outline" asChild>
               <Link to={`/author/books/${book.bookId}/edit`}>
                 <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                 {t("author.editAction")}
               </Link>
             </Button>
-            <Button size="sm" variant="outline" asChild>
-              <Link to={`/author/books/${book.bookId}/chapters/new`}>
-                <ListPlus className="h-3.5 w-3.5" aria-hidden="true" />
-                {t("author.addChapter")}
-              </Link>
-            </Button>
             <Button size="sm" variant="ghost" asChild>
-              <Link to={`/books/${book.bookId}`}>
-                {t("author.viewAction")}
-                <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+              <Link to={`/author/books/${book.bookId}/edit#chapters`}>
+                <ListTree className="h-3.5 w-3.5" aria-hidden="true" />
+                {t("author.manageChapters")}
               </Link>
             </Button>
           </div>
@@ -165,25 +273,13 @@ export function AuthorDashboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <StudioHero
-        eyebrow={t("author.studioEyebrow")}
-        icon={Sparkles}
-        title={t("author.dashboardTitle")}
-        subtitle={t("author.dashboardSubtitle")}
-        action={
-          <Button asChild size="lg" className="glow-brand-hover w-full sm:w-auto">
-            <Link to="/author/books/new">
-              <Plus className="h-4 w-4" />
-              {t("author.createBook")}
-            </Link>
-          </Button>
-        }
-      />
+      <DashboardHeader user={user} />
 
       <UpgradeToProfessionalCard />
+      <EarningsSummaryCard />
 
       {hasBooks && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className={cn("grid grid-cols-1 gap-4 sm:grid-cols-3")}>
           <StatCard icon={BookOpen} label={t("author.statBooks")} value={stats.total} />
           <StatCard icon={FileText} label={t("author.statChapters")} value={stats.chapters} />
           <StatCard icon={CheckCircle2} label={t("author.statPublished")} value={stats.published} />
@@ -210,7 +306,7 @@ export function AuthorDashboardPage() {
                 <Button asChild size="sm" className="glow-brand-hover">
                   <Link to="/author/books/new">
                     <Plus className="h-4 w-4" />
-                    {t("author.createBook")}
+                    {t("author.createSeries")}
                   </Link>
                 </Button>
               }

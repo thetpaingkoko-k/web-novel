@@ -1,9 +1,11 @@
 package com.webnovel.domain.entity;
 
 import com.webnovel.domain.enums.AuthProvider;
+import com.webnovel.domain.enums.Gender;
 import com.webnovel.domain.enums.Role;
 import com.webnovel.domain.enums.UserStatus;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
@@ -41,6 +43,21 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private UserStatus status;
+
+    /** Profile picture path/url returned by POST /uploads/images (nullable). */
+    @Column(name = "avatar_url", length = 512)
+    private String avatarUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Gender gender;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    /** When the user confirmed the terms & conditions at registration (nullable for pre-existing rows). */
+    @Column(name = "terms_accepted_at")
+    private OffsetDateTime termsAcceptedAt;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;

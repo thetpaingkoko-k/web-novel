@@ -7,7 +7,8 @@ import java.math.BigDecimal;
 
 /**
  * Admin user-management row (§10.2, FR-1.4/13.1). {@code careerStage},
- * {@code monetizationEnabled}, and {@code monthlySubscriptionPrice} are null/false for
+ * {@code monetizationEnabled}, {@code monthlySubscriptionPrice}, and the author-application
+ * answers ({@code bio}, {@code writingMotivation}, {@code writingInterests}) are null/false for
  * users without an author profile.
  */
 public record AdminUserRow(
@@ -18,5 +19,8 @@ public record AdminUserRow(
         UserStatus status,
         CareerStage careerStage,
         boolean monetizationEnabled,
-        BigDecimal monthlySubscriptionPrice) {
+        BigDecimal monthlySubscriptionPrice,
+        String bio,
+        String writingMotivation,
+        String writingInterests) {
 }

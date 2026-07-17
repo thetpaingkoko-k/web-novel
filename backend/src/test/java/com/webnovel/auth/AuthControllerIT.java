@@ -41,7 +41,8 @@ class AuthControllerIT extends AbstractIntegrationTest {
     }
 
     private static final String REGISTER = """
-            {"username":"%s","email":"%s","password":"password123"}""";
+            {"username":"%s","email":"%s","password":"password123",\
+            "gender":"male","birthday":"1990-01-01","acceptedTerms":true}""";
 
     private void register(String username, String email) throws Exception {
         mvc.perform(post("/api/v1/auth/register")
@@ -134,20 +135,22 @@ class AuthControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void updateMe_changesUsernameAndEmail() throws Exception {
+    void updateMe_changesUsernameAndAvatar_emailImmutable() throws Exception {
         String access = registerVerifyAndToken("editme", "editme@example.com");
 
+        // Email is immutable via self-service: a client-supplied email is ignored.
         mvc.perform(put("/api/v1/users/me").header("Authorization", "Bearer " + access)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"edited\",\"email\":\"edited@example.com\"}"))
+                        .content("{\"username\":\"edited\",\"avatarUrl\":\"/uploads/images/a.png\",\"email\":\"edited@example.com\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username", is("edited")))
-                .andExpect(jsonPath("$.email", is("edited@example.com")));
+                .andExpect(jsonPath("$.avatarUrl", is("/uploads/images/a.png")))
+                .andExpect(jsonPath("$.email", is("editme@example.com")));
 
         register("taken", "taken@example.com");
         mvc.perform(put("/api/v1/users/me").header("Authorization", "Bearer " + access)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"taken\",\"email\":\"edited@example.com\"}"))
+                        .content("{\"username\":\"taken\"}"))
                 .andExpect(status().isConflict());
     }
 

@@ -1,4 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useQueryClient } from "@tanstack/react-query"
+import { isAxiosError } from "axios"
 import { useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -6,6 +8,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Field, FieldError } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
+import { subscriptionKeys } from "@/features/subscriptions/api"
 import { useCreatePost } from "../api"
 import { buildPostSchema, type PostFormSchema } from "../schemas"
 
@@ -18,6 +21,7 @@ interface PostComposerProps {
 
 export function PostComposer({ threadId, parentPostId, onPosted, autoFocus }: PostComposerProps) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const createPost = useCreatePost(threadId)
   const schema = useMemo(() => buildPostSchema(t), [t])
 
@@ -39,7 +43,18 @@ export function PostComposer({ threadId, parentPostId, onPosted, autoFocus }: Po
           reset()
           onPosted?.()
         },
-        onError: () => toast.error(t("common.genericError")),
+        onError: (error) => {
+          if (
+            isAxiosError<{ code?: string }>(error) &&
+            error.response?.status === 403 &&
+            error.response.data?.code === "no_subscription"
+          ) {
+            toast.error(t("debates.subscriptionRequired"))
+            queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine })
+          } else {
+            toast.error(t("common.genericError"))
+          }
+        },
       }
     )
   })

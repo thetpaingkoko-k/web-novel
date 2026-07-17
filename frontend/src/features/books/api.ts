@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient, getList } from "@/api/client"
-import type { Book, BookFormValues, BookListItem, BookListParams } from "@/types/content"
+import type { Book, BookFormValues, BookListItem, BookListParams, BookUpdateValues } from "@/types/content"
 import type { ReadingProgress } from "@/types/engagement"
 
 export const bookKeys = {
@@ -46,7 +46,7 @@ export function useCreateBook() {
 export function useUpdateBook(bookId: number) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (payload: BookFormValues) => {
+    mutationFn: async (payload: BookUpdateValues) => {
       const { data } = await apiClient.put<Book>(`/books/${bookId}`, payload)
       return data
     },

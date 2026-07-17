@@ -21,6 +21,10 @@ const READER: AuthUser = {
   role: "reader",
   status: "approved",
   isMonetizationEnabled: false,
+  avatarUrl: null,
+  gender: null,
+  dateOfBirth: null,
+  createdAt: null,
 }
 
 const SAVED_BOOK: BookListItem = {

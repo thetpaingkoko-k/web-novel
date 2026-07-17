@@ -14,6 +14,12 @@ export interface AdminUser {
   monetizationEnabled: boolean
   /** System-baseline subscription price; admin-adjustable. `null` when not monetized. */
   monthlySubscriptionPrice: number | null
+  /** Author-application answers, from the AuthorProfile. `null` for non-authors. */
+  bio: string | null
+  /** "Why do you want to write?" answer; `null` for non-authors. */
+  writingMotivation: string | null
+  /** "What do you want to write?" answer; `null` for non-authors. */
+  writingInterests: string | null
 }
 
 /** `GET /admin/users?status=pending` returns the same row shape. */
@@ -94,6 +100,25 @@ export interface PaymentAnalytics {
   totalAuthorEarnings: number
   platformProfit: number
   approvedPaymentCount: number
+  /** Author earnings already paid out via completed withdrawals. */
+  totalPaidOut: number
+  /** Earnings credited to authors but not yet withdrawn — money the platform still holds. */
+  outstandingAuthorBalance: number
+  /** Portion of the outstanding balance already requested for payout, awaiting admin action. */
+  pendingWithdrawalAmount: number
+  pendingWithdrawalCount: number
+}
+
+/** One author's payout standing: earned, paid out, and what the platform still owes them. */
+export interface AuthorPayout {
+  authorId: number
+  username: string
+  totalEarned: number
+  /** Remaining amount owed — credited but not yet withdrawn. */
+  availableBalance: number
+  totalPaidOut: number
+  pendingAmount: number
+  pendingCount: number
 }
 
 /** Row from `GET /admin/authors/upgrade-requests` (hobbyists asking to go pro). */

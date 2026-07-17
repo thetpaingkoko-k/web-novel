@@ -74,7 +74,7 @@ export function BookEditorPage() {
   const { data: book, isLoading, isError, refetch } = useBook(bookId)
   const createBook = useCreateBook()
   const updateBook = useUpdateBook(bookId)
-  const schema = useMemo(() => buildBookSchema(t), [t])
+  const schema = useMemo(() => buildBookSchema(t, isEditMode), [t, isEditMode])
 
   const {
     register,
@@ -120,11 +120,19 @@ export function BookEditorPage() {
   const isPremium = watch("isPremium")
 
   const onSubmit = handleSubmit((values) => {
-    const mutation = isEditMode ? updateBook : createBook
-    mutation.mutate(values, {
+    if (isEditMode) {
+      // Title is immutable on edit — strip it from the update payload.
+      const { title: _title, ...updates } = values
+      updateBook.mutate(updates, {
+        onSuccess: () => toast.success(t("author.bookSaved")),
+        onError: () => toast.error(t("common.genericError")),
+      })
+      return
+    }
+    createBook.mutate(values, {
       onSuccess: (saved) => {
         toast.success(t("author.bookSaved"))
-        if (!isEditMode) navigate(`/author/books/${saved.bookId}/edit`, { replace: true })
+        navigate(`/author/books/${saved.bookId}/edit`, { replace: true })
       },
       onError: () => toast.error(t("common.genericError")),
     })
@@ -164,11 +172,24 @@ export function BookEditorPage() {
                 description={t("author.detailsSectionHint")}
               />
 
-              <Field data-invalid={!!errors.title}>
-                <FieldLabel htmlFor="book-title">{t("author.bookTitle")}</FieldLabel>
-                <Input id="book-title" aria-invalid={!!errors.title} {...register("title")} />
-                <FieldError errors={[errors.title]} />
-              </Field>
+              {isEditMode ? (
+                <Field>
+                  <FieldLabel htmlFor="book-title">{t("author.bookTitle")}</FieldLabel>
+                  <p
+                    id="book-title"
+                    className="font-display text-lg font-semibold tracking-tight"
+                  >
+                    {book?.title}
+                  </p>
+                  <FieldDescription>{t("author.titleLockedHint")}</FieldDescription>
+                </Field>
+              ) : (
+                <Field data-invalid={!!errors.title}>
+                  <FieldLabel htmlFor="book-title">{t("author.bookTitle")}</FieldLabel>
+                  <Input id="book-title" aria-invalid={!!errors.title} {...register("title")} />
+                  <FieldError errors={[errors.title]} />
+                </Field>
+              )}
 
               <Field>
                 <FieldLabel>{t("author.bookGenre")}</FieldLabel>
@@ -227,7 +248,11 @@ export function BookEditorPage() {
                 <FieldLabel htmlFor="book-status">{t("author.bookStatus")}</FieldLabel>
                 <Select
                   value={watch("status")}
-                  onValueChange={(v) => setValue("status", v as BookFormSchema["status"])}
+                  onValueChange={(v) => {
+                    // Ignore spurious empty change events (radix can emit one on
+                    // mount) so a reset-loaded status isn't clobbered.
+                    if (v) setValue("status", v as BookFormSchema["status"])
+                  }}
                 >
                   <SelectTrigger id="book-status" className="max-w-60">
                     <SelectValue />
@@ -284,7 +309,7 @@ export function BookEditorPage() {
       </Card>
 
       {isEditMode && book && (
-        <div>
+        <div id="chapters" className="scroll-mt-24">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-baseline gap-2">
               <h2 className="font-display text-lg font-semibold">{t("books.chapters")}</h2>

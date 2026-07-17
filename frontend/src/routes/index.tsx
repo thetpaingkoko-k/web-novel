@@ -18,7 +18,6 @@ import { VerifyEmailPage } from "@/features/auth/verify-email-page"
 import { AuthorApplicationPage } from "@/features/authors/author-application-page"
 import { MyListPage } from "@/features/bookmarks/my-list-page"
 import { AuthorProfilePage } from "@/features/authors/author-profile-page"
-import { AuthorSettingsPage } from "@/features/authors/author-settings-page"
 import { AuthorDashboardPage } from "@/features/author/author-dashboard-page"
 import { BookEditorPage } from "@/features/author/book-editor-page"
 import { ChapterEditorPage } from "@/features/author/chapter-editor-page"
@@ -78,7 +77,6 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute allowedRoles={[...AUTHOR_ROLES]} />,
         children: [
           { path: "author/books", element: <AuthorDashboardPage /> },
-          { path: "author/settings", element: <AuthorSettingsPage /> },
           { path: "author/books/new", element: <BookEditorPage /> },
           { path: "author/books/:bookId/edit", element: <BookEditorPage /> },
           { path: "author/books/:bookId/chapters/new", element: <ChapterEditorPage /> },
@@ -89,26 +87,28 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute allowedRoles={["professional_author"]} />,
         children: [{ path: "author/earnings", element: <EarningsDashboardPage /> }],
       },
+    ],
+  },
+  {
+    // Admin runs in its own dedicated full-screen console shell (own sidebar +
+    // top bar, no marketing chrome), so it lives outside the public AppLayout.
+    element: <ProtectedRoute allowedRoles={["admin"]} />,
+    children: [
       {
-        element: <ProtectedRoute allowedRoles={["admin"]} />,
+        path: "/admin",
+        element: <AdminLayout />,
         children: [
-          {
-            path: "admin",
-            element: <AdminLayout />,
-            children: [
-              { index: true, element: <UsersQueuePage /> },
-              { path: "users", element: <UsersQueuePage /> },
-              { path: "manage-users", element: <UsersManagementPage /> },
-              { path: "upgrade-requests", element: <UpgradeRequestsPage /> },
-              { path: "chapters", element: <ChaptersQueuePage /> },
-              { path: "payments", element: <PaymentsQueuePage /> },
-              { path: "withdrawals", element: <WithdrawalsQueuePage /> },
-              { path: "wallets", element: <WalletsPage /> },
-              { path: "analytics", element: <AnalyticsPage /> },
-              { path: "reports", element: <ReportsQueuePage /> },
-              { path: "audit", element: <AuditLogPage /> },
-            ],
-          },
+          { index: true, element: <UsersQueuePage /> },
+          { path: "users", element: <UsersQueuePage /> },
+          { path: "manage-users", element: <UsersManagementPage /> },
+          { path: "upgrade-requests", element: <UpgradeRequestsPage /> },
+          { path: "chapters", element: <ChaptersQueuePage /> },
+          { path: "payments", element: <PaymentsQueuePage /> },
+          { path: "withdrawals", element: <WithdrawalsQueuePage /> },
+          { path: "wallets", element: <WalletsPage /> },
+          { path: "analytics", element: <AnalyticsPage /> },
+          { path: "reports", element: <ReportsQueuePage /> },
+          { path: "audit", element: <AuditLogPage /> },
         ],
       },
     ],

@@ -227,7 +227,7 @@ class RoleOwnershipIT extends AuthTestSupport {
         long bookId = createBook(fx.hobby(), "Owned");
 
         // update: authors only
-        String upd = "{\"title\":\"Owned v2\",\"status\":\"ongoing\"}";
+        String upd = "{\"status\":\"ongoing\"}";
         mvc.perform(put("/api/v1/books/{id}", bookId).header("Authorization", bearer(fx.hobby()))
                         .contentType(MediaType.APPLICATION_JSON).content(upd))
                 .andExpect(status().isOk());

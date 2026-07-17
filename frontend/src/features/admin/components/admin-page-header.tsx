@@ -13,14 +13,14 @@ interface AdminPageHeaderProps {
 /** Consistent title + description header used across every admin page. */
 export function AdminPageHeader({ title, description, icon: Icon, action }: AdminPageHeaderProps) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-center gap-3">
         {Icon && (
-          <span className="brand-gradient glow-brand flex size-11 shrink-0 items-center justify-center rounded-2xl text-white">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-muted-foreground">
             <Icon className="size-5" aria-hidden />
           </span>
         )}
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           <h2 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">{title}</h2>
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>

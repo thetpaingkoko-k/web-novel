@@ -2,15 +2,11 @@ package com.webnovel.dto.content;
 
 import com.webnovel.domain.enums.BookStatus;
 import com.webnovel.domain.enums.Genre;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
+/** Update a book. The title is immutable after creation and is intentionally NOT accepted here. */
 public record BookUpdateRequest(
-        @NotBlank(message = "{validation.title.required}")
-        @Size(max = 255)
-        String title,
-
         String synopsis,
 
         List<Genre> genres,

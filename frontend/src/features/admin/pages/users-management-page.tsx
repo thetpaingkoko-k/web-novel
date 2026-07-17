@@ -15,6 +15,7 @@ import {
   useSuspendUser,
 } from "../api"
 import { AdminPageHeader } from "../components/admin-page-header"
+import { AuthorApplicationAnswers } from "../components/author-application-answers"
 import {
   AdminAvatar,
   AdminStat,
@@ -170,6 +171,13 @@ export function UsersManagementPage() {
                         </StatusPill>
                       )}
                     </div>
+                    {u.status === "pending" && (
+                      <AuthorApplicationAnswers
+                        bio={u.bio}
+                        writingMotivation={u.writingMotivation}
+                        writingInterests={u.writingInterests}
+                      />
+                    )}
                   </div>
                 </div>
 

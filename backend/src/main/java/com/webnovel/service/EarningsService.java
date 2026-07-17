@@ -100,8 +100,20 @@ public class EarningsService {
     @PreAuthorize("hasRole('ADMIN')")
     public PaymentAnalyticsResponse paymentAnalytics() {
         AuthorEarningRepository.EarningsAggregate agg = earnings.earningsAggregate();
+        BigDecimal paidOut = nz(withdrawals.sumAmountByStatus(WithdrawalStatus.paid));
+        BigDecimal outstanding = nz(authorProfiles.sumAvailableBalance());
+        BigDecimal pendingAmount = nz(withdrawals.sumAmountByStatus(WithdrawalStatus.pending));
+        long pendingCount = withdrawals.countByStatus(WithdrawalStatus.pending);
         return new PaymentAnalyticsResponse(
-                nz(agg.getTotalGross()), nz(agg.getTotalNet()), nz(agg.getTotalFee()), agg.getCount());
+                nz(agg.getTotalGross()), nz(agg.getTotalNet()), nz(agg.getTotalFee()), agg.getCount(),
+                paidOut, outstanding, pendingAmount, pendingCount);
+    }
+
+    /** §9.4: per-author payout ledger — earned, paid out, and remaining owed, for the admin. */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<com.webnovel.dto.admin.AuthorPayoutRow> authorPayouts() {
+        return authorProfiles.findAuthorPayouts();
     }
 
     private static BigDecimal nz(BigDecimal v) {

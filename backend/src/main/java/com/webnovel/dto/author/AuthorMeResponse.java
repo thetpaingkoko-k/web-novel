@@ -10,6 +10,8 @@ public record AuthorMeResponse(
         Long authorId,
         String username,
         String bio,
+        String writingMotivation,
+        String writingInterests,
         CareerStage careerStage,
         boolean isMonetizationEnabled,
         BigDecimal monthlySubscriptionPrice,

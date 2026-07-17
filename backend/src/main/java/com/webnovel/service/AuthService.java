@@ -80,6 +80,9 @@ public class AuthService {
             }
             existing.setUsername(req.username());
             existing.setPasswordHash(passwordEncoder.encode(req.password()));
+            existing.setGender(req.gender());
+            existing.setDateOfBirth(req.birthday());
+            existing.setTermsAcceptedAt(OffsetDateTime.now());
             users.save(existing);
             return new RegistrationResponse(existing.getEmail(), true);
         }
@@ -93,6 +96,9 @@ public class AuthService {
         user.setAuthProvider(AuthProvider.LOCAL);
         user.setRole(Role.reader);           // FR-1.2
         user.setStatus(UserStatus.pending);  // FR-1.2 — awaits email verification
+        user.setGender(req.gender());
+        user.setDateOfBirth(req.birthday());
+        user.setTermsAcceptedAt(OffsetDateTime.now());
         users.save(user);
 
         return new RegistrationResponse(user.getEmail(), true);

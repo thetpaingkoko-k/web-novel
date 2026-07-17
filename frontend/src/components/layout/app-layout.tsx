@@ -2,18 +2,15 @@ import { useState } from "react"
 import { Link, Outlet, useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 import {
-  ChevronDown,
-  DollarSign,
-  LayoutDashboard,
   LogOut,
   Menu,
   PenLine,
   Rss,
   Search,
-  Settings,
   Sparkles,
   User,
 } from "lucide-react"
+import { resolveUploadUrl } from "@/api/uploads"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Wordmark } from "@/components/wordmark"
@@ -67,7 +64,10 @@ function SiteHeader() {
         <nav className="hidden items-center gap-1 md:flex">
           <NavLink to="/books">{t("nav.browse")}</NavLink>
           {user?.role === "reader" && <NavLink to="/my-list">{t("nav.myList")}</NavLink>}
-          {isAuthor && <StudioMenu isPro={user?.role === "professional_author"} />}
+          {isAuthor && <NavLink to="/author/books">{t("nav.studio")}</NavLink>}
+          {user?.role === "professional_author" && (
+            <NavLink to="/author/earnings">{t("nav.earnings")}</NavLink>
+          )}
           {user?.role === "admin" && <NavLink to="/admin">{t("nav.admin")}</NavLink>}
         </nav>
 
@@ -80,6 +80,7 @@ function SiteHeader() {
               username={user?.username ?? ""}
               userId={user?.userId}
               role={user?.role}
+              avatarUrl={user?.avatarUrl ?? null}
               onLogout={handleLogout}
             />
           ) : (
@@ -150,49 +151,17 @@ function SearchBar() {
   )
 }
 
-function StudioMenu({ isPro }: { isPro: boolean }) {
-  const { t } = useTranslation()
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground">
-          <PenLine className="size-4" />
-          {t("nav.studio")}
-          <ChevronDown className="size-3.5 opacity-60" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-48">
-        <DropdownMenuItem asChild>
-          <Link to="/author/books">
-            <LayoutDashboard className="size-4" /> {t("nav.myBooks")}
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/author/settings">
-            <Settings className="size-4" /> {t("nav.authorSettings")}
-          </Link>
-        </DropdownMenuItem>
-        {isPro && (
-          <DropdownMenuItem asChild>
-            <Link to="/author/earnings">
-              <DollarSign className="size-4" /> {t("nav.earnings")}
-            </Link>
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 function UserMenu({
   username,
   userId,
   role,
+  avatarUrl,
   onLogout,
 }: {
   username: string
   userId?: number
   role?: string
+  avatarUrl?: string | null
   onLogout: () => void
 }) {
   const { t } = useTranslation()
@@ -203,9 +172,15 @@ function UserMenu({
       <DropdownMenuTrigger asChild>
         <button
           aria-label={t("nav.account")}
-          className="brand-gradient flex size-9 items-center justify-center rounded-full text-sm font-semibold text-white shadow-sm ring-2 ring-background transition-transform hover:scale-105"
+          className="flex size-9 items-center justify-center overflow-hidden rounded-full shadow-sm ring-2 ring-background transition-transform hover:scale-105"
         >
-          {initial}
+          {avatarUrl ? (
+            <img src={resolveUploadUrl(avatarUrl)} alt="" className="size-full object-cover" />
+          ) : (
+            <span className="brand-gradient flex size-full items-center justify-center text-sm font-semibold text-white">
+              {initial}
+            </span>
+          )}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
@@ -285,10 +260,7 @@ function MobileMenu() {
             <DropdownMenuSeparator />
             <DropdownMenuLabel>{t("nav.studio")}</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-              <Link to="/author/books">{t("nav.myBooks")}</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/author/settings">{t("nav.authorSettings")}</Link>
+              <Link to="/author/books">{t("nav.studio")}</Link>
             </DropdownMenuItem>
             {user?.role === "professional_author" && (
               <DropdownMenuItem asChild>

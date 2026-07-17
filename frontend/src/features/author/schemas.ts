@@ -1,9 +1,11 @@
 import type { TFunction } from "i18next"
 import { z } from "zod"
 
-export function buildBookSchema(t: TFunction) {
+export function buildBookSchema(t: TFunction, isEditMode = false) {
   return z.object({
-    title: z.string().min(1, t("validation.required")),
+    // Title is immutable once a book exists, so it is not required (nor sent) on
+    // edit — the create flow still validates a non-empty title.
+    title: isEditMode ? z.string() : z.string().min(1, t("validation.required")),
     synopsis: z.string(),
     genres: z.array(z.string()),
     coverImageUrl: z.string(),
