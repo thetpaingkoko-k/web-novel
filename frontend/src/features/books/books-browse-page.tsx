@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useState } from "react"
 import type { LucideIcon } from "lucide-react"
-import { BookOpen, LayoutGrid, Search } from "lucide-react"
+import { BookOpen, ChevronLeft, ChevronRight, LayoutGrid, Search } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router"
 import { BookCard } from "@/components/book-card"
@@ -20,9 +20,10 @@ import { cn } from "@/lib/utils"
 import { GENRES, genreLabelKey } from "@/lib/genres"
 import { genreIcon } from "@/lib/genre-icons"
 import type { BookStatus } from "@/types/content"
-import { useBooks } from "./api"
+import { useBooksBrowse } from "./api"
 
 const STATUSES: BookStatus[] = ["ongoing", "completed", "hiatus"]
+const PAGE_SIZE = 24
 
 export function BooksBrowsePage() {
   const { t } = useTranslation()
@@ -32,6 +33,7 @@ export function BooksBrowsePage() {
   const [status, setStatus] = useState<BookStatus | undefined>(
     () => (searchParams.get("status") as BookStatus) || undefined,
   )
+  const [page, setPage] = useState(0)
   const deferredSearch = useDeferredValue(search)
 
   // Keep the field in sync when the header search bar navigates here with ?q=.
@@ -53,18 +55,30 @@ export function BooksBrowsePage() {
   // Server-side search: `GET /books?search=` matches title or author username,
   // ANDed with genre/status. Omit the param when blank.
   const trimmedSearch = deferredSearch.trim()
-  const { data, isLoading, isError, refetch } = useBooks({
-    genre,
-    status,
-    search: trimmedSearch || undefined,
-  })
+  const { data, isLoading, isError, refetch } = useBooksBrowse(
+    { genre, status, search: trimmedSearch || undefined },
+    page,
+    PAGE_SIZE,
+  )
 
+  // Any filter change resets to the first page so results aren't shown mid-list.
+  useEffect(() => {
+    setPage(0)
+  }, [genre, status, trimmedSearch])
+
+  const books = data?.items ?? []
+  const totalPages = data?.totalPages ?? 1
   const hasFilters = Boolean(deferredSearch || genre || status)
 
   function clearFilters() {
     setSearch("")
     setGenre(undefined)
     setStatus(undefined)
+  }
+
+  function goToPage(next: number) {
+    setPage(next)
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   return (
@@ -118,7 +132,7 @@ export function BooksBrowsePage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             {!isError && !isLoading && data
-              ? t("books.resultsCount", { count: data.length })
+              ? t("books.resultsCount", { count: data.totalItems })
               : " "}
           </p>
           <Select
@@ -150,7 +164,7 @@ export function BooksBrowsePage() {
         </div>
       )}
 
-      {!isError && !isLoading && data && data.length === 0 && (
+      {!isError && !isLoading && books.length === 0 && (
         <EmptyState
           icon={BookOpen}
           message={t("books.empty")}
@@ -164,12 +178,41 @@ export function BooksBrowsePage() {
         />
       )}
 
-      {!isError && !isLoading && data && data.length > 0 && (
+      {!isError && !isLoading && books.length > 0 && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {data.map((book) => (
+          {books.map((book) => (
             <BookCard key={book.bookId} book={book} />
           ))}
         </div>
+      )}
+
+      {!isError && !isLoading && totalPages > 1 && (
+        <nav
+          className="flex items-center justify-center gap-2 pt-2"
+          aria-label={t("books.pagination")}
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 0}
+            onClick={() => goToPage(page - 1)}
+          >
+            <ChevronLeft className="size-4" aria-hidden="true" />
+            {t("books.prevPage")}
+          </Button>
+          <span className="min-w-24 text-center text-sm text-muted-foreground tabular-nums">
+            {t("books.pageOf", { page: page + 1, total: totalPages })}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages - 1}
+            onClick={() => goToPage(page + 1)}
+          >
+            {t("books.nextPage")}
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </Button>
+        </nav>
       )}
     </div>
   )

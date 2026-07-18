@@ -15,10 +15,12 @@ interface PostItemProps {
   post: DebatePostWithReplies
   threadId: number
   locked: boolean
+  /** Whether the viewer may reply (false when premium-gated or hasn't read 10%). Default true. */
+  canReply?: boolean
   depth?: number
 }
 
-export function PostItem({ post, threadId, locked, depth = 0 }: PostItemProps) {
+export function PostItem({ post, threadId, locked, canReply = true, depth = 0 }: PostItemProps) {
   const { t } = useTranslation()
   const { isAuthenticated, user } = useAuth()
   const [replying, setReplying] = useState(false)
@@ -37,7 +39,7 @@ export function PostItem({ post, threadId, locked, depth = 0 }: PostItemProps) {
             size="icon-xs"
             aria-label={t("debates.upvote")}
             aria-pressed={post.myVote === "up"}
-            disabled={!isAuthenticated || vote.isPending}
+            disabled={!isAuthenticated || locked || vote.isPending}
             onClick={() => vote.mutate({ postId: post.postId, voteType: "up" })}
           >
             <ChevronUp className={cn("h-4 w-4", post.myVote === "up" && "text-primary")} />
@@ -48,7 +50,7 @@ export function PostItem({ post, threadId, locked, depth = 0 }: PostItemProps) {
             size="icon-xs"
             aria-label={t("debates.downvote")}
             aria-pressed={post.myVote === "down"}
-            disabled={!isAuthenticated || vote.isPending}
+            disabled={!isAuthenticated || locked || vote.isPending}
             onClick={() => vote.mutate({ postId: post.postId, voteType: "down" })}
           >
             <ChevronDown className={cn("h-4 w-4", post.myVote === "down" && "text-destructive")} />
@@ -65,7 +67,7 @@ export function PostItem({ post, threadId, locked, depth = 0 }: PostItemProps) {
           </div>
           <p className="text-sm whitespace-pre-wrap">{post.content}</p>
           <div className="flex items-center gap-1">
-            {isAuthenticated && !isAdmin && !locked && depth < 4 && (
+            {isAuthenticated && !isAdmin && !locked && canReply && depth < 4 && (
               <Button
                 variant="ghost"
                 size="xs"
@@ -100,6 +102,7 @@ export function PostItem({ post, threadId, locked, depth = 0 }: PostItemProps) {
               post={reply}
               threadId={threadId}
               locked={locked}
+              canReply={canReply}
               depth={depth + 1}
             />
           ))}

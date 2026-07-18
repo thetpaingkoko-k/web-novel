@@ -15,6 +15,7 @@ import com.webnovel.domain.enums.SubscriptionStatus;
 import com.webnovel.exception.ErrorCode;
 import com.webnovel.exception.ForbiddenException;
 import com.webnovel.repository.ChapterRepository;
+import com.webnovel.repository.ReadingProgressRepository;
 import com.webnovel.repository.SubscriptionRepository;
 import com.webnovel.security.AppUserPrincipal;
 import java.time.OffsetDateTime;
@@ -31,6 +32,7 @@ class AccessControlServiceTest {
 
     @Mock SubscriptionRepository subscriptions;
     @Mock ChapterRepository chapters;
+    @Mock ReadingProgressRepository readingProgress;
     @InjectMocks AccessControlService service;
 
     private static final long AUTHOR_ID = 100L;
@@ -179,5 +181,46 @@ class AccessControlServiceTest {
                 Optional.of(reader(7L)), book(true), chapter(5, ChapterStatus.published)))
                 .isInstanceOf(ForbiddenException.class)
                 .extracting("code").isEqualTo(ErrorCode.no_subscription);
+    }
+
+    // --- discussion read-gate (FR-9): must have read ≥10% ---
+
+    @Test
+    void assertHasReadEnoughToDiscuss_underThreshold_isForbidden() {
+        // 20 published chapters → required = round(2.0) = 2; reader's furthest read is chapter 1 → rank 1.
+        when(chapters.countByBookIdAndStatus(1L, ChapterStatus.published)).thenReturn(20L);
+        when(readingProgress.findLastReadChapterNumber(7L, 1L)).thenReturn(Optional.of(1));
+        when(chapters.countByBookIdAndStatusAndChapterNumberLessThanEqual(1L, ChapterStatus.published, 1))
+                .thenReturn(1L);
+
+        assertThatThrownBy(() -> service.assertHasReadEnoughToDiscuss(reader(7L), book(false)))
+                .isInstanceOf(ForbiddenException.class)
+                .extracting("code").isEqualTo(ErrorCode.must_read_more);
+    }
+
+    @Test
+    void assertHasReadEnoughToDiscuss_atThreshold_passes() {
+        when(chapters.countByBookIdAndStatus(1L, ChapterStatus.published)).thenReturn(20L);
+        when(readingProgress.findLastReadChapterNumber(7L, 1L)).thenReturn(Optional.of(2));
+        when(chapters.countByBookIdAndStatusAndChapterNumberLessThanEqual(1L, ChapterStatus.published, 2))
+                .thenReturn(2L); // rank 2 ≥ required 2
+
+        assertThatCode(() -> service.assertHasReadEnoughToDiscuss(reader(7L), book(false)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void assertHasReadEnoughToDiscuss_noPublishedChapters_bypasses() {
+        // Nothing published to read yet → the gate can't apply, so it passes.
+        when(chapters.countByBookIdAndStatus(1L, ChapterStatus.published)).thenReturn(0L);
+        assertThatCode(() -> service.assertHasReadEnoughToDiscuss(reader(7L), book(false)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void assertHasReadEnoughToDiscuss_bookAuthor_bypasses() {
+        // The author has no reading progress but still passes — no repository calls needed.
+        assertThatCode(() -> service.assertHasReadEnoughToDiscuss(reader(AUTHOR_ID), book(false)))
+                .doesNotThrowAnyException();
     }
 }

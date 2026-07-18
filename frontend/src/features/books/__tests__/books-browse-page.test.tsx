@@ -37,6 +37,40 @@ describe("BooksBrowsePage", () => {
     await waitFor(() => expect(lastGenre).toBe("SciFi"))
   })
 
+  it("shows Prev/Next and requests the next page when there are multiple pages", async () => {
+    const user = userEvent.setup()
+    const requestedPages: string[] = []
+    server.use(
+      http.get("/api/v1/books", ({ request }) => {
+        requestedPages.push(new URL(request.url).searchParams.get("page") ?? "0")
+        return HttpResponse.json(
+          [
+            {
+              bookId: 1,
+              authorUsername: "a",
+              authorAvatarUrl: null,
+              title: "Paged Book",
+              genres: [],
+              coverImageUrl: null,
+              status: "ongoing",
+              isPremium: false,
+              chapterCount: 1,
+              readChaptersCount: null,
+            },
+          ],
+          { headers: { "X-Total-Count": "50" } }, // 50 / 24 → 3 pages
+        )
+      }),
+    )
+    renderWithProviders(<BooksBrowsePage />)
+
+    expect(await screen.findByText("Paged Book")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /previous/i })).toBeDisabled()
+
+    await user.click(screen.getByRole("button", { name: /next/i }))
+    await waitFor(() => expect(requestedPages).toContain("1"))
+  })
+
   it("forwards the search box to the server as a `search` query param", async () => {
     const user = userEvent.setup()
     let lastSearch: string | null = "unset"

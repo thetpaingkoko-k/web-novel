@@ -101,7 +101,8 @@ public class EngagementService {
     /**
      * Spoiler-safe listing (FR-8.3): a chapter's comments are shown only to a reader
      * whose reading progress in that book has reached this chapter — enforced here, never
-     * on the client (§4.1.1). The book's author and admins bypass the gate.
+     * on the client (§4.1.1). The book's author and admins bypass the gate. A subscription
+     * does NOT bypass it: even a subscriber must have read this far to avoid spoilers.
      */
     @Transactional(readOnly = true)
     public List<CommentResponse> listComments(Long chapterId, Optional<AppUserPrincipal> viewer) {

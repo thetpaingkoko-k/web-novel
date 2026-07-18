@@ -40,7 +40,12 @@ function seedThread(status: ThreadStatus) {
         createdAt: new Date(0).toISOString(),
       })
     ),
-    http.get("/api/v1/debates/601/posts", () => HttpResponse.json([]))
+    http.get("/api/v1/debates/601/posts", () => HttpResponse.json([])),
+    // The default book mock has one published chapter (id 100); mark it read so the
+    // creator clears the 10%-read discussion gate.
+    http.get("/api/v1/books/2/progress", () =>
+      HttpResponse.json({ bookId: 2, lastChapterReadId: 100, updatedAt: new Date(0).toISOString() })
+    )
   )
 }
 
@@ -77,7 +82,10 @@ function seedPremiumThread() {
         chapters: [],
       })
     ),
-    http.get("/api/v1/subscriptions/me", () => HttpResponse.json([]))
+    http.get("/api/v1/subscriptions/me", () => HttpResponse.json([])),
+    http.get("/api/v1/books/2/progress", () =>
+      HttpResponse.json({ bookId: 2, lastChapterReadId: null, updatedAt: new Date(0).toISOString() })
+    )
   )
 }
 

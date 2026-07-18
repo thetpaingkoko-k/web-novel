@@ -22,7 +22,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
      * {@code genre} filters to books containing that genre ({@code member of});
      * genres themselves are not projected here — the service batch-loads them.
      */
-    @Query("""
+    @Query(value = """
             select new com.webnovel.dto.content.BookListItem(
                 b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, u.avatarUrl, ap.careerStage,
                 (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published))
@@ -37,9 +37,22 @@ public interface BookRepository extends JpaRepository<Book, Long> {
                    or lower(b.title) like :searchPattern
                    or lower(u.username) like :searchPattern)
             order by b.createdAt desc
+            """,
+            countQuery = """
+            select count(b) from Book b
+                join User u on u.id = b.authorId
+            where b.status <> com.webnovel.domain.enums.BookStatus.draft
+              and b.hidden = false
+              and (:genre is null or :genre member of b.genres)
+              and (:status is null or b.status = :status)
+              and (:searchPattern is null
+                   or lower(b.title) like :searchPattern
+                   or lower(u.username) like :searchPattern)
             """)
-    List<BookListItem> browse(@Param("genre") Genre genre, @Param("status") BookStatus status,
-                              @Param("searchPattern") String searchPattern);
+    org.springframework.data.domain.Page<BookListItem> browse(
+            @Param("genre") Genre genre, @Param("status") BookStatus status,
+            @Param("searchPattern") String searchPattern,
+            org.springframework.data.domain.Pageable pageable);
 
     /** Books authored by a given user (for the author's own dashboard / public profile). */
     @Query("""

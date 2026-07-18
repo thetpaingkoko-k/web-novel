@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/features/auth/auth-context"
 import { useDebateThreads } from "./api"
 import { CreateThreadDialog } from "./components/create-thread-dialog"
+import { ReadMoreToDiscuss } from "./components/read-more-to-discuss"
 import { SubscribeToDiscuss } from "./components/subscribe-to-discuss"
 import { useDebateAccess } from "./use-debate-access"
 
@@ -47,13 +48,18 @@ export function DebateListPage() {
           {isAuthenticated &&
             !isAdmin &&
             !access.gated &&
+            !access.readGated &&
             !access.isLoading &&
             <CreateThreadDialog bookId={bookId} />}
         </div>
       </header>
 
-      {isAuthenticated && !isAdmin && access.gated && access.authorId != null && (
+      {isAuthenticated && !isAdmin && access.gated && access.authorId != null ? (
         <SubscribeToDiscuss authorId={access.authorId} authorUsername={access.authorUsername} />
+      ) : (
+        isAuthenticated && !isAdmin && !access.isLoading && access.readGated && (
+          <ReadMoreToDiscuss bookId={bookId} requiredChapters={access.requiredChapters} />
+        )
       )}
 
       {isError && <QueryError onRetry={() => refetch()} />}

@@ -56,6 +56,7 @@ public class DebateService {
         Book book = books.findById(bookId)
                 .orElseThrow(() -> new NotFoundException("book.not_found"));
         assertCanDiscuss(reader, book); // premium books: subscribers/author/admin only (contract §1)
+        accessControl.assertHasReadEnoughToDiscuss(reader, book); // FR-9: must have read ≥10% first
         // Fast pre-check (the UNIQUE (book_id, creator_id) constraint is the DB backstop, FR-9.1).
         if (threads.existsByBookIdAndCreatorId(bookId, reader.getId())) {
             throw new ConflictException(ErrorCode.already_has_thread, "debate.already_has_thread");
@@ -113,6 +114,7 @@ public class DebateService {
         Book book = books.findById(thread.getBookId())
                 .orElseThrow(() -> new NotFoundException("book.not_found"));
         assertCanDiscuss(author, book); // same premium gate as createThread (contract §1)
+        accessControl.assertHasReadEnoughToDiscuss(author, book); // FR-9: must have read ≥10% first
         if (thread.getStatus() != ThreadStatus.open) {
             throw new ConflictException("debate.thread_not_open");
         }
@@ -162,8 +164,13 @@ public class DebateService {
 
     @Transactional
     public PostResponse vote(AppUserPrincipal reader, Long postId, VoteRequest req) {
-        if (!posts.existsById(postId)) {
-            throw new NotFoundException("debate.post_not_found");
+        DebatePost post = posts.findById(postId)
+                .orElseThrow(() -> new NotFoundException("debate.post_not_found"));
+        // A locked thread is frozen — no posting and no voting (FR-9.6).
+        DebateThread thread = threads.findById(post.getThreadId())
+                .orElseThrow(() -> new NotFoundException("debate.thread_not_found"));
+        if (thread.getStatus() != ThreadStatus.open) {
+            throw new ConflictException("debate.thread_not_open");
         }
         Optional<DebateVote> existing = votes.findByPostIdAndReaderId(postId, reader.getId());
         if (existing.isEmpty()) {

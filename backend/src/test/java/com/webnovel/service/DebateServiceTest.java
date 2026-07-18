@@ -253,9 +253,31 @@ class DebateServiceTest {
                 up, down, CommentStatus.visible, OffsetDateTime.now(), myVote);
     }
 
+    /** Stubs post 88 in thread 5 with the given thread status, for the vote tests. */
+    private void stubPostInThread(ThreadStatus status) {
+        DebatePost post = new DebatePost();
+        post.setId(88L);
+        post.setThreadId(5L);
+        when(posts.findById(88L)).thenReturn(Optional.of(post));
+        DebateThread thread = new DebateThread();
+        thread.setId(5L);
+        thread.setStatus(status);
+        when(threads.findById(5L)).thenReturn(Optional.of(thread));
+    }
+
+    @Test
+    void vote_lockedThread_rejected() {
+        stubPostInThread(ThreadStatus.locked);
+
+        assertThatThrownBy(() -> service.vote(reader, 88L, new VoteRequest(VoteType.up)))
+                .isInstanceOf(ConflictException.class);
+        verify(votes, never()).save(any());
+        verify(posts, never()).addUpvotes(any(), anyInt());
+    }
+
     @Test
     void vote_firstTime_recordsVoteAndIncrements() {
-        when(posts.existsById(88L)).thenReturn(true);
+        stubPostInThread(ThreadStatus.open);
         when(votes.findByPostIdAndReaderId(88L, 7L)).thenReturn(Optional.empty());
         when(posts.findPostView(88L, 7L)).thenReturn(Optional.of(postView(VoteType.up, 1, 0)));
 
@@ -272,7 +294,7 @@ class DebateServiceTest {
         existing.setPostId(88L);
         existing.setReaderId(7L);
         existing.setVoteType(VoteType.up);
-        when(posts.existsById(88L)).thenReturn(true);
+        stubPostInThread(ThreadStatus.open);
         when(votes.findByPostIdAndReaderId(88L, 7L)).thenReturn(Optional.of(existing));
         when(posts.findPostView(88L, 7L)).thenReturn(Optional.of(postView(null, 0, 0)));
 
@@ -291,7 +313,7 @@ class DebateServiceTest {
         existing.setPostId(88L);
         existing.setReaderId(7L);
         existing.setVoteType(VoteType.up);
-        when(posts.existsById(88L)).thenReturn(true);
+        stubPostInThread(ThreadStatus.open);
         when(votes.findByPostIdAndReaderId(88L, 7L)).thenReturn(Optional.of(existing));
         when(posts.findPostView(88L, 7L)).thenReturn(Optional.of(postView(VoteType.down, 0, 1)));
 

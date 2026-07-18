@@ -46,15 +46,26 @@ public class BookController {
         return bookService.update(SecurityUtils.requirePrincipal(), id, req);
     }
 
-    /** Browse/search. {@code authorId} overrides the other filters ({@code search} included). */
+    /**
+     * Browse/search. {@code authorId} overrides the other filters ({@code search} included) and
+     * returns the author's full list unpaginated; otherwise results are paginated ({@code page}/
+     * {@code size}) with the total match count in the {@code X-Total-Count} response header (§10.3).
+     */
     @GetMapping
-    public List<BookListItem> browse(
+    public ResponseEntity<List<BookListItem>> browse(
             @RequestParam(required = false) String genre,
             @RequestParam(required = false) BookStatus status,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Long authorId) {
-        return authorId != null ? bookService.byAuthor(authorId)
-                : bookService.browse(genre, status, search);
+            @RequestParam(required = false) Long authorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "24") int size) {
+        if (authorId != null) {
+            return ResponseEntity.ok(bookService.byAuthor(authorId));
+        }
+        BookService.BooksPage result = bookService.browse(genre, status, search, page, size);
+        return ResponseEntity.ok()
+                .header("X-Total-Count", Long.toString(result.totalItems()))
+                .body(result.items());
     }
 
     @GetMapping("/{id}")

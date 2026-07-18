@@ -59,6 +59,13 @@ export function CreateThreadDialog({ bookId }: { bookId: number }) {
           toast.error(t("debates.subscriptionRequired"))
           setOpen(false)
           queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine })
+        } else if (
+          isAxiosError<{ code?: string }>(error) &&
+          error.response?.status === 403 &&
+          error.response.data?.code === "must_read_more"
+        ) {
+          toast.error(t("debates.mustReadMore"))
+          setOpen(false)
         } else {
           toast.error(t("common.genericError"))
         }

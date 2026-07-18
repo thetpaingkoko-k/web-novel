@@ -13,11 +13,13 @@ import { useAuth } from "@/features/auth/auth-context"
 import { useBooks } from "@/features/books/api"
 
 const RAIL_LIMIT = 12
+// The home rails only need the first page of books; browse is where readers page through everything.
+const HOME_PAGE_SIZE = 48
 
 export function HomePage() {
   const { t } = useTranslation()
   const { isAuthenticated } = useAuth()
-  const { data, isLoading, isError, refetch } = useBooks({})
+  const { data, isLoading, isError, refetch } = useBooks({ size: HOME_PAGE_SIZE })
 
   const books = data ?? []
   const inProgress = books.filter(

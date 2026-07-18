@@ -15,6 +15,7 @@ public enum ErrorCode {
     expired_subscription,
     already_has_thread,
     book_window_full,
+    must_read_more,
     existing_draft,
     email_registered_with_password,
     email_registered_with_google,

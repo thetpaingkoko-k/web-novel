@@ -17,6 +17,9 @@ if (!window.matchMedia) {
   })
 }
 
+// jsdom doesn't implement scrollTo; pagination calls it on page change.
+window.scrollTo = () => {}
+
 // jsdom doesn't implement ResizeObserver; Radix Switch/Select/etc. measure size with it.
 if (!window.ResizeObserver) {
   window.ResizeObserver = class ResizeObserver {

@@ -61,6 +61,10 @@ export interface BookListParams {
   search?: string
   /** Overrides the other filters on the backend. */
   authorId?: number
+  /** 0-based page index for the paginated browse endpoint. */
+  page?: number
+  /** Page size for the paginated browse endpoint. */
+  size?: number
 }
 
 export interface BookFormValues {

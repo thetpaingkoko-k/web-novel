@@ -162,6 +162,10 @@
     },
     "empty": "No books match your filters yet.",
     "clearFilters": "Clear filters",
+    "pagination": "Pagination",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "pageOf": "Page {{page}} of {{total}}",
     "loadError": "Couldn't load the book list.",
     "chapters": "Chapters",
     "synopsis": "Synopsis",
@@ -298,7 +302,12 @@
     "subscribeToJoinTitle": "Subscribe to join the discussion",
     "subscribeToJoinBody": "This is a premium book by {{author}}. Subscribe to unlock discussions and share your take.",
     "subscribeToJoinCta": "Subscribe to {{author}}",
-    "subscriptionRequired": "You need an active subscription to join this discussion."
+    "subscriptionRequired": "You need an active subscription to join this discussion.",
+    "readToJoinTitle": "Read a bit more first",
+    "readToJoinBody": "Read at least {{count}} chapter of this book to start or join its discussions.",
+    "readToJoinBody_other": "Read at least {{count}} chapters of this book to start or join its discussions.",
+    "readToJoinCta": "Keep reading",
+    "mustReadMore": "Read at least 10% of this book before joining its discussions."
   },
   "authors": {
     "notFound": "This author could not be found.",

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient, getList } from "@/api/client"
 import { getDeviceFingerprint, getOrCreateSessionId } from "@/api/view-signals"
 import type { Book, BookFormValues, BookListItem, BookListParams, BookUpdateValues } from "@/types/content"
@@ -7,6 +7,35 @@ import type { ReadingProgress } from "@/types/engagement"
 export const bookKeys = {
   list: (params: BookListParams) => ["books", "list", params] as const,
   detail: (bookId: number) => ["books", "detail", bookId] as const,
+}
+
+/** One page of browse results plus the total match count read from `X-Total-Count`. */
+export interface BooksPage {
+  items: BookListItem[]
+  totalItems: number
+  totalPages: number
+}
+
+/**
+ * Paginated browse fetch. The backend returns the page's items as the body and the
+ * total match count in the `X-Total-Count` header; total pages are derived from it.
+ * Falls back to a single page when the header is absent (e.g. mocked responses).
+ */
+export function useBooksBrowse(params: BookListParams, page: number, size: number) {
+  return useQuery({
+    queryKey: [...bookKeys.list(params), "page", page, size] as const,
+    queryFn: async (): Promise<BooksPage> => {
+      const response = await apiClient.get<BookListItem[]>("/books", {
+        params: { ...params, page, size },
+      })
+      const items = Array.isArray(response.data) ? response.data : []
+      const header = response.headers["x-total-count"]
+      const totalItems = header != null && header !== "" ? Number(header) : items.length
+      return { items, totalItems, totalPages: Math.max(1, Math.ceil(totalItems / size)) }
+    },
+    // Keep the current page on screen while the next one loads (no empty flash).
+    placeholderData: keepPreviousData,
+  })
 }
 
 export function useBooks(params: BookListParams) {

@@ -44,13 +44,15 @@ export function PostComposer({ threadId, parentPostId, onPosted, autoFocus }: Po
           onPosted?.()
         },
         onError: (error) => {
-          if (
-            isAxiosError<{ code?: string }>(error) &&
-            error.response?.status === 403 &&
-            error.response.data?.code === "no_subscription"
-          ) {
+          const code =
+            isAxiosError<{ code?: string }>(error) && error.response?.status === 403
+              ? error.response.data?.code
+              : undefined
+          if (code === "no_subscription") {
             toast.error(t("debates.subscriptionRequired"))
             queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine })
+          } else if (code === "must_read_more") {
+            toast.error(t("debates.mustReadMore"))
           } else {
             toast.error(t("common.genericError"))
           }

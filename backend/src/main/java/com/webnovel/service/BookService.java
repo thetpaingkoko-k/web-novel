@@ -51,6 +51,9 @@ public class BookService {
     private final BookmarkRepository bookmarks;
     private final ChapterCommentRepository comments;
 
+    /** Upper bound on browse page size, so a client can't request an unbounded page (§10.3). */
+    private static final int MAX_PAGE_SIZE = 100;
+
     @Transactional
     public BookDetailResponse create(AppUserPrincipal principal, BookCreateRequest req) {
         requireAuthor(principal);
@@ -91,9 +94,16 @@ public class BookService {
         books.delete(book);
     }
 
+    /** One page of browse results plus the total match count (drives §10.3 pagination). */
+    public record BooksPage(List<BookListItem> items, long totalItems) {}
+
     @Transactional(readOnly = true)
-    public List<BookListItem> browse(String genre, BookStatus status, String search) {
-        return populateGenres(books.browse(parseGenre(genre), status, toSearchPattern(search)), books);
+    public BooksPage browse(String genre, BookStatus status, String search, int page, int size) {
+        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        int safePage = Math.max(page, 0);
+        var result = books.browse(parseGenre(genre), status, toSearchPattern(search),
+                org.springframework.data.domain.PageRequest.of(safePage, safeSize));
+        return new BooksPage(populateGenres(result.getContent(), books), result.getTotalElements());
     }
 
     /**

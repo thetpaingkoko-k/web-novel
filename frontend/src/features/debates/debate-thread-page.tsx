@@ -16,6 +16,7 @@ import type { ThreadStatus } from "@/types/debates"
 import { useDebatePosts, useDebateThread, useSetThreadStatus } from "./api"
 import { PostComposer } from "./components/post-composer"
 import { PostItem } from "./components/post-item"
+import { ReadMoreToDiscuss } from "./components/read-more-to-discuss"
 import { SubscribeToDiscuss } from "./components/subscribe-to-discuss"
 import { useDebateAccess } from "./use-debate-access"
 
@@ -140,6 +141,10 @@ export function DebateThreadPage() {
           </div>
         ) : access.gated && access.authorId != null ? (
           <SubscribeToDiscuss authorId={access.authorId} authorUsername={access.authorUsername} />
+        ) : access.readGated ? (
+          !access.isLoading && (
+            <ReadMoreToDiscuss bookId={thread.bookId} requiredChapters={access.requiredChapters} />
+          )
         ) : (
           !access.isLoading && (
             <div className="rounded-xl border bg-card p-4">
@@ -165,7 +170,13 @@ export function DebateThreadPage() {
       {!postsError && !postsLoading && tree.length > 0 && (
         <div className="flex flex-col divide-y">
           {tree.map((post) => (
-            <PostItem key={post.postId} post={post} threadId={threadId} locked={!isOpen} />
+            <PostItem
+              key={post.postId}
+              post={post}
+              threadId={threadId}
+              locked={!isOpen}
+              canReply={!access.gated && !access.readGated}
+            />
           ))}
         </div>
       )}
