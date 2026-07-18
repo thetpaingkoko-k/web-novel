@@ -49,6 +49,7 @@ public class SecurityConfig {
                                 "/api/v1/chapters/**").permitAll()
                         // View recording is anonymous-capable (FR-5.1: reader_id nullable)
                         .requestMatchers(HttpMethod.POST, "/api/v1/chapters/*/view").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/books/*/view").permitAll()
                         // Debate reads are public (§10.5): thread lists, a thread, and its posts
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/books/*/debates",

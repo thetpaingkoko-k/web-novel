@@ -41,6 +41,9 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     List<Subscription> findByReaderIdOrderByIdDesc(Long readerId);
 
+    /** How many readers currently hold a subscription in the given state to an author (§4.1.1). */
+    long countByAuthorIdAndStatus(Long authorId, SubscriptionStatus status);
+
     List<Subscription> findByStatusAndReminderSentFalseAndEndDateBefore(
             SubscriptionStatus status, java.time.OffsetDateTime before);
 

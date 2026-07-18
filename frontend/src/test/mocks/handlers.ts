@@ -10,6 +10,7 @@ export const mockBookList: BookListItem[] = [
   {
     bookId: 1,
     authorUsername: "moonlight_writer",
+    authorAvatarUrl: null,
     careerStage: "professional",
     title: "The Last Ember",
     genres: ["Fantasy"],
@@ -33,6 +34,10 @@ export const mockBookDetail: Book = {
   status: "ongoing",
   isPremium: false,
   createdAt: new Date(0).toISOString(),
+  viewCount: 128,
+  bookmarkCount: 9,
+  likeCount: 2,
+  commentCount: 3,
   chapters: [
     {
       chapterId: 100,
@@ -135,6 +140,7 @@ export const handlers = [
 
   http.get("/api/v1/books", () => HttpResponse.json(mockBookList)),
   http.get("/api/v1/books/:bookId", () => HttpResponse.json(mockBookDetail)),
+  http.post("/api/v1/books/:bookId/view", () => HttpResponse.json({ unique: true })),
 
   // Bookmarks (Bearer auth). List rows mirror GET /books (readChaptersCount is
   // null here); writes are idempotent 204s with empty bodies.
@@ -146,10 +152,12 @@ export const handlers = [
     HttpResponse.json({
       authorId: 10,
       username: "moonlight_writer",
+      avatarUrl: null,
       bio: "Writes about embers.",
       careerStage: "professional",
       isMonetizationEnabled: true,
       monthlySubscriptionPrice: 5000,
+      subscriberCount: 42,
     })
   ),
   http.get("/api/v1/wallets/active", () =>

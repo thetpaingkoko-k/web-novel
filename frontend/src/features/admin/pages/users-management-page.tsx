@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import type { UserStatus } from "@/types/auth"
+import type { UserRole, UserStatus } from "@/types/auth"
 import type { AdminUser } from "@/types/admin"
 import {
   useAllUsers,
@@ -38,10 +38,19 @@ const STATUS_FILTERS: (UserStatus | "all")[] = [
   "banned",
 ]
 
+const ROLE_FILTERS: (UserRole | "all")[] = [
+  "all",
+  "reader",
+  "hobbyist_author",
+  "professional_author",
+  "admin",
+]
+
 export function UsersManagementPage() {
   const { t } = useTranslation()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<UserStatus | "all">("all")
+  const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all")
   const [priceUser, setPriceUser] = useState<AdminUser | null>(null)
   const [detailsUser, setDetailsUser] = useState<AdminUser | null>(null)
   const deferredSearch = useDeferredValue(search)
@@ -206,6 +215,15 @@ export function UsersManagementPage() {
         search={{ value: search, onChange: setSearch, placeholder: t("admin.searchUsers") }}
         filters={[
           {
+            label: t("admin.table.role"),
+            value: roleFilter,
+            onChange: (v) => setRoleFilter(v as UserRole | "all"),
+            options: ROLE_FILTERS.map((r) => ({
+              value: r,
+              label: r === "all" ? t("admin.table.allRoles") : t("admin.role." + r),
+            })),
+          },
+          {
             label: t("admin.table.status"),
             value: statusFilter,
             onChange: (v) => setStatusFilter(v as UserStatus | "all"),
@@ -215,7 +233,10 @@ export function UsersManagementPage() {
             })),
           },
         ]}
-        filterFn={(u) => statusFilter === "all" || u.status === statusFilter}
+        filterFn={(u) =>
+          (roleFilter === "all" || u.role === roleFilter) &&
+          (statusFilter === "all" || u.status === statusFilter)
+        }
       />
 
       <SetPriceDialog

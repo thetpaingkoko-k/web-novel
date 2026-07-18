@@ -13,6 +13,9 @@ public record AppProperties(
         BigDecimal minWithdrawalMmk,
         BigDecimal baseSubscriptionPriceMmk,
         int subscriptionDays,
+        /** Max concurrent sessions (devices) per account; a new login past this evicts the
+         *  oldest session. {@code <= 0} disables the cap. */
+        int maxSessionsPerUser,
         Cors cors,
         Uploads uploads,
         Google google,

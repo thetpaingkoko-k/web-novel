@@ -49,6 +49,10 @@ public class Book {
     @Column(name = "hidden", nullable = false)
     private boolean hidden = false;
 
+    /** Denormalized book-level unique-view counter, maintained by the app (§9.2, FR-5.x). */
+    @Column(name = "view_count", nullable = false)
+    private long viewCount = 0;
+
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 }

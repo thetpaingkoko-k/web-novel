@@ -8,6 +8,7 @@ export interface DebateThread {
   bookId: number
   creatorId: number
   creatorUsername: string
+  creatorAvatarUrl: string | null
   /** Creator's career stage; rendered as an {@link AuthorBadge} when present. */
   careerStage?: CareerStage | null
   title: string
@@ -21,6 +22,7 @@ export interface DebatePost {
   threadId: number
   authorId: number
   authorUsername: string
+  authorAvatarUrl: string | null
   /** Author's career stage; rendered as an {@link AuthorBadge} when present. */
   careerStage?: CareerStage | null
   parentPostId: number | null

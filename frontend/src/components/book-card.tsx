@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
 import { resolveUploadUrl } from "@/api/uploads"
 import { ProgressRing } from "@/components/progress-ring"
+import { UserAvatar } from "@/components/user-avatar"
 import { genreLabelKey } from "@/lib/genres"
 import { AuthorBadge } from "@/features/authors/author-badge"
 import type { BookListItem } from "@/types/content"
@@ -53,9 +54,12 @@ export function BookCard({ book, to }: { book: BookListItem; to?: string }) {
         <h3 className="font-display line-clamp-2 text-[0.95rem] leading-snug font-semibold transition-colors group-hover:text-primary">
           {book.title}
         </h3>
-        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-          <span className="truncate">{t("books.byAuthor", { author: book.authorUsername })}</span>
-          <AuthorBadge careerStage={book.careerStage} />
+        {/* Keep the author name and badge on one line: the name truncates (needs min-w-0
+            on the flex child) so a long name never pushes the badge onto its own line. */}
+        <p className="flex items-center gap-x-1.5 text-xs text-muted-foreground">
+          <UserAvatar name={book.authorUsername} src={book.authorAvatarUrl} className="size-5" />
+          <span className="min-w-0 truncate">{t("books.byAuthor", { author: book.authorUsername })}</span>
+          <AuthorBadge careerStage={book.careerStage} className="shrink-0" />
         </p>
         <div className="mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-0.5 pt-1 text-xs text-muted-foreground">
           {primaryGenre && (

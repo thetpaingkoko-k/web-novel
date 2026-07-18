@@ -51,6 +51,7 @@ function makeComment(overrides: Partial<CommentWithReplies> = {}): CommentWithRe
     chapterId: 100,
     readerId: 1,
     readerUsername: "reader1",
+    readerAvatarUrl: null,
     parentCommentId: null,
     content: "A thoughtful take.",
     spoilerFlagged: false,

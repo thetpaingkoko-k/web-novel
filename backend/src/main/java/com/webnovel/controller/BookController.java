@@ -7,9 +7,12 @@ import com.webnovel.dto.content.BookListItem;
 import com.webnovel.dto.content.BookUpdateRequest;
 import com.webnovel.dto.content.ChapterCreateRequest;
 import com.webnovel.dto.content.ChapterResponse;
+import com.webnovel.dto.engagement.RecordViewRequest;
+import com.webnovel.dto.engagement.ViewResponse;
 import com.webnovel.security.SecurityUtils;
 import com.webnovel.service.BookService;
 import com.webnovel.service.ChapterService;
+import com.webnovel.service.ViewTrackingService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -28,6 +31,7 @@ public class BookController {
 
     private final BookService bookService;
     private final ChapterService chapterService;
+    private final ViewTrackingService viewTracking;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('HOBBYIST_AUTHOR','PROFESSIONAL_AUTHOR')")
@@ -56,6 +60,14 @@ public class BookController {
     @GetMapping("/{id}")
     public BookDetailResponse detail(@PathVariable Long id) {
         return bookService.getDetail(id, SecurityUtils.currentPrincipal());
+    }
+
+    /** Record a book-level view (§9.2). Anonymous-capable, like chapter views. */
+    @PostMapping("/{id}/view")
+    public ViewResponse recordView(@PathVariable Long id, @Valid @RequestBody RecordViewRequest req) {
+        boolean unique = viewTracking.recordBookView(
+                id, SecurityUtils.currentPrincipal(), req.sessionId(), req.deviceFingerprint());
+        return new ViewResponse(unique);
     }
 
     /** Delete a book (admin only). Chapters and all related rows cascade. */

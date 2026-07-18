@@ -61,7 +61,7 @@ class AuthServiceTest {
     AppProperties props = new AppProperties(
             new AppProperties.Jwt("unit-test-secret-value-at-least-32-bytes!!",
                     Duration.ofMinutes(15), Duration.ofDays(30)),
-            new BigDecimal("20"), new BigDecimal("5000"), new BigDecimal("5000"), 30,
+            new BigDecimal("20"), new BigDecimal("5000"), new BigDecimal("5000"), 30, 3,
             new AppProperties.Cors(List.of("http://localhost:5173")),
             new AppProperties.Uploads("images"),
             new AppProperties.Google("client-id.apps.googleusercontent.com"),
@@ -217,6 +217,35 @@ class AuthServiceTest {
         assertThatThrownBy(() -> service.verifyEmail(new VerifyEmailRequest("alice@example.com", "123456")))
                 .isInstanceOf(ConflictException.class)
                 .extracting("code").isEqualTo(ErrorCode.already_verified);
+    }
+
+    @Test
+    void login_pastDeviceLimit_evictsOldestSession() {
+        User u = persistedUser("password123");
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
+        when(userService.toResponse(any())).thenReturn(
+                new UserResponse(1L, "alice", "alice@example.com", Role.reader, UserStatus.approved, false,
+                        null, null, null, null));
+        // Three existing sessions (oldest first); the limit is 3, so the 4th login evicts the oldest.
+        RefreshToken oldest = session(10L);
+        RefreshToken mid = session(11L);
+        RefreshToken newest = session(12L);
+        when(refreshTokens.findByUserIdOrderByCreatedAtAscIdAsc(1L))
+                .thenReturn(List.of(oldest, mid, newest));
+
+        service.login(new LoginRequest("alice@example.com", "password123"));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<RefreshToken>> evicted = ArgumentCaptor.forClass(List.class);
+        verify(refreshTokens).deleteAll(evicted.capture());
+        assertThat(evicted.getValue()).containsExactly(oldest); // only the single oldest gives way
+        verify(refreshTokens).save(any(RefreshToken.class));    // the new session is still issued
+    }
+
+    private static RefreshToken session(long id) {
+        RefreshToken t = new RefreshToken();
+        t.setId(id);
+        return t;
     }
 
     @Test

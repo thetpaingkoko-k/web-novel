@@ -1,6 +1,8 @@
 export interface FeedPost {
   feedPostId: number
   authorId: number
+  authorUsername: string | null
+  authorAvatarUrl: string | null
   title: string
   content: string
   premiumOnly: boolean

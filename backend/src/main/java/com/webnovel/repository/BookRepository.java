@@ -24,7 +24,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
      */
     @Query("""
             select new com.webnovel.dto.content.BookListItem(
-                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, ap.careerStage,
+                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, u.avatarUrl, ap.careerStage,
                 (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published))
             from Book b
                 join User u on u.id = b.authorId
@@ -44,7 +44,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     /** Books authored by a given user (for the author's own dashboard / public profile). */
     @Query("""
             select new com.webnovel.dto.content.BookListItem(
-                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, ap.careerStage,
+                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, u.avatarUrl, ap.careerStage,
                 (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published))
             from Book b
                 join User u on u.id = b.authorId
@@ -61,4 +61,9 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             where b.id in :bookIds
             """)
     List<BookGenreRow> findGenresByBookIds(@Param("bookIds") Collection<Long> bookIds);
+
+    /** Bumps the denormalized book-level unique-view counter (§9.2, FR-5.3). */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("update Book b set b.viewCount = b.viewCount + 1 where b.id = :id")
+    void incrementViewCount(@Param("id") Long id);
 }

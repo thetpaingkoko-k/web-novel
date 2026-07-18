@@ -20,5 +20,9 @@ public record BookDetailResponse(
         boolean isPremium,
         boolean hidden,
         OffsetDateTime createdAt,
+        long viewCount,
+        long likeCount,
+        long bookmarkCount,
+        long commentCount,
         List<ChapterSummary> chapters) {
 }

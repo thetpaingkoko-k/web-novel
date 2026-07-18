@@ -26,12 +26,14 @@ export interface Book {
   viewCount?: number | null
   bookmarkCount?: number | null
   likeCount?: number | null
+  commentCount?: number | null
 }
 
 /** `GET /books` row — BookListItem. */
 export interface BookListItem {
   bookId: number
   authorUsername: string
+  authorAvatarUrl: string | null
   /** Author's career stage; rendered as an {@link AuthorBadge} when present. */
   careerStage?: CareerStage | null
   title: string

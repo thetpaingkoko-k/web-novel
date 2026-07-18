@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 import { EmptyState } from "@/components/empty-state"
 import { QueryError } from "@/components/query-error"
+import { UserAvatar } from "@/components/user-avatar"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/features/auth/auth-context"
@@ -90,6 +91,11 @@ export function DebateListPage() {
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                    <UserAvatar
+                      name={thread.creatorUsername}
+                      src={thread.creatorAvatarUrl}
+                      className="size-5"
+                    />
                     <span>{t("debates.startedBy", { author: thread.creatorUsername })}</span>
                     <span aria-hidden="true">·</span>
                     <span className="inline-flex items-center gap-1">

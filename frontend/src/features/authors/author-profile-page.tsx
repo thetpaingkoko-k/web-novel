@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 import { BookCard } from "@/components/book-card"
 import { BookCardSkeleton } from "@/components/book-card-skeleton"
+import { UserAvatar } from "@/components/user-avatar"
 import { EmptyState } from "@/components/empty-state"
 import { QueryError } from "@/components/query-error"
 import { Button } from "@/components/ui/button"
@@ -50,7 +51,6 @@ export function AuthorProfilePage() {
     (!isAuthenticated || canSubscribeRole) &&
     author.isMonetizationEnabled &&
     author.monthlySubscriptionPrice != null
-  const initial = author.username.trim().charAt(0).toUpperCase() || "?"
   const booksCount = books.data?.length ?? 0
   const postsCount = feed.data?.length ?? 0
 
@@ -61,12 +61,11 @@ export function AuthorProfilePage() {
         <div className="pointer-events-none absolute -top-20 -right-16 -z-10 size-56 rounded-full bg-primary/10 blur-3xl" />
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-4">
-            <span
-              className="brand-gradient glow-brand flex size-20 shrink-0 items-center justify-center rounded-2xl font-display text-3xl font-semibold text-white"
-              aria-hidden="true"
-            >
-              {initial}
-            </span>
+            <UserAvatar
+              name={author.username}
+              src={author.avatarUrl}
+              className="glow-brand font-display size-20 rounded-2xl text-3xl"
+            />
             <div className="flex flex-col gap-1.5">
               <h1 className="font-display text-3xl font-semibold tracking-tight">{author.username}</h1>
               <AuthorBadge careerStage={author.careerStage} className="w-fit" />
@@ -114,9 +113,10 @@ export function AuthorProfilePage() {
         </div>
 
         {/* Stat row. */}
-        <div className="mt-6 grid grid-cols-2 divide-x divide-border overflow-hidden rounded-xl border border-border">
+        <div className="mt-6 grid grid-cols-3 divide-x divide-border overflow-hidden rounded-xl border border-border">
           <ProfileStat value={booksCount} label={t("authors.books")} />
           <ProfileStat value={postsCount} label={t("authors.postsLabel")} />
+          <ProfileStat value={author.subscriberCount} label={t("authors.subscribersLabel")} />
         </div>
 
         {author.bio && (

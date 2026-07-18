@@ -3,6 +3,7 @@ package com.webnovel.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -12,13 +13,16 @@ import static org.mockito.Mockito.when;
 import com.webnovel.domain.entity.Book;
 import com.webnovel.domain.entity.DebatePost;
 import com.webnovel.domain.entity.DebateThread;
+import com.webnovel.domain.entity.DebateVote;
 import com.webnovel.domain.enums.CommentStatus;
 import com.webnovel.domain.enums.Role;
 import com.webnovel.domain.enums.ThreadStatus;
+import com.webnovel.domain.enums.VoteType;
 import com.webnovel.dto.debate.CreatePostRequest;
 import com.webnovel.dto.debate.CreateThreadRequest;
 import com.webnovel.dto.debate.PostResponse;
 import com.webnovel.dto.debate.ThreadResponse;
+import com.webnovel.dto.debate.VoteRequest;
 import com.webnovel.exception.ConflictException;
 import com.webnovel.exception.ErrorCode;
 import com.webnovel.exception.ForbiddenException;
@@ -113,7 +117,7 @@ class DebateServiceTest {
             return t;
         });
         when(threads.findThreadView(42L)).thenReturn(Optional.of(new ThreadResponse(
-                42L, 1L, 7L, "reader", null, "Great book", ThreadStatus.open, 0, OffsetDateTime.now())));
+                42L, 1L, 7L, "reader", null, null, "Great book", ThreadStatus.open, 0, OffsetDateTime.now())));
 
         var res = service.createThread(reader, 1L, new CreateThreadRequest("Great book"));
 
@@ -150,7 +154,7 @@ class DebateServiceTest {
             return t;
         });
         when(threads.findThreadView(50L)).thenReturn(Optional.of(new ThreadResponse(
-                50L, 1L, 7L, "reader", null, "Great book", ThreadStatus.open, 0, OffsetDateTime.now())));
+                50L, 1L, 7L, "reader", null, null, "Great book", ThreadStatus.open, 0, OffsetDateTime.now())));
 
         var res = service.createThread(reader, 1L, new CreateThreadRequest("Great book"));
 
@@ -171,7 +175,7 @@ class DebateServiceTest {
             return t;
         });
         when(threads.findThreadView(51L)).thenReturn(Optional.of(new ThreadResponse(
-                51L, 1L, 20L, "author", null, "Mine", ThreadStatus.open, 0, OffsetDateTime.now())));
+                51L, 1L, 20L, "author", null, null, "Mine", ThreadStatus.open, 0, OffsetDateTime.now())));
 
         var res = service.createThread(bookAuthor, 1L, new CreateThreadRequest("Mine"));
 
@@ -211,7 +215,7 @@ class DebateServiceTest {
             return p;
         });
         when(posts.findPostView(88L, 7L)).thenReturn(Optional.of(new PostResponse(
-                88L, 5L, 7L, "reader", null, null, "hello", 0, 0,
+                88L, 5L, 7L, "reader", null, null, null, "hello", 0, 0,
                 CommentStatus.visible, OffsetDateTime.now(), null)));
 
         var res = service.addPost(reader, 5L, new CreatePostRequest("hello", null));
@@ -235,12 +239,67 @@ class DebateServiceTest {
             return p;
         });
         when(posts.findPostView(90L, 7L)).thenReturn(Optional.of(new PostResponse(
-                90L, 6L, 7L, "reader", null, null, "hi", 0, 0,
+                90L, 6L, 7L, "reader", null, null, null, "hi", 0, 0,
                 CommentStatus.visible, OffsetDateTime.now(), null)));
 
         var res = service.addPost(reader, 6L, new CreatePostRequest("hi", null));
 
         assertThat(res.postId()).isEqualTo(90L);
         verify(accessControl, never()).hasActiveSubscription(any(), any());
+    }
+
+    private static PostResponse postView(VoteType myVote, int up, int down) {
+        return new PostResponse(88L, 5L, 7L, "reader", null, null, null, "hi",
+                up, down, CommentStatus.visible, OffsetDateTime.now(), myVote);
+    }
+
+    @Test
+    void vote_firstTime_recordsVoteAndIncrements() {
+        when(posts.existsById(88L)).thenReturn(true);
+        when(votes.findByPostIdAndReaderId(88L, 7L)).thenReturn(Optional.empty());
+        when(posts.findPostView(88L, 7L)).thenReturn(Optional.of(postView(VoteType.up, 1, 0)));
+
+        service.vote(reader, 88L, new VoteRequest(VoteType.up));
+
+        verify(votes).save(any(DebateVote.class));
+        verify(posts).addUpvotes(88L, 1);
+        verify(posts, never()).addDownvotes(any(), anyInt());
+    }
+
+    @Test
+    void vote_sameDirectionAgain_togglesOff() {
+        DebateVote existing = new DebateVote();
+        existing.setPostId(88L);
+        existing.setReaderId(7L);
+        existing.setVoteType(VoteType.up);
+        when(posts.existsById(88L)).thenReturn(true);
+        when(votes.findByPostIdAndReaderId(88L, 7L)).thenReturn(Optional.of(existing));
+        when(posts.findPostView(88L, 7L)).thenReturn(Optional.of(postView(null, 0, 0)));
+
+        var res = service.vote(reader, 88L, new VoteRequest(VoteType.up));
+
+        // the vote is removed and the upvote is decremented back
+        verify(posts).addUpvotes(88L, -1);
+        verify(votes).delete(existing);
+        verify(votes, never()).save(any());
+        assertThat(res.myVote()).isNull();
+    }
+
+    @Test
+    void vote_oppositeDirection_switches() {
+        DebateVote existing = new DebateVote();
+        existing.setPostId(88L);
+        existing.setReaderId(7L);
+        existing.setVoteType(VoteType.up);
+        when(posts.existsById(88L)).thenReturn(true);
+        when(votes.findByPostIdAndReaderId(88L, 7L)).thenReturn(Optional.of(existing));
+        when(posts.findPostView(88L, 7L)).thenReturn(Optional.of(postView(VoteType.down, 0, 1)));
+
+        service.vote(reader, 88L, new VoteRequest(VoteType.down));
+
+        verify(posts).addUpvotes(88L, -1); // old direction removed
+        verify(posts).addDownvotes(88L, 1); // new direction added
+        verify(votes, never()).delete(any());
+        assertThat(existing.getVoteType()).isEqualTo(VoteType.down);
     }
 }

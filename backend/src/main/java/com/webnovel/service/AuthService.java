@@ -24,6 +24,7 @@ import com.webnovel.security.GoogleTokenVerifier.GoogleUser;
 import com.webnovel.security.JwtService;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -149,6 +150,7 @@ public class AuthService {
             throw new ApiException(HttpStatus.FORBIDDEN, ErrorCode.email_not_verified,
                     "auth.email_not_verified", Map.of("email", user.getEmail()));
         }
+        enforceSessionLimit(user.getId());
         return issueTokens(user);
     }
 
@@ -178,6 +180,7 @@ public class AuthService {
         if (user.isBlocked()) {
             throw new ApiException(HttpStatus.FORBIDDEN, ErrorCode.forbidden, "auth.account_blocked");
         }
+        enforceSessionLimit(user.getId());
         return issueTokens(user);
     }
 
@@ -240,6 +243,24 @@ public class AuthService {
     @Transactional
     public void logout(Long userId) {
         refreshTokens.deleteByUserId(userId);
+    }
+
+    /**
+     * Evict-oldest device cap: before a new session is issued, keep at most
+     * {@code maxSessionsPerUser - 1} existing sessions so the total lands on the limit.
+     * The oldest sessions (by creation) give way; the evicted device is signed out the next
+     * time it tries to refresh (its stored token is gone). {@code <= 0} disables the cap.
+     */
+    private void enforceSessionLimit(Long userId) {
+        int limit = props.maxSessionsPerUser();
+        if (limit <= 0) {
+            return;
+        }
+        List<RefreshToken> sessions = refreshTokens.findByUserIdOrderByCreatedAtAscIdAsc(userId);
+        int surplus = sessions.size() - (limit - 1);
+        if (surplus > 0) {
+            refreshTokens.deleteAll(sessions.subList(0, surplus));
+        }
     }
 
     private AuthResponse issueTokens(User user) {

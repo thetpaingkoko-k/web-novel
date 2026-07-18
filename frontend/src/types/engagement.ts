@@ -5,6 +5,7 @@ export interface Comment {
   chapterId: number
   readerId: number
   readerUsername: string
+  readerAvatarUrl: string | null
   parentCommentId: number | null
   content: string
   spoilerFlagged: boolean

@@ -5,10 +5,13 @@ export type CareerStage = "hobbyist" | "professional"
 export interface AuthorProfile {
   authorId: number
   username: string
+  avatarUrl: string | null
   bio: string | null
   careerStage: CareerStage
   isMonetizationEnabled: boolean
   monthlySubscriptionPrice: number | null
+  /** Number of readers currently holding an active subscription to this author. */
+  subscriberCount: number
 }
 
 /** Body for `POST /authors/apply` (FR-1.2). Admin later decides the tier. */

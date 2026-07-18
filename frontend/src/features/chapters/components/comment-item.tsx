@@ -14,6 +14,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { UserAvatar } from "@/components/user-avatar"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/features/auth/auth-context"
 import { ReportDialog } from "@/features/moderation/report-dialog"
@@ -41,7 +42,6 @@ export function CommentItem({ comment, chapterId, depth = 0 }: CommentItemProps)
   // never leak, so a hidden comment reaching a non-admin is treated as removed.
   const isHidden = comment.status === "hidden"
   const isOwn = user != null && comment.readerId === user.userId
-  const initial = comment.readerUsername.charAt(0).toUpperCase()
 
   const containerClass = cn(
     depth > 0
@@ -68,12 +68,11 @@ export function CommentItem({ comment, chapterId, depth = 0 }: CommentItemProps)
   return (
     <div className={containerClass}>
       <div className="flex gap-3 py-1">
-        <div
-          className="brand-gradient mt-0.5 flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full text-xs font-semibold text-primary-foreground"
-          aria-hidden="true"
-        >
-          {initial}
-        </div>
+        <UserAvatar
+          name={comment.readerUsername}
+          src={comment.readerAvatarUrl}
+          className="mt-0.5 size-8"
+        />
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{comment.readerUsername}</span>

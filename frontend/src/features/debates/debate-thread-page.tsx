@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { EmptyState } from "@/components/empty-state"
 import { QueryError } from "@/components/query-error"
 import { Badge } from "@/components/ui/badge"
+import { UserAvatar } from "@/components/user-avatar"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/features/auth/auth-context"
@@ -93,6 +94,7 @@ export function DebateThreadPage() {
         </div>
 
         <div className="relative flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+          <UserAvatar name={thread.creatorUsername} src={thread.creatorAvatarUrl} className="size-6" />
           <span>{t("debates.startedBy", { author: thread.creatorUsername })}</span>
           <AuthorBadge careerStage={thread.careerStage} />
           <span aria-hidden="true">·</span>

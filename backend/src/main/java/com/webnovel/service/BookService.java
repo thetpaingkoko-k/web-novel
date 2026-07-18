@@ -20,6 +20,8 @@ import com.webnovel.exception.ForbiddenException;
 import com.webnovel.exception.NotFoundException;
 import com.webnovel.repository.AuthorProfileRepository;
 import com.webnovel.repository.BookRepository;
+import com.webnovel.repository.BookmarkRepository;
+import com.webnovel.repository.ChapterCommentRepository;
 import com.webnovel.repository.ChapterRepository;
 import com.webnovel.repository.UserRepository;
 import com.webnovel.security.AppUserPrincipal;
@@ -46,6 +48,8 @@ public class BookService {
     private final ChapterRepository chapters;
     private final UserRepository users;
     private final AuthorProfileRepository authorProfiles;
+    private final BookmarkRepository bookmarks;
+    private final ChapterCommentRepository comments;
 
     @Transactional
     public BookDetailResponse create(AppUserPrincipal principal, BookCreateRequest req) {
@@ -196,10 +200,18 @@ public class BookService {
         String username = users.findById(book.getAuthorId()).map(User::getUsername).orElse(null);
         CareerStage careerStage = authorProfiles.findByUserId(book.getAuthorId())
                 .map(AuthorProfile::getCareerStage).orElse(null);
+        // Book-level engagement totals, shown to every viewer (§4.1.1). Views are the book's own
+        // denormalized counter (§9.2); likes/comments are aggregated over the book's published
+        // chapters so the numbers are identical regardless of who is looking.
+        long viewCount = book.getViewCount();
+        long likeCount = chapters.sumLikeCountByBookId(book.getId());
+        long bookmarkCount = bookmarks.countByBookId(book.getId());
+        long commentCount = comments.countVisibleByBookId(book.getId());
         return new BookDetailResponse(
                 book.getId(), book.getAuthorId(), username, careerStage, book.getTitle(), book.getSynopsis(),
                 new ArrayList<>(book.getGenres()), book.getCoverImageUrl(), book.getStatus(), book.isPremium(),
-                book.isHidden(), book.getCreatedAt(), chapterSummaries);
+                book.isHidden(), book.getCreatedAt(),
+                viewCount, likeCount, bookmarkCount, commentCount, chapterSummaries);
     }
 
     /** Copies the requested genres into a fresh set (null → empty), preserving order. */

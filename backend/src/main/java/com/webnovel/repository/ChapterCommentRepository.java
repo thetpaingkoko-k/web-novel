@@ -13,13 +13,26 @@ public interface ChapterCommentRepository extends JpaRepository<ChapterComment, 
     boolean existsByIdAndChapterId(Long id, Long chapterId);
 
     /**
+     * Book-level comment total: non-hidden comments across the book's published chapters
+     * — the count shown to every reader on the book detail page (§4.1.1).
+     */
+    @Query("""
+            select count(c) from ChapterComment c, Chapter ch
+            where c.chapterId = ch.id
+              and ch.bookId = :bookId
+              and ch.status = com.webnovel.domain.enums.ChapterStatus.published
+              and c.status <> com.webnovel.domain.enums.CommentStatus.hidden
+            """)
+    long countVisibleByBookId(@Param("bookId") Long bookId);
+
+    /**
      * A chapter's comment thread with the joined author username (§4.1.1 read model).
      * Author deletion is a hard delete (the row is gone, no tombstone), so only
      * moderator-hidden comments are excluded here.
      */
     @Query("""
             select new com.webnovel.dto.engagement.CommentResponse(
-                c.id, c.chapterId, c.parentCommentId, c.readerId, u.username,
+                c.id, c.chapterId, c.parentCommentId, c.readerId, u.username, u.avatarUrl,
                 c.content, c.spoilerFlagged, c.status, c.createdAt)
             from ChapterComment c, User u
             where c.readerId = u.id
@@ -36,7 +49,7 @@ public interface ChapterCommentRepository extends JpaRepository<ChapterComment, 
      */
     @Query("""
             select new com.webnovel.dto.engagement.CommentResponse(
-                c.id, c.chapterId, c.parentCommentId, c.readerId, u.username,
+                c.id, c.chapterId, c.parentCommentId, c.readerId, u.username, u.avatarUrl,
                 c.content, c.spoilerFlagged, c.status, c.createdAt)
             from ChapterComment c, User u
             where c.readerId = u.id
@@ -48,7 +61,7 @@ public interface ChapterCommentRepository extends JpaRepository<ChapterComment, 
     /** Single comment read model with the joined author username, any status (admin moderation). */
     @Query("""
             select new com.webnovel.dto.engagement.CommentResponse(
-                c.id, c.chapterId, c.parentCommentId, c.readerId, u.username,
+                c.id, c.chapterId, c.parentCommentId, c.readerId, u.username, u.avatarUrl,
                 c.content, c.spoilerFlagged, c.status, c.createdAt)
             from ChapterComment c, User u
             where c.readerId = u.id

@@ -10,6 +10,8 @@ import { FeedPostCard } from "../components/feed-post-card"
 const post: FeedPost = {
   feedPostId: 7,
   authorId: 10,
+  authorUsername: "moonlight_writer",
+  authorAvatarUrl: null,
   title: "Chapter 12 is up early",
   content: "Thanks for reading!",
   premiumOnly: false,

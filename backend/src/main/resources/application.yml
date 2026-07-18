@@ -47,6 +47,7 @@ app:
   min-withdrawal-mmk: ${APP_MIN_WITHDRAWAL_MMK:5000}
   base-subscription-price-mmk: ${APP_BASE_SUBSCRIPTION_PRICE_MMK:5000}   # system baseline; not author-set, admin-adjustable
   subscription-days: ${APP_SUBSCRIPTION_DAYS:30}
+  max-sessions-per-user: ${APP_MAX_SESSIONS_PER_USER:3}   # concurrent devices per account; oldest session evicted past this
   mail:
     # Email delivery via Resend's HTTP API (https://api.resend.com) — sends over
     # 443, which works where outbound SMTP is blocked (this network, most PaaS).

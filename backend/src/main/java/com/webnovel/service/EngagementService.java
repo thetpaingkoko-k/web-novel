@@ -92,9 +92,10 @@ public class EngagementService {
         comment.setStatus(CommentStatus.visible);
         comment.setCreatedAt(OffsetDateTime.now());
         comments.save(comment);
-        return new CommentResponse(comment.getId(), chapterId, comment.getParentCommentId(),
-                reader.getId(), reader.getUsername(), comment.getContent(),
-                comment.isSpoilerFlagged(), comment.getStatus(), comment.getCreatedAt());
+        // Re-read via the join-backed view so the response carries the author's avatar,
+        // consistent with the thread read model.
+        return comments.findCommentView(comment.getId())
+                .orElseThrow(() -> new NotFoundException("comment.not_found"));
     }
 
     /**

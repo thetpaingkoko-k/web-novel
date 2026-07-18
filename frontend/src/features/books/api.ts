@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient, getList } from "@/api/client"
+import { getDeviceFingerprint, getOrCreateSessionId } from "@/api/view-signals"
 import type { Book, BookFormValues, BookListItem, BookListParams, BookUpdateValues } from "@/types/content"
 import type { ReadingProgress } from "@/types/engagement"
 
@@ -28,6 +29,18 @@ export function useBook(bookId: number) {
 
 export function useMyBooks(authorId: number) {
   return useBooks({ authorId })
+}
+
+/** Records a book-level view (§9.2); the backend dedups within a 24h window. */
+export function useRecordBookView(bookId: number) {
+  return useMutation({
+    mutationFn: async () => {
+      await apiClient.post(`/books/${bookId}/view`, {
+        sessionId: getOrCreateSessionId(),
+        deviceFingerprint: getDeviceFingerprint(),
+      })
+    },
+  })
 }
 
 export function useCreateBook() {

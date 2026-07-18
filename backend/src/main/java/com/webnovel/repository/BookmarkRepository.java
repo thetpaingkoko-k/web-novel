@@ -11,6 +11,9 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
 
     boolean existsByReaderIdAndBookId(Long readerId, Long bookId);
 
+    /** How many readers have bookmarked a book — a book-level engagement counter (§4.1.1). */
+    long countByBookId(Long bookId);
+
     /** Derived delete; returns the number of rows removed (0 if the book wasn't bookmarked). */
     long deleteByReaderIdAndBookId(Long readerId, Long bookId);
 
@@ -22,7 +25,7 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
      */
     @Query("""
             select new com.webnovel.dto.content.BookListItem(
-                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, ap.careerStage,
+                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, u.avatarUrl, ap.careerStage,
                 (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published))
             from Bookmark bm, Book b
                 join User u on u.id = b.authorId

@@ -10,6 +10,7 @@ public record ThreadResponse(
         Long bookId,
         Long creatorId,
         String creatorUsername,
+        String creatorAvatarUrl,
         CareerStage careerStage,
         String title,
         ThreadStatus status,

@@ -11,6 +11,7 @@ public record PostResponse(
         Long threadId,
         Long authorId,
         String authorUsername,
+        String authorAvatarUrl,
         CareerStage careerStage,
         Long parentPostId,
         String content,

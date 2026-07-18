@@ -12,7 +12,9 @@ import com.webnovel.dto.author.SubscriptionPriceResponse;
 import com.webnovel.dto.user.UserResponse;
 import com.webnovel.exception.BadRequestException;
 import com.webnovel.exception.NotFoundException;
+import com.webnovel.domain.enums.SubscriptionStatus;
 import com.webnovel.repository.AuthorProfileRepository;
+import com.webnovel.repository.SubscriptionRepository;
 import com.webnovel.repository.UserRepository;
 import java.time.OffsetDateTime;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class AuthorService {
 
     private final UserRepository users;
     private final AuthorProfileRepository authorProfiles;
+    private final SubscriptionRepository subscriptions;
     private final UserService userService;
 
     /** Reader applies to become an author: creates a hobbyist profile and marks the user pending. */
@@ -51,9 +54,11 @@ public class AuthorService {
         User user = users.findById(authorId).orElseThrow(() -> new NotFoundException("user.not_found"));
         AuthorProfile profile = authorProfiles.findByUserId(authorId)
                 .orElseThrow(() -> new NotFoundException("user.not_found"));
+        // Active subscribers only — the public "N subscribers" figure (§4.1.1).
+        long subscriberCount = subscriptions.countByAuthorIdAndStatus(authorId, SubscriptionStatus.active);
         return new AuthorProfileResponse(
-                user.getId(), user.getUsername(), profile.getBio(), profile.getCareerStage(),
-                profile.isMonetizationEnabled(), profile.getMonthlySubscriptionPrice());
+                user.getId(), user.getUsername(), user.getAvatarUrl(), profile.getBio(), profile.getCareerStage(),
+                profile.isMonetizationEnabled(), profile.getMonthlySubscriptionPrice(), subscriberCount);
     }
 
     @Transactional(readOnly = true)
@@ -103,12 +108,15 @@ public class AuthorService {
     }
 
     private AuthorMeResponse toMe(Long userId, AuthorProfile p) {
-        String username = users.findById(userId).map(User::getUsername).orElse(null);
-        return new AuthorMeResponse(userId, username, p.getBio(),
+        User user = users.findById(userId).orElse(null);
+        String username = user == null ? null : user.getUsername();
+        String avatarUrl = user == null ? null : user.getAvatarUrl();
+        long subscriberCount = subscriptions.countByAuthorIdAndStatus(userId, SubscriptionStatus.active);
+        return new AuthorMeResponse(userId, username, avatarUrl, p.getBio(),
                 p.getWritingMotivation(), p.getWritingInterests(), p.getCareerStage(),
                 p.isMonetizationEnabled(), p.getMonthlySubscriptionPrice(),
                 p.getPayoutWalletProvider(), p.getPayoutWalletNumber(),
-                p.getAvailableBalance(), p.getTotalEarned(),
+                p.getAvailableBalance(), p.getTotalEarned(), subscriberCount,
                 p.isProfessionalRequested(), p.getProfessionalRequestedAt());
     }
 }

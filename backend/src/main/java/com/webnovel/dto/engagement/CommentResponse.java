@@ -10,6 +10,7 @@ public record CommentResponse(
         Long parentCommentId,
         Long readerId,
         String readerUsername,
+        String readerAvatarUrl,
         String content,
         boolean spoilerFlagged,
         CommentStatus status,

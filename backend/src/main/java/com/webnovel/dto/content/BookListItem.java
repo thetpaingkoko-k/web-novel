@@ -21,6 +21,7 @@ public record BookListItem(
         BookStatus status,
         boolean isPremium,
         String authorUsername,
+        String authorAvatarUrl,
         CareerStage careerStage,
         long chapterCount,
         Integer readChaptersCount) {
@@ -28,14 +29,14 @@ public record BookListItem(
     /** Used by JPQL browse queries; genres and readChaptersCount are filled in later. */
     public BookListItem(Long bookId, String title, String coverImageUrl,
                         BookStatus status, boolean isPremium, String authorUsername,
-                        CareerStage careerStage, long chapterCount) {
+                        String authorAvatarUrl, CareerStage careerStage, long chapterCount) {
         this(bookId, title, coverImageUrl, List.of(), status, isPremium,
-                authorUsername, careerStage, chapterCount, null);
+                authorUsername, authorAvatarUrl, careerStage, chapterCount, null);
     }
 
     /** Returns a copy with the given genres (immutable-record population pattern). */
     public BookListItem withGenres(List<Genre> genres) {
         return new BookListItem(bookId, title, coverImageUrl, genres, status, isPremium,
-                authorUsername, careerStage, chapterCount, readChaptersCount);
+                authorUsername, authorAvatarUrl, careerStage, chapterCount, readChaptersCount);
     }
 }

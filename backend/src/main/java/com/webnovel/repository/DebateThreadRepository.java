@@ -26,7 +26,7 @@ public interface DebateThreadRepository extends JpaRepository<DebateThread, Long
 
     @Query("""
             select new com.webnovel.dto.debate.ThreadResponse(
-                t.id, t.bookId, t.creatorId, u.username, ap.careerStage, t.title, t.status, t.postCount, t.createdAt)
+                t.id, t.bookId, t.creatorId, u.username, u.avatarUrl, ap.careerStage, t.title, t.status, t.postCount, t.createdAt)
             from DebateThread t
                 join User u on u.id = t.creatorId
                 left join AuthorProfile ap on ap.userId = t.creatorId
@@ -37,7 +37,7 @@ public interface DebateThreadRepository extends JpaRepository<DebateThread, Long
 
     @Query("""
             select new com.webnovel.dto.debate.ThreadResponse(
-                t.id, t.bookId, t.creatorId, u.username, ap.careerStage, t.title, t.status, t.postCount, t.createdAt)
+                t.id, t.bookId, t.creatorId, u.username, u.avatarUrl, ap.careerStage, t.title, t.status, t.postCount, t.createdAt)
             from DebateThread t
                 join User u on u.id = t.creatorId
                 left join AuthorProfile ap on ap.userId = t.creatorId

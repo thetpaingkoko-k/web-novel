@@ -46,7 +46,7 @@ class PaymentServiceTest {
     private final AppProperties props = new AppProperties(
             new AppProperties.Jwt("unit-test-secret-value-at-least-32-bytes!!",
                     java.time.Duration.ofMinutes(15), java.time.Duration.ofDays(30)),
-            new BigDecimal("20"), new BigDecimal("5000"), new BigDecimal("5000"), 30,
+            new BigDecimal("20"), new BigDecimal("5000"), new BigDecimal("5000"), 30, 3,
             new AppProperties.Cors(List.of("http://localhost:5173")),
             new AppProperties.Uploads("images"),
             new AppProperties.Google(""),
@@ -116,6 +116,52 @@ class PaymentServiceTest {
 
         assertThatThrownBy(() -> service().approve(99L, 1L)).isInstanceOf(ConflictException.class);
         verify(earnings, never()).save(any());
+    }
+
+    @Test
+    void reject_releasesPendingSubscription_soReaderCanReSubmit() {
+        PaymentSubmission sub = new PaymentSubmission();
+        sub.setId(1L);
+        sub.setSubscriptionId(9L);
+        sub.setStatus(PaymentStatus.pending);
+
+        Subscription subscription = new Subscription();
+        subscription.setId(9L);
+        subscription.setStatus(SubscriptionStatus.pending_payment);
+
+        when(submissions.findById(1L)).thenReturn(Optional.of(sub));
+        when(subscriptions.findById(9L)).thenReturn(Optional.of(subscription));
+
+        service().reject(99L, 1L, "blurry screenshot");
+
+        assertThat(sub.getStatus()).isEqualTo(PaymentStatus.rejected);
+        // the subscription is released from pending so it no longer shows as "pending" and
+        // the reader can start a new payment (§8.3)
+        assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.rejected);
+        verify(adminActions).log(eq(99L), eq(AdminActionType.payment_rejection),
+                eq("payment_submission"), eq(1L), eq("blurry screenshot"));
+    }
+
+    @Test
+    void reject_leavesActiveSubscriptionUntouched() {
+        // A duplicate/late submission is rejected while an earlier one already activated the
+        // subscription — rejecting must never revoke the reader's active access.
+        PaymentSubmission sub = new PaymentSubmission();
+        sub.setId(2L);
+        sub.setSubscriptionId(9L);
+        sub.setStatus(PaymentStatus.flagged_duplicate);
+
+        Subscription subscription = new Subscription();
+        subscription.setId(9L);
+        subscription.setStatus(SubscriptionStatus.active);
+
+        when(submissions.findById(2L)).thenReturn(Optional.of(sub));
+        when(subscriptions.findById(9L)).thenReturn(Optional.of(subscription));
+
+        service().reject(99L, 2L, "duplicate");
+
+        assertThat(sub.getStatus()).isEqualTo(PaymentStatus.rejected);
+        assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.active);
     }
 
     @Test

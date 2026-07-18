@@ -2,6 +2,7 @@ import { ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
+import { UserAvatar } from "@/components/user-avatar"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/features/auth/auth-context"
 import { AuthorBadge } from "@/features/authors/author-badge"
@@ -56,6 +57,7 @@ export function PostItem({ post, threadId, locked, depth = 0 }: PostItemProps) {
 
         <div className="flex flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <UserAvatar name={post.authorUsername} src={post.authorAvatarUrl} className="size-6" />
             <span className="font-medium text-foreground">{post.authorUsername}</span>
             <AuthorBadge careerStage={post.careerStage} />
             <span aria-hidden="true">·</span>

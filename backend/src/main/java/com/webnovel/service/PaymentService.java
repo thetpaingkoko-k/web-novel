@@ -169,6 +169,13 @@ public class PaymentService {
         submission.setReviewedBy(adminId);
         submission.setReviewedAt(OffsetDateTime.now());
 
+        // Release the linked subscription from pending so the reader is no longer shown a
+        // lingering "pending" state and can submit a fresh payment (§8.3). Only a not-yet-
+        // activated subscription is rejected — never an active one settled by another submission.
+        subscriptions.findById(submission.getSubscriptionId())
+                .filter(s -> s.getStatus() == SubscriptionStatus.pending_payment)
+                .ifPresent(s -> s.setStatus(SubscriptionStatus.rejected));
+
         adminActions.log(adminId, AdminActionType.payment_rejection,
                 "payment_submission", submission.getId(), reason); // §7.3 audit
         return toResponse(submission);

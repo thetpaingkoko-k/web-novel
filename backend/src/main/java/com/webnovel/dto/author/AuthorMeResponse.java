@@ -9,6 +9,7 @@ import java.time.OffsetDateTime;
 public record AuthorMeResponse(
         Long authorId,
         String username,
+        String avatarUrl,
         String bio,
         String writingMotivation,
         String writingInterests,
@@ -19,6 +20,7 @@ public record AuthorMeResponse(
         String payoutWalletNumber,
         BigDecimal availableBalance,
         BigDecimal totalEarned,
+        long subscriberCount,
         boolean professionalRequested,
         OffsetDateTime professionalRequestedAt) {
 }

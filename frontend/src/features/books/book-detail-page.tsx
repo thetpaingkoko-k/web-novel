@@ -1,5 +1,6 @@
-import { BookOpen, Bookmark, CheckCircle2, Eye, Heart, ListX, Lock, Sparkles } from "lucide-react"
+import { BookOpen, Bookmark, CheckCircle2, Eye, Heart, ListX, Lock, MessageSquare, Sparkles } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import { useEffect } from "react"
 import { Trans, useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 import { resolveUploadUrl } from "@/api/uploads"
@@ -15,7 +16,7 @@ import { AuthorBadge } from "@/features/authors/author-badge"
 import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button"
 import { ReportDialog } from "@/features/moderation/report-dialog"
 import { useSubscriptionTo } from "@/features/subscriptions/api"
-import { useBook, useReadingProgress } from "./api"
+import { useBook, useReadingProgress, useRecordBookView } from "./api"
 
 export function BookDetailPage() {
   const { bookId } = useParams<{ bookId: string }>()
@@ -29,6 +30,13 @@ export function BookDetailPage() {
   const { data: book, isLoading, isError, refetch } = useBook(id)
   const { data: progress } = useReadingProgress(id, isAuthenticated)
   const { subscription } = useSubscriptionTo(book?.authorId ?? Number.NaN, isAuthenticated && !isAdmin)
+
+  // Record a book-level view once per load (fire-and-forget; never blocks render).
+  const recordView = useRecordBookView(id)
+  useEffect(() => {
+    if (book) recordView.mutate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [book?.bookId])
 
   if (isError) {
     return <QueryError message={t("books.notFound")} onRetry={() => refetch()} />
@@ -145,6 +153,9 @@ export function BookDetailPage() {
               {book.likeCount != null && (
                 <Stat icon={Heart} value={book.likeCount} label={t("books.likesLabel")} />
               )}
+              {book.commentCount != null && (
+                <Stat icon={MessageSquare} value={book.commentCount} label={t("books.commentsLabel")} />
+              )}
             </div>
 
             {readCount > 0 && totalCount > 0 && (
@@ -251,6 +262,16 @@ export function BookDetailPage() {
                           })}
                         </span>
                       )}
+                      {/* Per-chapter engagement, shown to every reader. */}
+                      <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground tabular-nums">
+                        <ChapterRowStat icon={Heart} value={chapter.likeCount} label={t("chapters.likesLabel")} />
+                        <ChapterRowStat icon={Eye} value={chapter.uniqueViewCount} label={t("chapters.viewsLabel")} />
+                        <ChapterRowStat
+                          icon={CheckCircle2}
+                          value={chapter.completionCount}
+                          label={t("chapters.completionsLabel")}
+                        />
+                      </span>
                     </span>
                     {isRead && (
                       <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-primary">
@@ -287,6 +308,17 @@ function Stat({ icon: Icon, value, label }: { icon: LucideIcon; value: number; l
       <Icon className="size-4" aria-hidden="true" />
       <span className="font-semibold text-foreground tabular-nums">{value.toLocaleString()}</span>
       <span>{label}</span>
+    </span>
+  )
+}
+
+/** A compact per-chapter engagement counter (icon + number) for the chapter list rows. */
+function ChapterRowStat({ icon: Icon, value, label }: { icon: LucideIcon; value: number; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1" title={label}>
+      <Icon className="size-3.5" aria-hidden="true" />
+      {value.toLocaleString()}
+      <span className="sr-only">{label}</span>
     </span>
   )
 }

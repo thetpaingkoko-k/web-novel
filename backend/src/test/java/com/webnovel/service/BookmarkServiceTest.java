@@ -93,7 +93,7 @@ class BookmarkServiceTest {
 
     @Test
     void myBookmarks_returnsBookListItems() {
-        BookListItem item = new BookListItem(3L, "T", null, null, false, "author", null, 2);
+        BookListItem item = new BookListItem(3L, "T", null, null, false, "author", null, null, 2);
         when(bookmarks.findBookmarkedBooks(7L)).thenReturn(List.of(item));
 
         assertThat(service.myBookmarks(reader)).containsExactly(item);

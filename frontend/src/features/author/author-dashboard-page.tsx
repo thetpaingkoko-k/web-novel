@@ -1,4 +1,4 @@
-import { ArrowUpRight, BookOpen, BookPlus, CheckCircle2, Clock, Coins, FileText, ListPlus, ListTree, Pencil, Plus, Sparkles, Wallet } from "lucide-react"
+import { ArrowUpRight, BookOpen, BookPlus, CheckCircle2, Clock, Coins, FileText, ListPlus, Pencil, Plus, Sparkles, Wallet } from "lucide-react"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
@@ -240,12 +240,6 @@ function AuthorBookCard({ book }: { book: BookListItem }) {
               <Link to={`/author/books/${book.bookId}/edit`}>
                 <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                 {t("author.editAction")}
-              </Link>
-            </Button>
-            <Button size="sm" variant="ghost" asChild>
-              <Link to={`/author/books/${book.bookId}/edit#chapters`}>
-                <ListTree className="h-3.5 w-3.5" aria-hidden="true" />
-                {t("author.manageChapters")}
               </Link>
             </Button>
           </div>

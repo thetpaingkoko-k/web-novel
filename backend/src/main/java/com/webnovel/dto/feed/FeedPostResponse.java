@@ -6,6 +6,8 @@ import java.time.OffsetDateTime;
 public record FeedPostResponse(
         Long feedPostId,
         Long authorId,
+        String authorUsername,
+        String authorAvatarUrl,
         String title,
         String content,
         boolean premiumOnly,

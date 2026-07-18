@@ -19,7 +19,7 @@ public interface DebatePostRepository extends JpaRepository<DebatePost, Long> {
      */
     @Query("""
             select new com.webnovel.dto.debate.PostResponse(
-                p.id, p.threadId, p.authorId, u.username, ap.careerStage, p.parentPostId, p.content,
+                p.id, p.threadId, p.authorId, u.username, u.avatarUrl, ap.careerStage, p.parentPostId, p.content,
                 p.upvoteCount, p.downvoteCount, p.status, p.createdAt, v.voteType)
             from DebatePost p
                 join User u on u.id = p.authorId
@@ -33,7 +33,7 @@ public interface DebatePostRepository extends JpaRepository<DebatePost, Long> {
 
     @Query("""
             select new com.webnovel.dto.debate.PostResponse(
-                p.id, p.threadId, p.authorId, u.username, ap.careerStage, p.parentPostId, p.content,
+                p.id, p.threadId, p.authorId, u.username, u.avatarUrl, ap.careerStage, p.parentPostId, p.content,
                 p.upvoteCount, p.downvoteCount, p.status, p.createdAt, v.voteType)
             from DebatePost p
                 join User u on u.id = p.authorId

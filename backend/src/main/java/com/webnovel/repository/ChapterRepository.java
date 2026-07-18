@@ -54,6 +54,14 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
     @Query("select coalesce(max(c.chapterNumber), 0) from Chapter c where c.bookId = :bookId")
     int findMaxChapterNumber(@Param("bookId") Long bookId);
 
+    /** Book-level like total: the sum of like counts across the book's published chapters (§4.1.1). */
+    @Query("""
+            select coalesce(sum(c.likeCount), 0) from Chapter c
+            where c.bookId = :bookId
+              and c.status = com.webnovel.domain.enums.ChapterStatus.published
+            """)
+    long sumLikeCountByBookId(@Param("bookId") Long bookId);
+
     @Modifying
     @Query("update Chapter c set c.likeCount = c.likeCount + :delta where c.id = :id")
     void addLikeCount(@Param("id") Long id, @Param("delta") int delta);

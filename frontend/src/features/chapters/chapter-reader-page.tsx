@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { RefObject } from "react"
 import { isAxiosError } from "axios"
-import { ChevronLeft, ChevronRight, Clock, Heart, Library, Lock, Maximize, Minimize, Sparkles } from "lucide-react"
+import { CheckCircle2, ChevronLeft, ChevronRight, Clock, Eye, Heart, Library, Lock, Maximize, Minimize, Sparkles } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 import { QueryError } from "@/components/query-error"
@@ -406,25 +407,37 @@ export function ChapterReaderPage() {
           ))}
         </div>
 
-        {isAuthenticated && (
-          <div className="flex justify-center px-6 sm:px-8">
-            <Button
-              variant="outline"
-              size="lg"
-              className={cn(
-                "hover-lift rounded-full px-6",
-                liked && "border-destructive/40 text-destructive"
-              )}
+        {/* Chapter engagement — likes, reads, and completions, shown to every reader
+            (guests included). Likes are interactive for signed-in users; views and
+            completions are read-only counters. */}
+        <div className="flex flex-wrap items-center justify-center gap-2 px-6 sm:px-8">
+          {isAuthenticated ? (
+            <button
+              type="button"
               aria-pressed={liked}
               aria-label={t("chapters.likeChapter")}
               onClick={() => like.mutate(liked, { onSuccess: (result) => setLiked(result.liked) })}
               disabled={like.isPending}
+              className={cn(
+                "hover-lift inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                liked
+                  ? "border-destructive/40 text-destructive"
+                  : "border-border/70 text-muted-foreground hover:text-foreground"
+              )}
             >
-              <Heart className={cn("h-5 w-5 transition-transform", liked && "scale-110 fill-current")} />
-              <span className="tabular-nums">{chapter.likeCount}</span>
-            </Button>
-          </div>
-        )}
+              <Heart className={cn("h-4 w-4 transition-transform", liked && "scale-110 fill-current")} />
+              <span>{chapter.likeCount.toLocaleString()}</span>
+            </button>
+          ) : (
+            <ChapterStat icon={Heart} value={chapter.likeCount} label={t("chapters.likesLabel")} />
+          )}
+          <ChapterStat icon={Eye} value={chapter.uniqueViewCount} label={t("chapters.viewsLabel")} />
+          <ChapterStat
+            icon={CheckCircle2}
+            value={chapter.completionCount}
+            label={t("chapters.completionsLabel")}
+          />
+        </div>
 
         {/* Bottom navigation */}
         <div className="w-full px-6 sm:px-8">
@@ -436,6 +449,20 @@ export function ChapterReaderPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+/** A read-only chapter engagement counter (icon + number), visible to every reader. */
+function ChapterStat({ icon: Icon, value, label }: { icon: LucideIcon; value: number; label: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border border-border/70 px-4 py-2 text-sm font-medium text-muted-foreground tabular-nums"
+      title={label}
+    >
+      <Icon className="h-4 w-4" aria-hidden="true" />
+      <span>{value.toLocaleString()}</span>
+      <span className="sr-only">{label}</span>
+    </span>
   )
 }
 

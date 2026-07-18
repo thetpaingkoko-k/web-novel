@@ -5,6 +5,7 @@ import { ConfirmDialog } from "@/features/admin/components/confirm-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { UserAvatar } from "@/components/user-avatar"
 import type { FeedPost } from "@/types/feed"
 import { useDeleteFeedPost } from "../api"
 
@@ -46,9 +47,16 @@ export function FeedPostCard({ post, canDelete = false }: { post: FeedPost; canD
             )}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {new Date(post.publishedAt).toLocaleDateString()}
-        </p>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {post.authorUsername && (
+            <>
+              <UserAvatar name={post.authorUsername} src={post.authorAvatarUrl} className="size-5" />
+              <span className="font-medium text-foreground">{post.authorUsername}</span>
+              <span aria-hidden="true">·</span>
+            </>
+          )}
+          <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
+        </div>
       </CardHeader>
       <CardContent>
         <p className="text-sm whitespace-pre-wrap">{post.content}</p>

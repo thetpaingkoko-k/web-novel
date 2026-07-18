@@ -158,7 +158,7 @@ public class DebateService {
         }
     }
 
-    // --- votes (FR-9.5: one vote per post per reader; switch allowed) ---
+    // --- votes (FR-9.5: one vote per post per reader; switch or toggle-off allowed) ---
 
     @Transactional
     public PostResponse vote(AppUserPrincipal reader, Long postId, VoteRequest req) {
@@ -175,7 +175,12 @@ public class DebateService {
             applyDelta(postId, req.voteType(), 1);
         } else {
             DebateVote vote = existing.get();
-            if (vote.getVoteType() != req.voteType()) {
+            if (vote.getVoteType() == req.voteType()) {
+                // Re-voting the same direction clears the vote (toggle-off), so the up/down
+                // buttons behave like the toggles the UI presents them as (aria-pressed).
+                applyDelta(postId, vote.getVoteType(), -1);
+                votes.delete(vote);
+            } else {
                 applyDelta(postId, vote.getVoteType(), -1); // remove old direction
                 applyDelta(postId, req.voteType(), 1);      // add new direction
                 vote.setVoteType(req.voteType());
