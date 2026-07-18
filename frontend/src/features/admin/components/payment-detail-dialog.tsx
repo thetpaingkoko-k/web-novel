@@ -20,6 +20,11 @@ import { RejectWithReasonDialog } from "./reject-with-reason-dialog"
 
 interface PaymentDetailDialogProps {
   payment: PaymentSubmissionReview
+  /** Controlled open state — pass with `onOpenChange` to drive from a row menu. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /** Hide the built-in trigger button (for controlled use). */
+  hideTrigger?: boolean
 }
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -36,9 +41,20 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
  * detail field) with Approve / Reject in one place so an admin can verify a
  * transfer without leaving the queue.
  */
-export function PaymentDetailDialog({ payment }: PaymentDetailDialogProps) {
+export function PaymentDetailDialog({
+  payment,
+  open: openProp,
+  onOpenChange,
+  hideTrigger,
+}: PaymentDetailDialogProps) {
   const { t, i18n } = useTranslation()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = openProp !== undefined
+  const open = isControlled ? openProp : internalOpen
+  const setOpen = (next: boolean) => {
+    if (isControlled) onOpenChange?.(next)
+    else setInternalOpen(next)
+  }
   const approve = useApprovePayment()
   const reject = useRejectPayment()
   const screenshot = resolveUploadUrl(payment.screenshotUrl)
@@ -46,12 +62,14 @@ export function PaymentDetailDialog({ payment }: PaymentDetailDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
-          <Receipt />
-          {t("admin.checkPayment")}
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline">
+            <Receipt />
+            {t("admin.checkPayment")}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-h-[90vh] gap-0 overflow-y-auto rounded-2xl sm:max-w-2xl">
         <DialogHeader>
           <div className="flex items-start justify-between gap-3">

@@ -26,6 +26,8 @@ const users = [
     role: "professional_author",
     status: "approved",
     careerStage: "professional",
+    monetizationEnabled: true,
+    monthlySubscriptionPrice: 5000,
   },
   {
     userId: 5,
@@ -34,11 +36,30 @@ const users = [
     role: "reader",
     status: "banned",
     careerStage: null,
+    monetizationEnabled: false,
+    monthlySubscriptionPrice: null,
   },
 ]
 
+/** Open a row's ⋮ action menu by the account's username. */
+async function openRowMenu(user: ReturnType<typeof userEvent.setup>, username: string) {
+  // The username renders in both the desktop table and the mobile card list;
+  // pick the first occurrence that carries a ⋮ menu button.
+  const cells = await screen.findAllByText(username)
+  let menuButton: HTMLButtonElement | null = null
+  for (const cell of cells) {
+    const row = cell.closest("tr") ?? cell.closest("li")
+    const btn = row?.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')
+    if (btn) {
+      menuButton = btn
+      break
+    }
+  }
+  await user.click(menuButton!)
+}
+
 describe("UsersManagementPage", () => {
-  it("reactivates a banned account (FR-1.4)", async () => {
+  it("reactivates a banned account from the row menu (FR-1.4)", async () => {
     const user = userEvent.setup()
     let reactivated = false
     server.use(
@@ -51,25 +72,24 @@ describe("UsersManagementPage", () => {
 
     renderPage()
 
-    // The professional author's career-stage badge is rendered from `careerStage`.
-    expect(await screen.findByText(/^Professional$/)).toBeInTheDocument()
-    await user.click(await screen.findByRole("button", { name: /reactivate/i }))
+    await openRowMenu(user, "banned_bob")
+    await user.click(await screen.findByRole("menuitem", { name: /reactivate/i }))
 
     await waitFor(() => expect(reactivated).toBe(true))
     expect(await screen.findByText(/user reactivated/i)).toBeInTheDocument()
   })
 
   it("only offers reactivate (not suspend/ban) for a banned user", async () => {
+    const user = userEvent.setup()
     server.use(
-      http.get("/api/v1/admin/users", () =>
-        HttpResponse.json([users[1]])
-      )
+      http.get("/api/v1/admin/users", () => HttpResponse.json([users[1]]))
     )
 
     renderPage()
 
-    expect(await screen.findByRole("button", { name: /reactivate/i })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /^ban$/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /suspend/i })).not.toBeInTheDocument()
+    await openRowMenu(user, "banned_bob")
+    expect(await screen.findByRole("menuitem", { name: /reactivate/i })).toBeInTheDocument()
+    expect(screen.queryByRole("menuitem", { name: /^ban$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole("menuitem", { name: /suspend/i })).not.toBeInTheDocument()
   })
 })

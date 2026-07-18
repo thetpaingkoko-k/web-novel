@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { http, HttpResponse } from "msw"
 import { describe, expect, it } from "vitest"
@@ -31,7 +31,7 @@ function action(id: number, actionType: string) {
 }
 
 describe("AuditLogPage", () => {
-  it("groups actions into labelled sections including subscriptions & payments", async () => {
+  it("renders each recorded action as a row with its labelled type", async () => {
     server.use(
       http.get("/api/v1/admin/actions", () =>
         HttpResponse.json([
@@ -45,15 +45,17 @@ describe("AuditLogPage", () => {
 
     renderAuditLog()
 
-    expect(await screen.findByText("Approvals")).toBeInTheDocument()
-    expect(screen.getByText("Subscriptions & payments")).toBeInTheDocument()
-    expect(screen.getByText("Withdrawals")).toBeInTheDocument()
-    // The new payment action types render with their own labels.
+    // Each action's type renders as a status pill in its row.
+    expect(await screen.findByText("User approval")).toBeInTheDocument()
     expect(screen.getByText("Payment approved")).toBeInTheDocument()
     expect(screen.getByText("Payment rejected")).toBeInTheDocument()
+    expect(screen.getByText("Withdrawal approved")).toBeInTheDocument()
+    // …alongside every action's target.
+    expect(screen.getByText("target-1")).toBeInTheDocument()
+    expect(screen.getByText("target-4")).toBeInTheDocument()
   })
 
-  it("deletes an audit entry after confirmation", async () => {
+  it("deletes an audit entry from the row menu after confirmation", async () => {
     const user = userEvent.setup()
     let deletedId: number | undefined
     server.use(
@@ -67,10 +69,11 @@ describe("AuditLogPage", () => {
     renderAuditLog()
 
     await screen.findByText("target-5")
-    await user.click(screen.getByRole("button", { name: /delete entry/i }))
+    await user.click(screen.getByRole("button", { name: /^actions$/i }))
+    await user.click(await screen.findByRole("menuitem", { name: /delete entry/i }))
     // Confirm in the alert dialog (its action shares the "Delete entry" label).
-    const buttons = await screen.findAllByRole("button", { name: /delete entry/i })
-    await user.click(buttons[buttons.length - 1])
+    const dialog = await screen.findByRole("alertdialog")
+    await user.click(within(dialog).getByRole("button", { name: /delete entry/i }))
 
     await waitFor(() => expect(deletedId).toBe(5))
   })

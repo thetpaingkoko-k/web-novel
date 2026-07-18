@@ -1,109 +1,127 @@
-import { Banknote, CheckCircle2, Clock, Coins } from "lucide-react"
+import { Banknote, Ban, CheckCircle2 } from "lucide-react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
+import type { Withdrawal } from "@/types/earnings"
 import { useMarkWithdrawalPaid, usePendingWithdrawals, useRejectWithdrawal } from "../api"
+import { AdminPageHeader } from "../components/admin-page-header"
 import {
-  AdminStat,
-  AdminStatStrip,
-  StatusPill,
-} from "../components/admin-primitives"
-import { QueueShell } from "../components/queue-shell"
+  DataTable,
+  type DataColumn,
+  type PrimaryRowAction,
+  type RowAction,
+} from "../components/data-table"
 import { RejectWithReasonDialog } from "../components/reject-with-reason-dialog"
 
 export function WithdrawalsQueuePage() {
   const { t } = useTranslation()
+  const [rejectTarget, setRejectTarget] = useState<Withdrawal | null>(null)
   const { data, isLoading, isError, refetch } = usePendingWithdrawals()
   const markPaid = useMarkWithdrawalPaid()
   const reject = useRejectWithdrawal()
 
+  const columns: DataColumn<Withdrawal>[] = [
+    {
+      key: "amount",
+      header: t("admin.table.amount"),
+      cellClassName: "font-medium tabular-nums",
+      sortValue: (w) => w.amount,
+      cell: (w) => t("earnings.mmk", { amount: w.amount }),
+    },
+    {
+      key: "wallet",
+      header: t("admin.table.wallet"),
+      sortValue: (w) => w.payoutWalletProvider ?? "",
+      cell: (w) => (
+        <span className="text-sm text-muted-foreground">
+          {w.payoutWalletProvider ?? "—"}
+          {w.payoutWalletNumber ? ` · ${w.payoutWalletNumber}` : ""}
+        </span>
+      ),
+    },
+    {
+      key: "requestedAt",
+      header: t("admin.table.requested"),
+      align: "right",
+      cellClassName: "tabular-nums text-muted-foreground text-sm",
+      sortValue: (w) => w.requestedAt,
+      cell: (w) => new Date(w.requestedAt).toLocaleDateString(),
+    },
+  ]
+
+  function rowPrimaryAction(w: Withdrawal): PrimaryRowAction {
+    return {
+      label: t("admin.markPaid"),
+      icon: CheckCircle2,
+      variant: "success",
+      disabled: markPaid.isPending,
+      onSelect: () =>
+        markPaid.mutate(w.withdrawalId, {
+          onSuccess: () => toast.success(t("admin.withdrawalMarkedPaid")),
+          onError: () => toast.error(t("common.genericError")),
+        }),
+      confirm: {
+        title: t("admin.markPaidTitle"),
+        description: t("admin.markPaidDescription"),
+        confirmLabel: t("admin.markPaid"),
+        tone: "success",
+        icon: CheckCircle2,
+      },
+    }
+  }
+
+  function rowActions(w: Withdrawal): RowAction[] {
+    return [
+      {
+        key: "reject",
+        label: t("admin.reject"),
+        icon: Ban,
+        tone: "destructive",
+        onSelect: () => setRejectTarget(w),
+      },
+    ]
+  }
+
   return (
-    <QueueShell
-      title={t("admin.tabs.withdrawals")}
-      description={t("admin.desc.withdrawals")}
-      isLoading={isLoading}
-      isError={isError}
-      onRetry={() => refetch()}
-      data={data}
-      emptyIcon={Banknote}
-      emptyMessage={t("admin.withdrawalsEmpty")}
-      summary={(withdrawals) => (
-        <AdminStatStrip>
-          <AdminStat
-            label={t("admin.stat.pendingWithdrawals")}
-            value={withdrawals.length}
-            icon={Clock}
-            tone="warning"
-          />
-          <AdminStat
-            label={t("admin.stat.totalPayout")}
-            value={t("earnings.mmk", {
-              amount: withdrawals.reduce((sum, w) => sum + w.amount, 0),
-            })}
-            icon={Coins}
-            tone="success"
-          />
-        </AdminStatStrip>
+    <div className="flex flex-col gap-6">
+      <AdminPageHeader
+        title={t("admin.tabs.withdrawals")}
+        description={t("admin.desc.withdrawals")}
+        icon={Banknote}
+      />
+
+      <DataTable
+        data={data}
+        getRowId={(w) => w.withdrawalId}
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => refetch()}
+        emptyIcon={Banknote}
+        emptyMessage={t("admin.withdrawalsEmpty")}
+        columns={columns}
+        rowPrimaryAction={rowPrimaryAction}
+        rowActions={rowActions}
+        defaultSort={{ key: "requestedAt", dir: "desc" }}
+      />
+
+      {rejectTarget && (
+        <RejectWithReasonDialog
+          hideTrigger
+          open
+          onOpenChange={(open) => !open && setRejectTarget(null)}
+          title={t("admin.rejectWithdrawalTitle")}
+          pending={reject.isPending}
+          onReject={(reason) =>
+            reject.mutate(
+              { withdrawalId: rejectTarget.withdrawalId, reason },
+              {
+                onSuccess: () => toast.success(t("admin.withdrawalRejected")),
+                onError: () => toast.error(t("common.genericError")),
+              },
+            )
+          }
+        />
       )}
-    >
-      {(withdrawals) => (
-        <ul className="grid gap-3 xl:grid-cols-2">
-          {withdrawals.map((w) => (
-            <li
-              key={w.withdrawalId}
-              className="group hover-lift flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-colors hover:border-primary/30"
-            >
-              <div className="flex items-start gap-3.5 p-4">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-success/10 text-success">
-                  <Banknote className="size-5" aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1 text-sm">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-display text-lg font-semibold">
-                      {t("earnings.mmk", { amount: w.amount })}
-                    </span>
-                    <StatusPill tone="warning" icon={Clock} className="shrink-0">
-                      {t("admin.status.pending")}
-                    </StatusPill>
-                  </div>
-                  <p className="mt-0.5 truncate text-muted-foreground">
-                    {w.payoutWalletProvider} · {w.payoutWalletNumber}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-border/60 bg-muted/30 px-4 py-3">
-                <Button
-                  size="sm"
-                  variant="success"
-                  disabled={markPaid.isPending}
-                  onClick={() =>
-                    markPaid.mutate(w.withdrawalId, {
-                      onSuccess: () => toast.success(t("admin.withdrawalMarkedPaid")),
-                      onError: () => toast.error(t("common.genericError")),
-                    })
-                  }
-                >
-                  <CheckCircle2 />
-                  {t("admin.markPaid")}
-                </Button>
-                <RejectWithReasonDialog
-                  title={t("admin.rejectWithdrawalTitle")}
-                  pending={reject.isPending}
-                  onReject={(reason) =>
-                    reject.mutate(
-                      { withdrawalId: w.withdrawalId, reason },
-                      {
-                        onSuccess: () => toast.success(t("admin.withdrawalRejected")),
-                        onError: () => toast.error(t("common.genericError")),
-                      }
-                    )
-                  }
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </QueueShell>
+    </div>
   )
 }

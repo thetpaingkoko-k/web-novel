@@ -1,0 +1,250 @@
+erDiagram
+  USERS ||--o| AUTHOR_PROFILES : "extends 1:1"
+  USERS ||--o| EMAIL_VERIFICATION_CODES : "verifies via"
+  USERS ||--o{ REFRESH_TOKENS : "auth sessions"
+  USERS ||--o{ BOOKS : "writes"
+  USERS ||--o{ CHAPTERS : "reviews"
+  BOOKS ||--o{ BOOK_GENRES : "tagged"
+  BOOKS ||--o{ CHAPTERS : "contains"
+  CHAPTERS ||--o{ CHAPTER_VIEWS : "viewed in"
+  CHAPTERS ||--o{ CHAPTER_LIKES : "liked in"
+  CHAPTERS ||--o{ CHAPTER_COMMENTS : "commented on"
+  CHAPTER_COMMENTS ||--o{ CHAPTER_COMMENTS : "reply to"
+  USERS ||--o{ CHAPTER_VIEWS : "reads"
+  USERS ||--o{ CHAPTER_LIKES : "gives"
+  USERS ||--o{ CHAPTER_COMMENTS : "posts"
+  USERS ||--o{ READING_PROGRESS : "tracks"
+  BOOKS ||--o{ READING_PROGRESS : "progressed in"
+  CHAPTERS ||--o| READING_PROGRESS : "last read"
+  USERS ||--o{ BOOKMARKS : "saves"
+  BOOKS ||--o{ BOOKMARKS : "saved as"
+  USERS ||--o{ SUBSCRIPTIONS : "subscribes reader"
+  USERS ||--o{ SUBSCRIPTIONS : "earns author"
+  SUBSCRIPTIONS ||--o{ PAYMENT_SUBMISSIONS : "paid via"
+  ADMIN_WALLETS ||--o{ PAYMENT_SUBMISSIONS : "paid to"
+  USERS ||--o{ PAYMENT_SUBMISSIONS : "submits"
+  PAYMENT_SUBMISSIONS ||--o| AUTHOR_EARNINGS : "credits 1:1"
+  SUBSCRIPTIONS ||--o{ AUTHOR_EARNINGS : "generates"
+  USERS ||--o{ AUTHOR_EARNINGS : "earned by"
+  USERS ||--o{ AUTHOR_WITHDRAWALS : "requests"
+  USERS ||--o{ AUTHOR_FEED_POSTS : "publishes"
+  BOOKS ||--o{ DEBATE_THREADS : "discussed in"
+  USERS ||--o{ DEBATE_THREADS : "opens"
+  DEBATE_THREADS ||--o{ DEBATE_POSTS : "holds"
+  DEBATE_POSTS ||--o{ DEBATE_POSTS : "reply to"
+  USERS ||--o{ DEBATE_POSTS : "writes"
+  DEBATE_POSTS ||--o{ DEBATE_VOTES : "receives"
+  USERS ||--o{ DEBATE_VOTES : "casts"
+  USERS ||--o{ REPORTS : "files"
+  USERS ||--o{ ADMIN_ACTIONS : "performs"
+
+  USERS {
+    bigint user_id PK
+    varchar username UK
+    varchar email UK
+    varchar password_hash
+    enum auth_provider "LOCAL, EMAIL_CODE"
+    enum role "reader, hobbyist_author, professional_author, admin"
+    enum status "pending, approved, suspended, banned"
+    varchar avatar_url
+    enum gender
+    date date_of_birth
+    timestamptz terms_accepted_at
+    timestamptz created_at
+  }
+  AUTHOR_PROFILES {
+    bigint author_profile_id PK
+    bigint user_id FK "UK"
+    text bio
+    text writing_motivation
+    enum career_stage "hobbyist, professional"
+    bool is_monetization_enabled
+    numeric monthly_subscription_price
+    enum payout_wallet_provider
+    varchar payout_wallet_number
+    numeric available_balance
+    numeric total_earned
+    bool professional_requested
+    timestamptz approved_at
+  }
+  EMAIL_VERIFICATION_CODES {
+    bigint id PK
+    bigint user_id FK "UK"
+    varchar code_hash
+    timestamptz expires_at
+  }
+  REFRESH_TOKENS {
+    bigint id PK
+    bigint user_id FK
+    varchar token_hash UK
+    timestamptz expires_at
+  }
+  BOOKS {
+    bigint book_id PK
+    bigint author_id FK
+    varchar title
+    text synopsis
+    varchar cover_image_url
+    enum status "draft, ongoing, hiatus, completed"
+    bool is_premium
+    bool hidden
+    timestamptz created_at
+  }
+  BOOK_GENRES {
+    bigint book_id FK
+    enum genre PK
+  }
+  CHAPTERS {
+    bigint chapter_id PK
+    bigint book_id FK
+    int chapter_number
+    varchar title
+    text content
+    enum status "draft, pending_review, scheduled, published, rejected"
+    bigint reviewed_by FK
+    text rejection_reason
+    int like_count
+    int unique_view_count
+    int completion_count
+    timestamptz published_at
+  }
+  CHAPTER_VIEWS {
+    bigint view_id PK
+    bigint chapter_id FK
+    bigint reader_id FK "nullable"
+    varchar session_id
+    varchar device_fingerprint
+    bool is_unique
+    timestamptz viewed_at
+  }
+  CHAPTER_LIKES {
+    bigint like_id PK
+    bigint chapter_id FK
+    bigint reader_id FK
+    timestamptz created_at
+  }
+  CHAPTER_COMMENTS {
+    bigint comment_id PK
+    bigint chapter_id FK
+    bigint reader_id FK
+    bigint parent_comment_id FK "nullable"
+    text content
+    bool is_spoiler_flagged
+    enum status "visible, hidden, removed"
+    timestamptz created_at
+  }
+  READING_PROGRESS {
+    bigint progress_id PK
+    bigint reader_id FK
+    bigint book_id FK
+    bigint last_chapter_read_id FK
+    timestamptz updated_at
+  }
+  BOOKMARKS {
+    bigint bookmark_id PK
+    bigint reader_id FK
+    bigint book_id FK
+    timestamptz created_at
+  }
+  SUBSCRIPTIONS {
+    bigint subscription_id PK
+    bigint reader_id FK
+    bigint author_id FK
+    enum status "pending_payment, active, expired, rejected"
+    timestamptz start_date
+    timestamptz end_date
+    numeric price_mmk
+    bool reminder_sent
+  }
+  PAYMENT_SUBMISSIONS {
+    bigint submission_id PK
+    bigint reader_id FK
+    bigint wallet_id FK
+    bigint subscription_id FK "nullable"
+    numeric amount
+    varchar screenshot_url
+    varchar last_6_digits
+    enum status "pending, approved, rejected, flagged_duplicate"
+    bigint reviewed_by FK
+    timestamptz submitted_at
+  }
+  ADMIN_WALLETS {
+    bigint wallet_id PK
+    enum provider
+    varchar wallet_number
+    varchar account_name
+    varchar qr_image_url
+    bool is_active
+  }
+  AUTHOR_EARNINGS {
+    bigint earning_id PK
+    bigint author_id FK
+    bigint payment_submission_id FK "UK"
+    bigint subscription_id FK
+    numeric gross_amount
+    numeric platform_fee_percent
+    numeric platform_fee_amount
+    numeric net_amount
+  }
+  AUTHOR_WITHDRAWALS {
+    bigint withdrawal_id PK
+    bigint author_id FK
+    numeric amount
+    enum payout_wallet_provider
+    varchar payout_wallet_number
+    enum status "pending, paid, rejected"
+    bigint reviewed_by FK
+    timestamptz paid_at
+  }
+  AUTHOR_FEED_POSTS {
+    bigint feed_post_id PK
+    bigint author_id FK
+    varchar title
+    text content
+    bool is_premium_only
+    timestamptz published_at
+  }
+  DEBATE_THREADS {
+    bigint thread_id PK
+    bigint book_id FK
+    bigint creator_id FK
+    varchar title
+    enum status "open, locked"
+    int post_count
+    timestamptz created_at
+  }
+  DEBATE_POSTS {
+    bigint post_id PK
+    bigint thread_id FK
+    bigint author_id FK
+    bigint parent_post_id FK "nullable"
+    text content
+    int upvote_count
+    int downvote_count
+    enum status "visible, hidden, removed"
+  }
+  DEBATE_VOTES {
+    bigint vote_id PK
+    bigint post_id FK
+    bigint reader_id FK
+    enum vote_type "up, down"
+  }
+  REPORTS {
+    bigint report_id PK
+    bigint reporter_id FK
+    enum target_type "polymorphic"
+    bigint target_id
+    varchar reason
+    enum status "pending, reviewed, action_taken, dismissed"
+    bigint reviewed_by FK
+    timestamptz resolved_at
+  }
+  ADMIN_ACTIONS {
+    bigint admin_action_id PK
+    bigint admin_id FK
+    enum action_type
+    varchar target_type "polymorphic"
+    bigint target_id
+    text notes
+    timestamptz created_at
+  }

@@ -1,47 +1,46 @@
-import { BookText, Check, Clock, Eye, FileCheck } from "lucide-react"
+import { BookText, Check, Eye, FileCheck, Ban } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useChapter } from "@/features/chapters/api"
+import type { PendingChapterReview } from "@/types/admin"
 import { useApproveChapter, usePendingChapters, useRejectChapter } from "../api"
+import { AdminPageHeader } from "../components/admin-page-header"
 import {
-  AdminStat,
-  AdminStatStrip,
-  StatusPill,
-} from "../components/admin-primitives"
-import { QueueShell } from "../components/queue-shell"
+  DataTable,
+  type DataColumn,
+  type PrimaryRowAction,
+  type RowAction,
+} from "../components/data-table"
 import { RejectWithReasonDialog } from "../components/reject-with-reason-dialog"
 
-/**
- * Admin content preview. The queue rows are light (no content), so the full
- * chapter is fetched lazily from `GET /chapters/{id}` — which returns
- * non-published chapters to admins — only when this dialog is opened.
- */
-function ReviewContentDialog({ chapterId, title }: { chapterId: number; title: string }) {
+/** Lazily fetches the full chapter body (admins may read non-published chapters). */
+function ReviewContentDialog({
+  chapter,
+  onOpenChange,
+}: {
+  chapter: PendingChapterReview | null
+  onOpenChange: (open: boolean) => void
+}) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const { data, isLoading, isError } = useChapter(open ? chapterId : Number.NaN)
+  const open = chapter !== null
+  const { data, isLoading, isError } = useChapter(open ? chapter.chapterId : Number.NaN)
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="info">
-          <Eye />
-          {t("admin.reviewContent")}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto rounded-2xl">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>
+            {chapter &&
+              `${t("chapters.chapterLabel", { number: chapter.chapterNumber })}: ${chapter.title}`}
+          </DialogTitle>
         </DialogHeader>
         {isLoading && (
           <div className="flex flex-col gap-2">
@@ -51,9 +50,7 @@ function ReviewContentDialog({ chapterId, title }: { chapterId: number; title: s
           </div>
         )}
         {isError && <p className="text-sm text-destructive">{t("admin.reviewContentError")}</p>}
-        {data && (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">{data.content}</p>
-        )}
+        {data && <p className="text-sm leading-relaxed whitespace-pre-wrap">{data.content}</p>}
       </DialogContent>
     </Dialog>
   )
@@ -61,96 +58,114 @@ function ReviewContentDialog({ chapterId, title }: { chapterId: number; title: s
 
 export function ChaptersQueuePage() {
   const { t } = useTranslation()
+  const [review, setReview] = useState<PendingChapterReview | null>(null)
+  const [rejectTarget, setRejectTarget] = useState<PendingChapterReview | null>(null)
   const { data, isLoading, isError, refetch } = usePendingChapters()
   const approve = useApproveChapter()
   const reject = useRejectChapter()
 
+  function onApprove(chapterId: number) {
+    approve.mutate(chapterId, {
+      onSuccess: () => toast.success(t("admin.chapterApproved")),
+      onError: () => toast.error(t("common.genericError")),
+    })
+  }
+
+  const columns: DataColumn<PendingChapterReview>[] = [
+    {
+      key: "title",
+      header: t("admin.table.chapter"),
+      sortValue: (c) => c.chapterNumber,
+      cell: (c) => (
+        <div className="flex items-center gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <BookText className="size-4" aria-hidden />
+          </span>
+          <span className="line-clamp-2 font-medium">
+            {t("chapters.chapterLabel", { number: c.chapterNumber })}: {c.title}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: "book",
+      header: t("admin.table.book"),
+      sortValue: (c) => c.bookTitle.toLowerCase(),
+      cell: (c) => <span className="text-sm text-muted-foreground">{c.bookTitle}</span>,
+    },
+    {
+      key: "author",
+      header: t("admin.table.author"),
+      sortValue: (c) => c.authorUsername.toLowerCase(),
+      cell: (c) => <span className="text-sm">{c.authorUsername}</span>,
+    },
+  ]
+
+  function rowPrimaryAction(c: PendingChapterReview): PrimaryRowAction {
+    return {
+      label: t("admin.approve"),
+      icon: Check,
+      variant: "success",
+      disabled: approve.isPending,
+      onSelect: () => onApprove(c.chapterId),
+    }
+  }
+
+  function rowActions(c: PendingChapterReview): RowAction[] {
+    return [
+      { key: "review", label: t("admin.reviewContent"), icon: Eye, onSelect: () => setReview(c) },
+      {
+        key: "reject",
+        label: t("admin.reject"),
+        icon: Ban,
+        tone: "destructive",
+        separatorBefore: true,
+        onSelect: () => setRejectTarget(c),
+      },
+    ]
+  }
+
   return (
-    <QueueShell
-      title={t("admin.tabs.chapters")}
-      description={t("admin.desc.chapters")}
-      isLoading={isLoading}
-      isError={isError}
-      onRetry={() => refetch()}
-      data={data}
-      emptyIcon={FileCheck}
-      emptyMessage={t("admin.chaptersEmpty")}
-      summary={(chapters) => (
-        <AdminStatStrip>
-          <AdminStat
-            label={t("admin.stat.awaitingReview")}
-            value={chapters.length}
-            icon={Clock}
-            tone="warning"
-          />
-        </AdminStatStrip>
+    <div className="flex flex-col gap-6">
+      <AdminPageHeader
+        title={t("admin.tabs.chapters")}
+        description={t("admin.desc.chapters")}
+        icon={FileCheck}
+      />
+
+      <DataTable
+        data={data}
+        getRowId={(c) => c.chapterId}
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => refetch()}
+        emptyIcon={FileCheck}
+        emptyMessage={t("admin.chaptersEmpty")}
+        columns={columns}
+        rowPrimaryAction={rowPrimaryAction}
+        rowActions={rowActions}
+      />
+
+      <ReviewContentDialog chapter={review} onOpenChange={(open) => !open && setReview(null)} />
+
+      {rejectTarget && (
+        <RejectWithReasonDialog
+          hideTrigger
+          open
+          onOpenChange={(open) => !open && setRejectTarget(null)}
+          title={t("admin.rejectChapterTitle")}
+          pending={reject.isPending}
+          onReject={(reason) =>
+            reject.mutate(
+              { chapterId: rejectTarget.chapterId, reason },
+              {
+                onSuccess: () => toast.success(t("admin.chapterRejected")),
+                onError: () => toast.error(t("common.genericError")),
+              },
+            )
+          }
+        />
       )}
-    >
-      {(chapters) => (
-        <ul className="grid gap-3 xl:grid-cols-2">
-          {chapters.map((chapter) => (
-            <li
-              key={chapter.chapterId}
-              className="group hover-lift flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-colors hover:border-primary/30"
-            >
-              <div className="flex items-start gap-3.5 p-4">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <BookText className="size-5" aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="line-clamp-2 text-sm font-semibold">
-                      {t("chapters.chapterLabel", { number: chapter.chapterNumber })}: {chapter.title}
-                    </span>
-                    <StatusPill tone="warning" icon={Clock} className="shrink-0">
-                      {t("admin.status.pending")}
-                    </StatusPill>
-                  </div>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground" title={chapter.bookTitle}>
-                    {chapter.bookTitle}
-                  </p>
-                  <p className="mt-1.5 truncate text-xs text-muted-foreground">
-                    {t("books.byAuthor", { author: chapter.authorUsername })}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-border/60 bg-muted/30 px-4 py-3">
-                <ReviewContentDialog
-                  chapterId={chapter.chapterId}
-                  title={`${t("chapters.chapterLabel", { number: chapter.chapterNumber })}: ${chapter.title}`}
-                />
-                <Button
-                  size="sm"
-                  variant="success"
-                  disabled={approve.isPending}
-                  onClick={() =>
-                    approve.mutate(chapter.chapterId, {
-                      onSuccess: () => toast.success(t("admin.chapterApproved")),
-                      onError: () => toast.error(t("common.genericError")),
-                    })
-                  }
-                >
-                  <Check />
-                  {t("admin.approve")}
-                </Button>
-                <RejectWithReasonDialog
-                  title={t("admin.rejectChapterTitle")}
-                  pending={reject.isPending}
-                  onReject={(reason) =>
-                    reject.mutate(
-                      { chapterId: chapter.chapterId, reason },
-                      {
-                        onSuccess: () => toast.success(t("admin.chapterRejected")),
-                        onError: () => toast.error(t("common.genericError")),
-                      }
-                    )
-                  }
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </QueueShell>
+    </div>
   )
 }

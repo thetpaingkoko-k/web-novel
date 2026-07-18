@@ -39,6 +39,25 @@ public class AdminModerationController {
         return reports.resolve(SecurityUtils.currentUserId(), id, req);
     }
 
+    /**
+     * Hide the report's target (comment/debate post → {@code hidden}, book → {@code hidden=true})
+     * and mark the report {@code action_taken}; audited. Returns the updated queue row. User
+     * targets are not hideable → 400.
+     */
+    @PutMapping("/reports/{id}/hide-target")
+    public AdminReportRow hideReportTarget(@PathVariable Long id) {
+        return reports.hideReportTarget(SecurityUtils.currentUserId(), id);
+    }
+
+    /**
+     * Reverse a hide: restore the target's visibility and return the report to the {@code pending}
+     * queue; audited. Returns the updated queue row. User targets are not hideable → 400.
+     */
+    @PutMapping("/reports/{id}/unhide-target")
+    public AdminReportRow unhideReportTarget(@PathVariable Long id) {
+        return reports.unhideReportTarget(SecurityUtils.currentUserId(), id);
+    }
+
     @GetMapping("/actions")
     public List<AdminActionRow> auditLog(@RequestParam(defaultValue = "100") int limit) {
         return adminActions.recent(limit);

@@ -1,0 +1,86 @@
+flowchart LR
+  %% ---------- Actors ----------
+  GUEST([" Guest / Visitor "]):::actor
+  READER([" Reader "]):::actor
+  HOB([" Hobbyist Author "]):::actor
+  PRO([" Professional Author "]):::actor
+  ADMIN([" Admin "]):::actor
+
+  %% ---------- Actor generalization (child inherits parent's use cases) ----------
+  READER -. inherits .-> GUEST
+  HOB -. inherits .-> READER
+  PRO -. inherits .-> HOB
+
+  subgraph SYS [" NovelSpire Platform "]
+    direction TB
+
+    subgraph DISC [Discovery]
+      U1(["Browse books"])
+      U2(["View book & author"])
+      U3(["Read free chapters"])
+      U4(["Read debates"])
+    end
+    subgraph ACCT [Account & Access]
+      U5(["Register"])
+      U6(["Verify email"])
+      U7(["Log in / out"])
+      U8(["Manage account"])
+    end
+    subgraph ENG [Engagement]
+      U9(["Bookmark / My List"])
+      U10(["Track reading progress"])
+      U11(["Like chapter"])
+      U12(["Comment & reply"])
+      U13(["Create / join debate"])
+      U14(["Vote on debate posts"])
+      U15(["Report content"])
+    end
+    subgraph SUB [Subscription & Payment]
+      U16(["Subscribe to author"])
+      U17(["Submit MMK payment"])
+      U18(["View my subscriptions"])
+      U19(["Apply to become author"])
+    end
+    subgraph AUTH [Authoring]
+      U20(["Create / edit book"])
+      U21(["Write / edit chapters"])
+      U22(["Submit chapter for review"])
+      U23(["Post to author feed"])
+      U24(["Request professional upgrade"])
+    end
+    subgraph MON [Monetization]
+      U25(["Set subscription price"])
+      U26(["View earnings"])
+      U27(["Request withdrawal"])
+      U28(["Set payout wallet"])
+    end
+    subgraph ADM [Administration]
+      U29(["Review registrations"])
+      U30(["Manage users (suspend/ban)"])
+      U31(["Review upgrade requests"])
+      U32(["Review chapters"])
+      U33(["Review payments"])
+      U34(["Review withdrawals"])
+      U35(["Manage admin wallets"])
+      U36(["Handle reports / moderate"])
+      U37(["View analytics"])
+      U38(["View audit log"])
+    end
+  end
+
+  %% ---------- Associations ----------
+  GUEST --- U1 & U2 & U3 & U4 & U5 & U6 & U7
+  READER --- U8 & U9 & U10 & U11 & U12 & U13 & U14 & U15 & U16 & U17 & U18 & U19
+  HOB --- U20 & U21 & U22 & U23 & U24
+  PRO --- U25 & U26 & U27 & U28
+  ADMIN --- U29 & U30 & U31 & U32 & U33 & U34 & U35 & U36 & U37 & U38
+  ADMIN --- U7 & U8
+
+  %% ---------- include / extend relationships ----------
+  U17 -. include .-> U16
+  U16 -. include .-> U18
+  U22 -. include .-> U21
+  U27 -. include .-> U26
+
+  classDef actor fill:#574fd6,stroke:#2b2663,color:#fff,font-weight:bold;
+  classDef default fill:#f7f8fd,stroke:#9aa0c4,color:#1c1f30;

@@ -116,8 +116,8 @@ public class BookService {
     public BookDetailResponse getDetail(Long bookId, Optional<AppUserPrincipal> viewer) {
         Book book = books.findById(bookId).orElseThrow(() -> new NotFoundException("book.not_found"));
         boolean privileged = viewer.map(v -> canSeeUnpublished(v, book)).orElse(false);
-        if (book.getStatus() == BookStatus.draft && !privileged) {
-            throw new NotFoundException("book.not_found"); // don't leak drafts
+        if ((book.getStatus() == BookStatus.draft || book.isHidden()) && !privileged) {
+            throw new NotFoundException("book.not_found"); // don't leak drafts or admin-hidden books
         }
         return toDetail(book, chapterSummaries(book, privileged));
     }
@@ -199,7 +199,7 @@ public class BookService {
         return new BookDetailResponse(
                 book.getId(), book.getAuthorId(), username, careerStage, book.getTitle(), book.getSynopsis(),
                 new ArrayList<>(book.getGenres()), book.getCoverImageUrl(), book.getStatus(), book.isPremium(),
-                book.getCreatedAt(), chapterSummaries);
+                book.isHidden(), book.getCreatedAt(), chapterSummaries);
     }
 
     /** Copies the requested genres into a fresh set (null → empty), preserving order. */

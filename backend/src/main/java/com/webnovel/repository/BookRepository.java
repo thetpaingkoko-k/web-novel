@@ -15,8 +15,8 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     /**
      * Public browse/search (§10.3). Joins the author's username and counts
-     * published chapters (denormalized read-model fields, §4.1.1). Draft books
-     * are excluded from public listings. {@code searchPattern} is a pre-built,
+     * published chapters (denormalized read-model fields, §4.1.1). Draft and
+     * admin-hidden books are excluded from public listings. {@code searchPattern} is a pre-built,
      * lower-cased, wildcard-escaped {@code %term%} LIKE pattern (built by the
      * service) matched against the book title OR the author's username.
      * {@code genre} filters to books containing that genre ({@code member of});
@@ -30,6 +30,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
                 join User u on u.id = b.authorId
                 left join AuthorProfile ap on ap.userId = b.authorId
             where b.status <> com.webnovel.domain.enums.BookStatus.draft
+              and b.hidden = false
               and (:genre is null or :genre member of b.genres)
               and (:status is null or b.status = :status)
               and (:searchPattern is null

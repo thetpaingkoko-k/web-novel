@@ -57,6 +57,19 @@ export function useUpdateBook(bookId: number) {
   })
 }
 
+export function useDeleteBook() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (bookId: number) => {
+      await apiClient.delete(`/books/${bookId}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["books", "list"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "reports"] })
+    },
+  })
+}
+
 export function useReadingProgress(bookId: number, enabled: boolean) {
   return useQuery({
     queryKey: ["books", "progress", bookId] as const,

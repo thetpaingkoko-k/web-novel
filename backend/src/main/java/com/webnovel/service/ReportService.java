@@ -65,6 +65,58 @@ public class ReportService {
         return reports.findQueueByStatus(status).stream().map(this::enrich).toList();
     }
 
+    /**
+     * Hides the reported target and marks the report {@code action_taken} (FR-12.3). Unlike
+     * the legacy {@code resolve(action_taken)} path this is the dedicated, reversible moderation
+     * action: comments/debate posts go {@code hidden}, books get {@code hidden=true}. User
+     * targets are not hideable here.
+     */
+    @Transactional
+    public AdminReportRow hideReportTarget(Long adminId, Long reportId) {
+        Report report = reports.findById(reportId)
+                .orElseThrow(() -> new NotFoundException("error.not_found"));
+        if (report.getTargetType() == ReportTargetType.user) {
+            throw new BadRequestException("report.target_not_hideable");
+        }
+        hideTarget(report);
+        report.setStatus(ReportStatus.action_taken);
+        report.setReviewedBy(adminId);
+        report.setResolvedAt(OffsetDateTime.now());
+
+        adminActions.log(adminId, AdminActionType.content_removal,
+                report.getTargetType().name(), report.getTargetId(), null);
+        adminActions.log(adminId, AdminActionType.report_resolution, "report", reportId, null);
+
+        return findEnrichedRow(reportId, report.getStatus());
+    }
+
+    /**
+     * Reverses {@link #hideReportTarget}: the target becomes visible again and the report
+     * returns to the actionable {@code pending} queue (review metadata cleared).
+     */
+    @Transactional
+    public AdminReportRow unhideReportTarget(Long adminId, Long reportId) {
+        Report report = reports.findById(reportId)
+                .orElseThrow(() -> new NotFoundException("error.not_found"));
+        switch (report.getTargetType()) {
+            case chapter_comment -> comments.findById(report.getTargetId())
+                    .ifPresent(c -> c.setStatus(CommentStatus.visible));
+            case debate_post -> posts.findById(report.getTargetId())
+                    .ifPresent(p -> p.setStatus(CommentStatus.visible));
+            case book -> books.findById(report.getTargetId())
+                    .ifPresent(b -> b.setHidden(false));
+            case user -> throw new BadRequestException("report.target_not_hideable");
+        }
+        report.setStatus(ReportStatus.pending);
+        report.setReviewedBy(null);
+        report.setResolvedAt(null);
+
+        adminActions.log(adminId, AdminActionType.content_approval,
+                report.getTargetType().name(), report.getTargetId(), null);
+
+        return findEnrichedRow(reportId, report.getStatus());
+    }
+
     @Transactional
     public AdminReportRow resolve(Long adminId, Long reportId, ResolveReportRequest req) {
         if (req.status() != ReportStatus.action_taken && req.status() != ReportStatus.dismissed) {
@@ -84,7 +136,12 @@ public class ReportService {
         adminActions.log(adminId, AdminActionType.report_resolution,
                 "report", reportId, req.notes());
 
-        return reports.findQueueByStatus(report.getStatus()).stream()
+        return findEnrichedRow(reportId, report.getStatus());
+    }
+
+    /** Reloads the queue row for a report in the given status and enriches it (FR-13.6). */
+    private AdminReportRow findEnrichedRow(Long reportId, ReportStatus status) {
+        return reports.findQueueByStatus(status).stream()
                 .filter(r -> r.reportId().equals(reportId))
                 .findFirst()
                 .map(this::enrich)
@@ -152,7 +209,9 @@ public class ReportService {
                     .ifPresent(c -> c.setStatus(CommentStatus.hidden));
             case debate_post -> posts.findById(report.getTargetId())
                     .ifPresent(p -> p.setStatus(CommentStatus.hidden));
-            default -> { /* book/user removal handled via user suspension / content tools, not here */ }
+            case book -> books.findById(report.getTargetId())
+                    .ifPresent(b -> b.setHidden(true));
+            case user -> { /* user targets are handled via suspension/ban tools, not content hiding */ }
         }
     }
 }

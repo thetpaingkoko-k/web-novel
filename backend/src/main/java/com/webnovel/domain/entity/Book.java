@@ -46,6 +46,9 @@ public class Book {
     @Column(name = "is_premium", nullable = false)
     private boolean premium = false;
 
+    @Column(name = "hidden", nullable = false)
+    private boolean hidden = false;
+
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 }

@@ -43,19 +43,23 @@ const applicant = {
 }
 
 describe("UsersQueuePage", () => {
-  it("shows an author applicant's onboarding answers next to Approve", async () => {
+  it("shows the Verify control and reveals onboarding answers via View details", async () => {
+    const user = userEvent.setup()
     server.use(http.get("/api/v1/admin/users", () => HttpResponse.json([applicant])))
 
     renderQueue()
 
-    expect(await screen.findByText(/about you/i)).toBeInTheDocument()
-    expect(screen.getByText(/written fan fiction for years/i)).toBeInTheDocument()
-    expect(screen.getByText(/why do you want to write\?/i)).toBeInTheDocument()
-    expect(screen.getByText(/stories in my head/i)).toBeInTheDocument()
-    expect(screen.getByText(/what do you want to write\?/i)).toBeInTheDocument()
-    expect(screen.getByText(/slow-burn fantasy romance/i)).toBeInTheDocument()
-    // Rendered alongside the existing approval control.
-    expect(screen.getByRole("button", { name: /verify author/i })).toBeInTheDocument()
+    // The primary approval control is visible right on the row.
+    expect(await screen.findByRole("button", { name: /verify author/i })).toBeInTheDocument()
+
+    // The application answers are one click away, behind View details.
+    await user.click(screen.getByRole("button", { name: /^actions$/i }))
+    await user.click(await screen.findByRole("menuitem", { name: /view details/i }))
+
+    const dialog = await screen.findByRole("dialog")
+    expect(within(dialog).getByText(/written fan fiction for years/i)).toBeInTheDocument()
+    expect(within(dialog).getByText(/stories in my head/i)).toBeInTheDocument()
+    expect(within(dialog).getByText(/slow-burn fantasy romance/i)).toBeInTheDocument()
   })
 
   it("bans a user after confirmation (FR-1.4)", async () => {
@@ -71,7 +75,8 @@ describe("UsersQueuePage", () => {
 
     renderQueue()
 
-    await user.click(await screen.findByRole("button", { name: /^ban$/i }))
+    await user.click(await screen.findByRole("button", { name: /^actions$/i }))
+    await user.click(await screen.findByRole("menuitem", { name: /^ban$/i }))
     const dialog = await screen.findByRole("alertdialog")
     await user.click(within(dialog).getByRole("button", { name: /^ban$/i }))
 

@@ -1,5 +1,5 @@
 import { Coins } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,22 +10,26 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
 interface SetPriceDialogProps {
-  trigger: React.ReactNode
+  open: boolean
+  onOpenChange: (open: boolean) => void
   username: string
   currentPrice: number | null
   busy?: boolean
   onSubmit: (priceMmk: number) => void
 }
 
-/** Admin adjusts a monetized author's monthly subscription price (FR-1.5). */
+/**
+ * Admin adjusts a monetized author's monthly subscription price (FR-1.5).
+ * Controlled: opened from a row's ⋮ action menu.
+ */
 export function SetPriceDialog({
-  trigger,
+  open,
+  onOpenChange,
   username,
   currentPrice,
   busy,
@@ -33,12 +37,17 @@ export function SetPriceDialog({
 }: SetPriceDialogProps) {
   const { t } = useTranslation()
   const [value, setValue] = useState(String(currentPrice ?? ""))
+
+  // Reset the field to the selected author's price each time the dialog opens.
+  useEffect(() => {
+    if (open) setValue(String(currentPrice ?? ""))
+  }, [open, currentPrice])
+
   const price = Number(value)
   const valid = value !== "" && Number.isFinite(price) && price > 0
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-2xl">
         <DialogHeader>
           <div className="flex items-start gap-3">
@@ -66,11 +75,16 @@ export function SetPriceDialog({
           <DialogClose asChild>
             <Button variant="outline">{t("common.cancel")}</Button>
           </DialogClose>
-          <DialogClose asChild>
-            <Button disabled={!valid || busy} onClick={() => valid && onSubmit(price)}>
-              {t("common.save")}
-            </Button>
-          </DialogClose>
+          <Button
+            disabled={!valid || busy}
+            onClick={() => {
+              if (!valid) return
+              onSubmit(price)
+              onOpenChange(false)
+            }}
+          >
+            {t("common.save")}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

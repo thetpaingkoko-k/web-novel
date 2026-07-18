@@ -1,20 +1,30 @@
-import { BadgeCheck, Ban, Clock, Coins, PauseCircle, Shield, UserCheck } from "lucide-react"
+import { BadgeCheck, Ban, Coins, Eye, PauseCircle, UserCheck } from "lucide-react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { useApproveUser, usePendingUsers, useSuspendUser } from "../api"
 import {
-  AdminAvatar,
-  AdminStat,
-  AdminStatStrip,
-  StatusPill,
-} from "../components/admin-primitives"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import type { AdminUser } from "@/types/admin"
+import { useApproveUser, usePendingUsers, useSuspendUser } from "../api"
+import { AdminPageHeader } from "../components/admin-page-header"
+import { AdminAvatar } from "../components/admin-primitives"
 import { AuthorApplicationAnswers } from "../components/author-application-answers"
-import { ConfirmDialog } from "../components/confirm-dialog"
-import { QueueShell } from "../components/queue-shell"
+import {
+  DataTable,
+  type DataColumn,
+  type PrimaryRowAction,
+  type RowAction,
+} from "../components/data-table"
 
 export function UsersQueuePage() {
   const { t } = useTranslation()
+  const [search, setSearch] = useState("")
+  const [detailsUser, setDetailsUser] = useState<AdminUser | null>(null)
   const { data, isLoading, isError, refetch } = usePendingUsers()
   const approve = useApproveUser()
   const suspend = useSuspendUser()
@@ -25,7 +35,7 @@ export function UsersQueuePage() {
       {
         onSuccess: () => toast.success(t("admin.userApproved")),
         onError: () => toast.error(t("common.genericError")),
-      }
+      },
     )
   }
 
@@ -35,124 +45,135 @@ export function UsersQueuePage() {
       {
         onSuccess: () => toast.success(t(ban ? "admin.userBanned" : "admin.userSuspended")),
         onError: () => toast.error(t("common.genericError")),
-      }
+      },
     )
   }
 
-  return (
-    <QueueShell
-      title={t("admin.tabs.users")}
-      description={t("admin.desc.users")}
-      isLoading={isLoading}
-      isError={isError}
-      onRetry={() => refetch()}
-      data={data}
-      emptyIcon={UserCheck}
-      emptyMessage={t("admin.usersEmpty")}
-      summary={(users) => (
-        <AdminStatStrip>
-          <AdminStat
-            label={t("admin.stat.awaitingApproval")}
-            value={users.length}
-            icon={Clock}
-            tone="warning"
-          />
-        </AdminStatStrip>
-      )}
-    >
-      {(users) => (
-        <ul className="grid gap-3 xl:grid-cols-2">
-          {users.map((user) => (
-            <li
-              key={user.userId}
-              className="group hover-lift flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-colors hover:border-primary/30"
-            >
-              {/* Identity + status */}
-              <div className="flex items-start gap-3.5 p-4">
-                <AdminAvatar name={user.username} tone="warning" className="size-12 rounded-2xl text-base" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="truncate font-semibold" title={user.username}>
-                      {user.username}
-                    </span>
-                    <StatusPill tone="warning" icon={Clock} className="shrink-0">
-                      {t("admin.status.pending")}
-                    </StatusPill>
-                  </div>
-                  <p className="truncate text-xs text-muted-foreground" title={user.email}>
-                    {user.email}
-                  </p>
-                  <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    <StatusPill tone="muted" icon={Shield}>
-                      {t("admin.role." + user.role)}
-                    </StatusPill>
-                    {user.careerStage && (
-                      <StatusPill tone="muted">
-                        {t("admin.careerStage." + user.careerStage)}
-                      </StatusPill>
-                    )}
-                  </div>
-                  <AuthorApplicationAnswers
-                    bio={user.bio}
-                    writingMotivation={user.writingMotivation}
-                    writingInterests={user.writingInterests}
-                  />
-                </div>
-              </div>
+  const columns: DataColumn<AdminUser>[] = [
+    {
+      key: "username",
+      header: t("admin.table.user"),
+      sortValue: (u) => u.username.toLowerCase(),
+      cell: (u) => (
+        <div className="flex items-center gap-3">
+          <AdminAvatar name={u.username} tone="warning" />
+          <div className="min-w-0">
+            <div className="truncate font-medium" title={u.username}>
+              {u.username}
+            </div>
+            <div className="truncate text-xs text-muted-foreground" title={u.email}>
+              {u.email}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "role",
+      header: t("admin.table.role"),
+      sortValue: (u) => u.role,
+      cell: (u) => <span className="text-sm">{t("admin.role." + u.role)}</span>,
+    },
+  ]
 
-              {/* Action bar */}
-              <div className="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-border/60 bg-muted/30 px-4 py-3">
-                <Button
-                  size="sm"
-                  variant="success"
-                  onClick={() => onApprove(user.userId, "verify_author")}
-                  disabled={approve.isPending}
-                >
-                  <BadgeCheck />
-                  {t("admin.verifyAuthor")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="info"
-                  onClick={() => onApprove(user.userId, "enable_monetization")}
-                  disabled={approve.isPending}
-                >
-                  <Coins />
-                  {t("admin.enableMonetization")}
-                </Button>
-                <ConfirmDialog
-                  trigger={
-                    <Button size="sm" variant="warning" disabled={suspend.isPending}>
-                      <PauseCircle />
-                      {t("admin.suspend")}
-                    </Button>
-                  }
-                  icon={PauseCircle}
-                  confirmTone="warning"
-                  title={t("admin.suspendTitle", { user: user.username })}
-                  description={t("admin.suspendDescription")}
-                  confirmLabel={t("admin.suspend")}
-                  onConfirm={() => onSuspend(user.userId, false)}
-                />
-                <ConfirmDialog
-                  trigger={
-                    <Button size="sm" variant="destructive" disabled={suspend.isPending}>
-                      <Ban />
-                      {t("admin.ban")}
-                    </Button>
-                  }
-                  icon={Ban}
-                  confirmTone="destructive"
-                  title={t("admin.banTitle", { user: user.username })}
-                  description={t("admin.banDescription")}
-                  confirmLabel={t("admin.ban")}
-                  onConfirm={() => onSuspend(user.userId, true)}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </QueueShell>
+  function rowPrimaryAction(u: AdminUser): PrimaryRowAction {
+    return {
+      label: t("admin.verifyAuthor"),
+      icon: BadgeCheck,
+      variant: "success",
+      disabled: approve.isPending,
+      onSelect: () => onApprove(u.userId, "verify_author"),
+    }
+  }
+
+  function rowActions(u: AdminUser): RowAction[] {
+    return [
+      { key: "details", label: t("admin.viewDetails"), icon: Eye, onSelect: () => setDetailsUser(u) },
+      {
+        key: "monetize",
+        label: t("admin.enableMonetization"),
+        icon: Coins,
+        onSelect: () => onApprove(u.userId, "enable_monetization"),
+      },
+      {
+        key: "suspend",
+        label: t("admin.suspend"),
+        icon: PauseCircle,
+        separatorBefore: true,
+        onSelect: () => onSuspend(u.userId, false),
+        confirm: {
+          title: t("admin.suspendTitle", { user: u.username }),
+          description: t("admin.suspendDescription"),
+          confirmLabel: t("admin.suspend"),
+          tone: "warning",
+          icon: PauseCircle,
+        },
+      },
+      {
+        key: "ban",
+        label: t("admin.ban"),
+        icon: Ban,
+        tone: "destructive",
+        onSelect: () => onSuspend(u.userId, true),
+        confirm: {
+          title: t("admin.banTitle", { user: u.username }),
+          description: t("admin.banDescription"),
+          confirmLabel: t("admin.ban"),
+          tone: "destructive",
+          icon: Ban,
+        },
+      },
+    ]
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <AdminPageHeader
+        title={t("admin.tabs.users")}
+        description={t("admin.desc.users")}
+        icon={UserCheck}
+      />
+
+      <DataTable
+        data={data}
+        getRowId={(u) => u.userId}
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => refetch()}
+        emptyIcon={UserCheck}
+        emptyMessage={t("admin.usersEmpty")}
+        columns={columns}
+        rowPrimaryAction={rowPrimaryAction}
+        rowActions={rowActions}
+        search={{ value: search, onChange: setSearch, placeholder: t("admin.searchUsers") }}
+        filterFn={(u) => {
+          const q = search.trim().toLowerCase()
+          return !q || u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+        }}
+      />
+
+      <Dialog open={detailsUser !== null} onOpenChange={(open) => !open && setDetailsUser(null)}>
+        <DialogContent className="rounded-2xl">
+          {detailsUser && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start gap-3">
+                  <AdminAvatar name={detailsUser.username} tone="warning" className="size-11" />
+                  <div className="min-w-0 space-y-1">
+                    <DialogTitle className="truncate">{detailsUser.username}</DialogTitle>
+                    <DialogDescription className="truncate">{detailsUser.email}</DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+              <AuthorApplicationAnswers
+                bio={detailsUser.bio}
+                writingMotivation={detailsUser.writingMotivation}
+                writingInterests={detailsUser.writingInterests}
+              />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }

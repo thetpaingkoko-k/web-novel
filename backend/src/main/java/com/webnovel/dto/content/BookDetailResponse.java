@@ -18,6 +18,7 @@ public record BookDetailResponse(
         String coverImageUrl,
         BookStatus status,
         boolean isPremium,
+        boolean hidden,
         OffsetDateTime createdAt,
         List<ChapterSummary> chapters) {
 }

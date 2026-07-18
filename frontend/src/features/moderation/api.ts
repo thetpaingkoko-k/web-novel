@@ -39,3 +39,29 @@ export function useResolveReport() {
     },
   })
 }
+
+export function useHideReportTarget() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (reportId: number) => {
+      const { data } = await apiClient.put<Report>(`/admin/reports/${reportId}/hide-target`)
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "reports"] })
+    },
+  })
+}
+
+export function useUnhideReportTarget() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (reportId: number) => {
+      const { data } = await apiClient.put<Report>(`/admin/reports/${reportId}/unhide-target`)
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "reports"] })
+    },
+  })
+}
