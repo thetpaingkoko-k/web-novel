@@ -8,6 +8,7 @@ import com.webnovel.domain.enums.BookStatus;
 import com.webnovel.domain.enums.CareerStage;
 import com.webnovel.domain.enums.ChapterStatus;
 import com.webnovel.domain.enums.Genre;
+import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.domain.enums.Role;
 import com.webnovel.dto.content.BookCreateRequest;
 import com.webnovel.dto.content.BookDetailResponse;
@@ -50,6 +51,7 @@ public class BookService {
     private final AuthorProfileRepository authorProfiles;
     private final BookmarkRepository bookmarks;
     private final ChapterCommentRepository comments;
+    private final NotificationService notifications;
 
     /** Upper bound on browse page size, so a client can't request an unbounded page (§10.3). */
     private static final int MAX_PAGE_SIZE = 100;
@@ -91,6 +93,9 @@ public class BookService {
             throw new ForbiddenException("content.delete_admin_only");
         }
         Book book = books.findById(bookId).orElseThrow(() -> new NotFoundException("book.not_found"));
+        // Tell the author an admin removed their book. The book row — and its title — is about to
+        // be gone, so carry the title as the render payload rather than a (soon-dead) book deep link.
+        notifications.notify(book.getAuthorId(), NotificationType.book_deleted, null, null, book.getTitle());
         books.delete(book);
     }
 

@@ -37,18 +37,22 @@ erDiagram
   USERS ||--o{ DEBATE_VOTES : "casts"
   USERS ||--o{ REPORTS : "files"
   USERS ||--o{ ADMIN_ACTIONS : "performs"
+  USERS ||--o{ NOTIFICATIONS : "receives"
+  BOOKS ||--o{ BOOK_VIEWS : "viewed in"
+  USERS ||--o{ BOOK_VIEWS : "views"
 
   USERS {
     bigint user_id PK
     varchar username UK
     varchar email UK
-    varchar password_hash
-    enum auth_provider "LOCAL, EMAIL_CODE"
+    varchar password_hash "null for GOOGLE"
+    enum auth_provider "LOCAL, GOOGLE"
     enum role "reader, hobbyist_author, professional_author, admin"
     enum status "pending, approved, suspended, banned"
     varchar avatar_url
-    enum gender
+    enum gender "male, female, other, prefer_not_to_say"
     date date_of_birth
+    varchar suspension_reason "shown on blocked login"
     timestamptz terms_accepted_at
     timestamptz created_at
   }
@@ -57,14 +61,16 @@ erDiagram
     bigint user_id FK "UK"
     text bio
     text writing_motivation
+    text writing_interests
     enum career_stage "hobbyist, professional"
     bool is_monetization_enabled
     numeric monthly_subscription_price
-    enum payout_wallet_provider
+    enum payout_wallet_provider "KBZPay, WavePay, AYAPay, other"
     varchar payout_wallet_number
     numeric available_balance
     numeric total_earned
     bool professional_requested
+    timestamptz professional_requested_at
     timestamptz approved_at
   }
   EMAIL_VERIFICATION_CODES {
@@ -85,14 +91,24 @@ erDiagram
     varchar title
     text synopsis
     varchar cover_image_url
-    enum status "draft, ongoing, hiatus, completed"
+    enum status "draft, ongoing, completed, hiatus"
     bool is_premium
     bool hidden
+    bigint view_count "denormalized unique-view counter"
     timestamptz created_at
   }
   BOOK_GENRES {
     bigint book_id FK
-    enum genre PK
+    enum genre PK "Fantasy, Romance, SciFi, ... (15 values)"
+  }
+  BOOK_VIEWS {
+    bigint view_id PK
+    bigint book_id FK
+    bigint reader_id FK "nullable (anonymous)"
+    varchar session_id
+    varchar device_fingerprint
+    bool is_unique
+    timestamptz viewed_at
   }
   CHAPTERS {
     bigint chapter_id PK
@@ -194,6 +210,8 @@ erDiagram
     varchar payout_wallet_number
     enum status "pending, paid, rejected"
     bigint reviewed_by FK
+    text rejection_reason
+    timestamptz requested_at
     timestamptz paid_at
   }
   AUTHOR_FEED_POSTS {
@@ -242,9 +260,19 @@ erDiagram
   ADMIN_ACTIONS {
     bigint admin_action_id PK
     bigint admin_id FK
-    enum action_type
+    enum action_type "user_approval, content_removal, payment_approval, ..."
     varchar target_type "polymorphic"
     bigint target_id
     text notes
+    timestamptz created_at
+  }
+  NOTIFICATIONS {
+    bigint notification_id PK
+    bigint user_id FK
+    enum type "subscription_activated, new_subscriber, report_filed, ..."
+    varchar target_type "nullable deep-link"
+    bigint target_id "nullable"
+    varchar data "pre-rendered payload"
+    timestamptz read_at "null == unread"
     timestamptz created_at
   }

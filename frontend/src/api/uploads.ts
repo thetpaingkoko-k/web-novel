@@ -5,10 +5,22 @@ import type { UploadImageResponse } from "@/types/uploads"
 /** Content types the backend accepts for image uploads (mirrors the contract). */
 export const ACCEPTED_IMAGE_TYPES = "image/png,image/jpeg,image/webp,image/gif"
 
-/** Backend root (without the `/api/v1` prefix) that serves `/uploads/**`. */
-const BACKEND_ORIGIN = (
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1"
-).replace(/\/api\/v1\/?$/, "")
+/**
+ * Backend root (without the `/api/v1` prefix) that serves `/uploads/**`.
+ *
+ * Stripping the `/api/v1` suffix from a relative base (e.g. `/api/v1`) yields an
+ * empty string — correct for a same-origin proxied prod deploy, but wrong in dev
+ * where the API lives on a different port (8080) than the Vite host (5173): an
+ * empty origin makes `<img src="/uploads/...">` resolve against 5173 and 404.
+ * So in dev only, fall back to the backend dev host instead of same-origin.
+ */
+const BACKEND_ORIGIN = (() => {
+  const origin = (
+    import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1"
+  ).replace(/\/api\/v1\/?$/, "")
+  if (origin === "" && import.meta.env.DEV) return "http://localhost:8080"
+  return origin
+})()
 
 /**
  * Turn a stored upload path into something an `<img src>` can load.

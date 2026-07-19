@@ -17,6 +17,7 @@ export type NotificationType =
   | "chapter_rejected"
   | "book_approved"
   | "book_rejected"
+  | "book_deleted"
   | "withdrawal_approved"
   | "upgrade_approved"
   | "upgrade_rejected"

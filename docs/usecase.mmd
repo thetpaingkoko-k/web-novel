@@ -34,6 +34,7 @@ flowchart LR
       U13(["Create / join debate"])
       U14(["Vote on debate posts"])
       U15(["Report content"])
+      U39(["View notifications"])
     end
     subgraph SUB [Subscription & Payment]
       U16(["Subscribe to author"])
@@ -70,7 +71,7 @@ flowchart LR
 
   %% ---------- Associations ----------
   GUEST --- U1 & U2 & U3 & U4 & U5 & U6 & U7
-  READER --- U8 & U9 & U10 & U11 & U12 & U13 & U14 & U15 & U16 & U17 & U18 & U19
+  READER --- U8 & U9 & U10 & U11 & U12 & U13 & U14 & U15 & U16 & U17 & U18 & U19 & U39
   HOB --- U20 & U21 & U22 & U23 & U24
   PRO --- U25 & U26 & U27 & U28
   ADMIN --- U29 & U30 & U31 & U32 & U33 & U34 & U35 & U36 & U37 & U38

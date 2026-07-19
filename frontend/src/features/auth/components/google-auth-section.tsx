@@ -43,6 +43,15 @@ function loadGsi(): Promise<void> {
   return gsiPromise
 }
 
+// google.accounts.id.initialize() is a global singleton: calling it repeatedly
+// makes GIS warn and keep only the last callback. So we run it once per page and
+// route the credential through this shared ref, which always points at whichever
+// section is currently mounted (login OR register).
+let gsiInitialized = false
+const activeCredentialHandler: {
+  current: ((credential: string) => void) | null
+} = { current: null }
+
 interface GoogleAuthSectionProps {
   /** Called after tokens are stored — the page navigates the user onward. */
   onSuccess: () => void
@@ -84,16 +93,33 @@ export function GoogleAuthSection({ onSuccess }: GoogleAuthSectionProps) {
     [googleLogin, onSuccess, t]
   )
 
+  // Keep the shared credential handler pointing at this mount's latest callback,
+  // so the once-per-page initialize() below always routes to the live section.
+  useEffect(() => {
+    activeCredentialHandler.current = handleCredential
+    return () => {
+      if (activeCredentialHandler.current === handleCredential) {
+        activeCredentialHandler.current = null
+      }
+    }
+  }, [handleCredential])
+
+  // Depends only on clientId: re-renders no longer re-run this (and thus can't
+  // re-trigger initialize()). renderButton still runs on each mount.
   useEffect(() => {
     if (!clientId || !containerRef.current) return
     let cancelled = false
     loadGsi()
       .then(() => {
         if (cancelled || !containerRef.current || !window.google) return
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: (response) => handleCredential(response.credential),
-        })
+        if (!gsiInitialized) {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: (response) =>
+              activeCredentialHandler.current?.(response.credential),
+          })
+          gsiInitialized = true
+        }
         window.google.accounts.id.renderButton(containerRef.current, {
           type: "standard",
           theme: "outline",
@@ -109,7 +135,7 @@ export function GoogleAuthSection({ onSuccess }: GoogleAuthSectionProps) {
     return () => {
       cancelled = true
     }
-  }, [clientId, handleCredential])
+  }, [clientId])
 
   if (!clientId) return null
 

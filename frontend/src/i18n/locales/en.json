@@ -925,6 +925,7 @@
       "chapter_rejected": "A chapter in \"{{data}}\" was rejected.",
       "book_approved": "Your book \"{{data}}\" was approved.",
       "book_rejected": "Your book \"{{data}}\" was rejected.",
+      "book_deleted": "Your book \"{{data}}\" was removed by an administrator.",
       "withdrawal_approved": "Your withdrawal of {{data}} was approved.",
       "upgrade_approved": "Your upgrade to professional author was approved.",
       "upgrade_rejected": "Your professional upgrade request was declined.",
