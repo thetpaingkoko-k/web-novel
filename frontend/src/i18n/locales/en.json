@@ -700,6 +700,10 @@
       "totalActions": "Total actions"
     },
     "upgradeApproved": "Author upgraded to professional",
+    "rejectUpgrade": "Reject request",
+    "upgradeRejected": "Upgrade request rejected",
+    "rejectUpgradeConfirmTitle": "Reject upgrade request?",
+    "rejectUpgradeConfirmDesc": "{{name}} will keep their current role and be notified that the request was declined.",
     "reactivate": "Reactivate",
     "userReactivated": "User reactivated",
     "setPrice": "Set price",
@@ -879,6 +883,34 @@
     "ctaBody": "Publish your own serialized novel and reach thousands of readers.",
     "ctaButton": "Start writing",
     "loadError": "Couldn't load stories right now."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Updates on your subscriptions, stories, and account.",
+    "bell": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "You're all caught up.",
+    "viewAll": "View all notifications",
+    "type": {
+      "subscription_activated": "Your subscription to {{data}} is now active.",
+      "subscription_expiring": "Your subscription is expiring soon.",
+      "subscription_expired": "Your subscription has expired.",
+      "payment_rejected": "Your payment was rejected: {{data}}",
+      "report_resolved": "Your report has been reviewed.",
+      "content_removed": "Your content was removed for a policy violation.",
+      "new_subscriber": "{{data}} subscribed to you.",
+      "chapter_approved": "A chapter in \"{{data}}\" was approved.",
+      "chapter_rejected": "A chapter in \"{{data}}\" was rejected.",
+      "book_approved": "Your book \"{{data}}\" was approved.",
+      "book_rejected": "Your book \"{{data}}\" was rejected.",
+      "withdrawal_approved": "Your withdrawal of {{data}} was approved.",
+      "upgrade_approved": "Your upgrade to professional author was approved.",
+      "upgrade_rejected": "Your professional upgrade request was declined.",
+      "report_filed": "A new report was filed and needs review.",
+      "upgrade_requested": "{{data}} requested a professional upgrade.",
+      "payment_submitted": "A new payment of {{data}} needs review.",
+      "withdrawal_requested": "A withdrawal of {{data}} needs review."
+    }
   },
   "footer": {
     "tagline": "A quiet home for serialized fiction — read, follow your favorites, and never lose your place.",

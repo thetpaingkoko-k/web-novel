@@ -102,6 +102,23 @@ export function useApproveUpgradeRequest() {
   })
 }
 
+/**
+ * Decline an upgrade request. The backend clears the queue flag (the user keeps their
+ * current role) and notifies the applicant, so refresh the upgrade-requests queue.
+ */
+export function useRejectUpgradeRequest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (userId: number) => {
+      await apiClient.put(`/admin/authors/upgrade-requests/${userId}/reject`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "upgrade-requests"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] })
+    },
+  })
+}
+
 // ---- Hobbyist chapter review ----
 
 export function usePendingChapters() {

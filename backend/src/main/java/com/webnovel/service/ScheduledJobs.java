@@ -3,6 +3,7 @@ package com.webnovel.service;
 import com.webnovel.domain.entity.Chapter;
 import com.webnovel.domain.entity.Subscription;
 import com.webnovel.domain.enums.ChapterStatus;
+import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.domain.enums.SubscriptionStatus;
 import com.webnovel.repository.ChapterRepository;
 import com.webnovel.repository.SubscriptionRepository;
@@ -31,6 +32,7 @@ public class ScheduledJobs {
 
     private final ChapterRepository chapters;
     private final SubscriptionRepository subscriptions;
+    private final NotificationService notifications;
 
     /** FR-2.6: publish scheduled chapters whose time has arrived. */
     @Scheduled(fixedDelayString = "${app.jobs.publish-interval-ms:60000}")
@@ -54,9 +56,10 @@ public class ScheduledJobs {
         List<Subscription> soon = subscriptions.findByStatusAndReminderSentFalseAndEndDateBefore(
                 SubscriptionStatus.active, threshold);
         for (Subscription sub : soon) {
-            // Notification transport is out of scope for v2.0; record that the reminder fired.
             log.info("Renewal reminder for subscription {} (reader {} → author {})",
                     sub.getId(), sub.getReaderId(), sub.getAuthorId());
+            notifications.notify(sub.getReaderId(), NotificationType.subscription_expiring,
+                    "author", sub.getAuthorId(), null); // in-app bell (§ notifications)
             sub.setReminderSent(true);
         }
     }
@@ -65,7 +68,15 @@ public class ScheduledJobs {
     @Scheduled(fixedDelayString = "${app.jobs.expiry-interval-ms:3600000}")
     @Transactional
     public void expireEndedSubscriptions() {
-        int expired = subscriptions.expireEnded(OffsetDateTime.now());
+        OffsetDateTime now = OffsetDateTime.now();
+        // Fetch the due rows first so each reader can be notified, then flip them in one update.
+        List<Subscription> due = subscriptions.findByStatusAndEndDateBefore(
+                SubscriptionStatus.active, now);
+        for (Subscription sub : due) {
+            notifications.notify(sub.getReaderId(), NotificationType.subscription_expired,
+                    "author", sub.getAuthorId(), null);
+        }
+        int expired = subscriptions.expireEnded(now);
         if (expired > 0) {
             log.info("Expired {} subscription(s)", expired);
         }

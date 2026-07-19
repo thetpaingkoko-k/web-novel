@@ -30,6 +30,7 @@ class ChapterPublishServiceTest {
     @Mock BookRepository books;
     @Mock AuthorProfileRepository authorProfiles;
     @Mock AdminActionService adminActions;
+    @Mock NotificationService notifications;
     @InjectMocks ChapterPublishService service;
 
     private static final long AUTHOR_ID = 50L;

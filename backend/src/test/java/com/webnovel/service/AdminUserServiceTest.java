@@ -27,6 +27,7 @@ class AdminUserServiceTest {
     @Mock AuthorProfileRepository authorProfiles;
     @Mock UserService userService;
     @Mock AdminActionService adminActions;
+    @Mock NotificationService notifications;
     @Mock AppProperties props;
     @InjectMocks AdminUserService service;
 

@@ -5,6 +5,7 @@ import com.webnovel.domain.entity.Chapter;
 import com.webnovel.domain.enums.AdminActionType;
 import com.webnovel.domain.enums.CareerStage;
 import com.webnovel.domain.enums.ChapterStatus;
+import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.dto.content.AdminChapterRow;
 import com.webnovel.dto.content.ChapterResponse;
 import com.webnovel.dto.content.PublishRequest;
@@ -34,6 +35,7 @@ public class ChapterPublishService {
     private final BookRepository books;
     private final AuthorProfileRepository authorProfiles;
     private final AdminActionService adminActions;
+    private final NotificationService notifications;
 
     /** Author submits a chapter: professionals publish/schedule directly, hobbyists enter review (§9.5). */
     @Transactional
@@ -94,6 +96,7 @@ public class ChapterPublishService {
         chapter.setReviewedAt(OffsetDateTime.now());
         adminActions.log(SecurityUtils.currentUserId(), AdminActionType.content_approval,
                 "chapter", chapterId, null);
+        notifyBookAuthor(chapter, NotificationType.chapter_approved);
         return ChapterService.toResponse(chapter);
     }
 
@@ -107,7 +110,17 @@ public class ChapterPublishService {
         chapter.setReviewedAt(OffsetDateTime.now());
         adminActions.log(SecurityUtils.currentUserId(), AdminActionType.content_rejection,
                 "chapter", chapterId, reason);
+        notifyBookAuthor(chapter, NotificationType.chapter_rejected);
         return ChapterService.toResponse(chapter);
+    }
+
+    /** Notifies the chapter's book author of an approval/rejection; {@code data} is the book title. */
+    private void notifyBookAuthor(Chapter chapter, NotificationType type) {
+        Book book = books.findById(chapter.getBookId()).orElse(null);
+        if (book == null) {
+            return;
+        }
+        notifications.notify(book.getAuthorId(), type, "chapter", chapter.getId(), book.getTitle());
     }
 
     private Chapter requirePendingReview(Long chapterId) {

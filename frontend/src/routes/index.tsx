@@ -24,6 +24,7 @@ import { ChapterEditorPage } from "@/features/author/chapter-editor-page"
 import { BookDetailPage } from "@/features/books/book-detail-page"
 import { BooksBrowsePage } from "@/features/books/books-browse-page"
 import { HomePage } from "@/features/home/home-page"
+import { NotificationsPage } from "@/features/notifications/notifications-page"
 import { ChapterReaderPage } from "@/features/chapters/chapter-reader-page"
 import { DebateListPage } from "@/features/debates/debate-list-page"
 import { DebateThreadPage } from "@/features/debates/debate-thread-page"
@@ -54,7 +55,10 @@ export const router = createBrowserRouter([
       {
         // Every signed-in user owns their own account page, regardless of role.
         element: <ProtectedRoute />,
-        children: [{ path: "account", element: <AccountPage /> }],
+        children: [
+          { path: "account", element: <AccountPage /> },
+          { path: "notifications", element: <NotificationsPage /> },
+        ],
       },
       {
         // Reader-only: bookmarks and applying to become an author.

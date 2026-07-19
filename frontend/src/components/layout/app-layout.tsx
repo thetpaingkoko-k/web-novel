@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { genreLabelKey } from "@/lib/genres"
+import { NotificationBell } from "@/features/notifications/notification-bell"
 import { useAuth } from "@/features/auth/auth-context"
 
 const AUTHOR_ROLES = ["hobbyist_author", "professional_author"]
@@ -75,6 +76,7 @@ function SiteHeader() {
           <SearchBar />
           <LanguageSwitcher />
           <ModeToggle />
+          {isAuthenticated && <NotificationBell />}
           {isAuthenticated ? (
             <UserMenu
               username={user?.username ?? ""}

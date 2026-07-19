@@ -3,6 +3,7 @@ package com.webnovel.service;
 import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.User;
 import com.webnovel.domain.enums.CareerStage;
+import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.domain.enums.UserStatus;
 import com.webnovel.dto.author.AuthorApplyRequest;
 import com.webnovel.dto.author.AuthorMeResponse;
@@ -30,6 +31,7 @@ public class AuthorService {
     private final AuthorProfileRepository authorProfiles;
     private final SubscriptionRepository subscriptions;
     private final UserService userService;
+    private final NotificationService notifications;
 
     /** Reader applies to become an author: creates a hobbyist profile and marks the user pending. */
     @Transactional
@@ -46,6 +48,8 @@ public class AuthorService {
         profile.setWritingInterests(req.writingInterests());
         authorProfiles.save(profile);
         user.setStatus(UserStatus.pending); // §4.1.1: application pending until admin review
+        notifications.notifyAdmins(NotificationType.upgrade_requested, "user",
+                userId, user.getUsername()); // nudge admins: an author application awaits review
         return userService.toResponse(user);
     }
 
@@ -99,6 +103,8 @@ public class AuthorService {
         }
         profile.setProfessionalRequested(true);
         profile.setProfessionalRequestedAt(OffsetDateTime.now());
+        notifications.notifyAdmins(NotificationType.upgrade_requested, "user",
+                userId, users.findById(userId).map(User::getUsername).orElse(null));
         return toMe(userId, profile);
     }
 

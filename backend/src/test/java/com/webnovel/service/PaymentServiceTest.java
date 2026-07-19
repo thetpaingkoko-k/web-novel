@@ -42,6 +42,8 @@ class PaymentServiceTest {
     @Mock AuthorProfileRepository authorProfiles;
     @Mock AuthorEarningRepository earnings;
     @Mock AdminActionService adminActions;
+    @Mock NotificationService notifications;
+    @Mock com.webnovel.repository.UserRepository users;
 
     private final AppProperties props = new AppProperties(
             new AppProperties.Jwt("unit-test-secret-value-at-least-32-bytes!!",
@@ -55,7 +57,7 @@ class PaymentServiceTest {
 
     private PaymentService service() {
         return new PaymentService(submissions, subscriptions, wallets, authorProfiles, earnings,
-                adminActions, props);
+                adminActions, notifications, users, props);
     }
 
     @Test

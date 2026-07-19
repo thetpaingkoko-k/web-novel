@@ -7,6 +7,7 @@ import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.PaymentSubmission;
 import com.webnovel.domain.entity.Subscription;
 import com.webnovel.domain.enums.AdminActionType;
+import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.domain.enums.PaymentStatus;
 import com.webnovel.domain.enums.SubscriptionStatus;
 import com.webnovel.dto.payment.AdminPaymentRow;
@@ -20,6 +21,7 @@ import com.webnovel.repository.AuthorEarningRepository;
 import com.webnovel.repository.AuthorProfileRepository;
 import com.webnovel.repository.PaymentSubmissionRepository;
 import com.webnovel.repository.SubscriptionRepository;
+import com.webnovel.repository.UserRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
@@ -40,6 +42,8 @@ public class PaymentService {
     private final AuthorProfileRepository authorProfiles;
     private final AuthorEarningRepository earnings;
     private final AdminActionService adminActions;
+    private final NotificationService notifications;
+    private final UserRepository users;
     private final AppProperties props;
 
     /** §9.3: create/reuse a pending subscription, run the duplicate check, persist the submission. */
@@ -77,6 +81,8 @@ public class PaymentService {
         submission.setLast6Digits(req.last6Digits());
         submission.setStatus(collision ? PaymentStatus.flagged_duplicate : PaymentStatus.pending);
         submissions.save(submission);
+        notifications.notifyAdmins(NotificationType.payment_submitted, "payment_submission",
+                submission.getId(), amountMmk(price)); // §7.3: nudge admins to review the queue
         return toResponse(submission);
     }
 
@@ -153,6 +159,12 @@ public class PaymentService {
 
         adminActions.log(adminId, AdminActionType.payment_approval,
                 "payment_submission", submission.getId(), null); // §7.3 audit
+
+        // Tell the reader their subscription went active, and the author they have a new subscriber.
+        notifications.notify(subscription.getReaderId(), NotificationType.subscription_activated,
+                "author", subscription.getAuthorId(), username(subscription.getAuthorId()));
+        notifications.notify(subscription.getAuthorId(), NotificationType.new_subscriber,
+                "user", subscription.getReaderId(), username(subscription.getReaderId()));
         return toResponse(submission);
     }
 
@@ -178,7 +190,17 @@ public class PaymentService {
 
         adminActions.log(adminId, AdminActionType.payment_rejection,
                 "payment_submission", submission.getId(), reason); // §7.3 audit
+        notifications.notify(submission.getReaderId(), NotificationType.payment_rejected,
+                "payment_submission", submission.getId(), reason);
         return toResponse(submission);
+    }
+
+    private String username(Long userId) {
+        return users.findById(userId).map(com.webnovel.domain.entity.User::getUsername).orElse(null);
+    }
+
+    private static String amountMmk(BigDecimal amount) {
+        return amount.stripTrailingZeros().toPlainString() + " MMK";
     }
 
     static PaymentSubmissionResponse toResponse(PaymentSubmission s) {

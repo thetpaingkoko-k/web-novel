@@ -3,6 +3,7 @@ package com.webnovel.service;
 import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.AuthorWithdrawal;
 import com.webnovel.domain.enums.AdminActionType;
+import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.domain.enums.WalletProvider;
 import com.webnovel.domain.enums.WithdrawalStatus;
 import com.webnovel.dto.payment.BalanceResponse;
@@ -36,6 +37,7 @@ public class EarningsService {
     private final AuthorEarningRepository earnings;
     private final AuthorWithdrawalRepository withdrawals;
     private final AdminActionService adminActions;
+    private final NotificationService notifications;
     private final com.webnovel.config.AppProperties props;
 
     @Transactional(readOnly = true)
@@ -89,7 +91,10 @@ public class EarningsService {
         w.setPayoutWalletProvider(provider);
         w.setPayoutWalletNumber(number);
         w.setStatus(WithdrawalStatus.pending);
-        return toResponse(withdrawals.save(w));
+        AuthorWithdrawal saved = withdrawals.save(w);
+        notifications.notifyAdmins(NotificationType.withdrawal_requested, "withdrawal",
+                saved.getId(), amountMmk(saved.getAmount())); // nudge admins: a payout awaits review
+        return toResponse(saved);
     }
 
     /**
@@ -120,6 +125,10 @@ public class EarningsService {
         return v == null ? BigDecimal.ZERO : v;
     }
 
+    private static String amountMmk(BigDecimal amount) {
+        return amount.stripTrailingZeros().toPlainString() + " MMK";
+    }
+
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('ADMIN')")
     public List<WithdrawalResponse> pendingQueue() {
@@ -142,6 +151,8 @@ public class EarningsService {
         w.setReviewedBy(adminId);
         p.setAvailableBalance(p.getAvailableBalance().subtract(w.getAmount()));
         adminActions.log(adminId, AdminActionType.withdrawal_approval, "withdrawal", withdrawalId, null);
+        notifications.notify(w.getAuthorId(), NotificationType.withdrawal_approved,
+                "withdrawal", withdrawalId, amountMmk(w.getAmount()));
         return toResponse(w);
     }
 

@@ -1,16 +1,22 @@
-import { BadgeCheck, Sparkles } from "lucide-react"
+import { BadgeCheck, Sparkles, XCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import type { UpgradeRequestRow } from "@/types/admin"
-import { useApproveUpgradeRequest, useUpgradeRequests } from "../api"
+import { useApproveUpgradeRequest, useRejectUpgradeRequest, useUpgradeRequests } from "../api"
 import { AdminPageHeader } from "../components/admin-page-header"
 import { AdminAvatar } from "../components/admin-primitives"
-import { DataTable, type DataColumn, type PrimaryRowAction } from "../components/data-table"
+import {
+  DataTable,
+  type DataColumn,
+  type PrimaryRowAction,
+  type RowAction,
+} from "../components/data-table"
 
 export function UpgradeRequestsPage() {
   const { t } = useTranslation()
   const { data, isLoading, isError, refetch } = useUpgradeRequests()
   const approve = useApproveUpgradeRequest()
+  const reject = useRejectUpgradeRequest()
 
   const columns: DataColumn<UpgradeRequestRow>[] = [
     {
@@ -65,6 +71,28 @@ export function UpgradeRequestsPage() {
     }
   }
 
+  function rowActions(r: UpgradeRequestRow): RowAction[] {
+    return [
+      {
+        key: "reject",
+        label: t("admin.rejectUpgrade"),
+        icon: XCircle,
+        tone: "destructive",
+        confirm: {
+          title: t("admin.rejectUpgradeConfirmTitle"),
+          description: t("admin.rejectUpgradeConfirmDesc", { name: r.username }),
+          confirmLabel: t("admin.rejectUpgrade"),
+          tone: "destructive",
+        },
+        onSelect: () =>
+          reject.mutate(r.userId, {
+            onSuccess: () => toast.success(t("admin.upgradeRejected")),
+            onError: () => toast.error(t("common.genericError")),
+          }),
+      },
+    ]
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <AdminPageHeader
@@ -83,6 +111,7 @@ export function UpgradeRequestsPage() {
         emptyMessage={t("admin.upgradeRequestsEmpty")}
         columns={columns}
         rowPrimaryAction={rowPrimaryAction}
+        rowActions={rowActions}
         defaultSort={{ key: "requestedAt", dir: "desc" }}
       />
     </div>

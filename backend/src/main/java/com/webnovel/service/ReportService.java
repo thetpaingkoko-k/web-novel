@@ -5,6 +5,7 @@ import com.webnovel.domain.entity.Report;
 import com.webnovel.domain.entity.User;
 import com.webnovel.domain.enums.AdminActionType;
 import com.webnovel.domain.enums.CommentStatus;
+import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.domain.enums.ReportStatus;
 import com.webnovel.domain.enums.ReportTargetType;
 import com.webnovel.dto.moderation.AdminReportRow;
@@ -37,6 +38,7 @@ public class ReportService {
     private final BookRepository books;
     private final UserRepository users;
     private final AdminActionService adminActions;
+    private final NotificationService notifications;
 
     @Transactional
     public ReportResponse file(AppUserPrincipal reporter, ReportRequest req) {
@@ -56,6 +58,8 @@ public class ReportService {
         report.setReason(req.reason());
         report.setStatus(ReportStatus.pending);
         reports.save(report);
+        notifications.notifyAdmins(NotificationType.report_filed, "report",
+                report.getId(), excerpt(req.reason())); // nudge admins: a report needs review
         return new ReportResponse(report.getId(), report.getTargetType(),
                 report.getTargetId(), report.getStatus());
     }
@@ -87,6 +91,8 @@ public class ReportService {
                 report.getTargetType().name(), report.getTargetId(), null);
         adminActions.log(adminId, AdminActionType.report_resolution, "report", reportId, null);
 
+        notifications.notify(report.getReporterId(), NotificationType.report_resolved,
+                "report", reportId, report.getStatus().name());
         return findEnrichedRow(reportId, report.getStatus());
     }
 
@@ -136,6 +142,8 @@ public class ReportService {
         adminActions.log(adminId, AdminActionType.report_resolution,
                 "report", reportId, req.notes());
 
+        notifications.notify(report.getReporterId(), NotificationType.report_resolved,
+                "report", reportId, report.getStatus().name());
         return findEnrichedRow(reportId, report.getStatus());
     }
 
@@ -212,6 +220,14 @@ public class ReportService {
             case book -> books.findById(report.getTargetId())
                     .ifPresent(b -> b.setHidden(true));
             case user -> { /* user targets are handled via suspension/ban tools, not content hiding */ }
+        }
+        // Tell the content owner their comment/post/book was removed (never for user targets).
+        if (report.getTargetType() != ReportTargetType.user) {
+            Long ownerId = resolveOwner(report.getTargetType(), report.getTargetId());
+            if (ownerId != null) {
+                notifications.notify(ownerId, NotificationType.content_removed,
+                        report.getTargetType().name(), report.getTargetId(), report.getTargetType().name());
+            }
         }
     }
 }

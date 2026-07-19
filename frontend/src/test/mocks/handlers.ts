@@ -245,4 +245,10 @@ export const handlers = [
   ),
   http.get("/api/v1/authors/:authorId/earnings", () => HttpResponse.json([])),
   http.get("/api/v1/authors/:authorId/withdrawals", () => HttpResponse.json([])),
+
+  // Notifications (polling delivery). Default: empty list, zero unread.
+  http.get("/api/v1/notifications", () => HttpResponse.json([])),
+  http.get("/api/v1/notifications/unread-count", () => HttpResponse.json({ count: 0 })),
+  http.put("/api/v1/notifications/:id/read", () => new HttpResponse(null, { status: 204 })),
+  http.put("/api/v1/notifications/read-all", () => new HttpResponse(null, { status: 204 })),
 ]

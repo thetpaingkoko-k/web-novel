@@ -5,6 +5,7 @@ import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.User;
 import com.webnovel.domain.enums.AdminActionType;
 import com.webnovel.domain.enums.CareerStage;
+import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.domain.enums.Role;
 import com.webnovel.domain.enums.UserStatus;
 import com.webnovel.dto.admin.AdminUserRow;
@@ -36,6 +37,7 @@ public class AdminUserService {
     private final AuthorProfileRepository authorProfiles;
     private final UserService userService;
     private final AdminActionService adminActions;
+    private final NotificationService notifications;
     private final AppProperties props;
 
     @Transactional
@@ -75,6 +77,29 @@ public class AdminUserService {
         }
         adminActions.log(SecurityUtils.currentUserId(), AdminActionType.user_approval,
                 "user", userId, req.kind().name());
+        notifications.notify(userId, NotificationType.upgrade_approved,
+                "user", userId, req.kind().name());
+        return userService.toResponse(user);
+    }
+
+    /**
+     * Declines a pending hobbyist→professional upgrade request (§4.1.1): clears the
+     * queue flag so it leaves the upgrade queue, leaves the user's role/monetization
+     * untouched, audits the decision, and notifies the applicant. 400 if the user has
+     * no pending request.
+     */
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponse rejectUpgrade(Long userId) {
+        User user = users.findById(userId).orElseThrow(() -> new NotFoundException("user.not_found"));
+        AuthorProfile profile = authorProfiles.findByUserId(userId)
+                .filter(AuthorProfile::isProfessionalRequested)
+                .orElseThrow(() -> new BadRequestException("author.no_upgrade_request"));
+        profile.setProfessionalRequested(false);
+        profile.setProfessionalRequestedAt(null);
+        adminActions.log(SecurityUtils.currentUserId(), AdminActionType.user_rejection,
+                "user", userId, "reject_upgrade");
+        notifications.notify(userId, NotificationType.upgrade_rejected, "user", userId, null);
         return userService.toResponse(user);
     }
 
