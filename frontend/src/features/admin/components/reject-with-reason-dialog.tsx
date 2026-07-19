@@ -22,6 +22,10 @@ interface RejectWithReasonDialogProps {
   onReject: (reason: string) => void
   pending?: boolean
   triggerLabel?: string
+  /** Sub-title hint under the title. Defaults to the reject-flavored hint. */
+  description?: string
+  /** Confirm-button label. Defaults to "Reject" — override for suspend/ban etc. */
+  confirmLabel?: string
   /** Controlled open state — pass with `onOpenChange` to drive from a row menu. */
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -34,6 +38,8 @@ export function RejectWithReasonDialog({
   onReject,
   pending,
   triggerLabel,
+  description,
+  confirmLabel,
   open: openProp,
   onOpenChange,
   hideTrigger,
@@ -83,7 +89,7 @@ export function RejectWithReasonDialog({
             </span>
             <div className="space-y-1">
               <DialogTitle>{title}</DialogTitle>
-              <DialogDescription>{t("admin.rejectDialogHint")}</DialogDescription>
+              <DialogDescription>{description ?? t("admin.rejectDialogHint")}</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -100,7 +106,7 @@ export function RejectWithReasonDialog({
           </Field>
           <DialogFooter>
             <Button type="submit" variant="destructive" disabled={pending}>
-              {t("admin.confirmReject")}
+              {confirmLabel ?? t("admin.confirmReject")}
             </Button>
           </DialogFooter>
         </form>

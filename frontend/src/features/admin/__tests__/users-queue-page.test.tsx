@@ -62,13 +62,13 @@ describe("UsersQueuePage", () => {
     expect(within(dialog).getByText(/slow-burn fantasy romance/i)).toBeInTheDocument()
   })
 
-  it("bans a user after confirmation (FR-1.4)", async () => {
+  it("bans a user with a required reason (FR-1.4)", async () => {
     const user = userEvent.setup()
-    let banned: boolean | undefined
+    let sent: { ban: boolean; reason: string } | undefined
     server.use(
       http.get("/api/v1/admin/users", () => HttpResponse.json([pendingUser])),
       http.put("/api/v1/admin/users/11/suspend", async ({ request }) => {
-        banned = ((await request.json()) as { ban: boolean }).ban
+        sent = (await request.json()) as { ban: boolean; reason: string }
         return new HttpResponse(null, { status: 204 })
       })
     )
@@ -77,10 +77,12 @@ describe("UsersQueuePage", () => {
 
     await user.click(await screen.findByRole("button", { name: /^actions$/i }))
     await user.click(await screen.findByRole("menuitem", { name: /^ban$/i }))
-    const dialog = await screen.findByRole("alertdialog")
+
+    const dialog = await screen.findByRole("dialog")
+    await user.type(within(dialog).getByLabelText("Reason"), "Fraudulent activity")
     await user.click(within(dialog).getByRole("button", { name: /^ban$/i }))
 
-    await waitFor(() => expect(banned).toBe(true))
+    await waitFor(() => expect(sent).toEqual({ ban: true, reason: "Fraudulent activity" }))
     expect(await screen.findByText(/user banned/i)).toBeInTheDocument()
   })
 })

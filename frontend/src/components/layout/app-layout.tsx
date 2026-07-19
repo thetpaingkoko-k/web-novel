@@ -82,6 +82,7 @@ function SiteHeader() {
               username={user?.username ?? ""}
               userId={user?.userId}
               role={user?.role}
+              isMonetizationEnabled={user?.isMonetizationEnabled ?? false}
               avatarUrl={user?.avatarUrl ?? null}
               onLogout={handleLogout}
             />
@@ -157,18 +158,22 @@ function UserMenu({
   username,
   userId,
   role,
+  isMonetizationEnabled,
   avatarUrl,
   onLogout,
 }: {
   username: string
   userId?: number
   role?: string
+  isMonetizationEnabled?: boolean
   avatarUrl?: string | null
   onLogout: () => void
 }) {
   const { t } = useTranslation()
   const initial = username.charAt(0).toUpperCase() || "U"
   const isAuthor = role != null && AUTHOR_ROLES.includes(role)
+  // Hobbyists who haven't been monetized yet get a fast path to the upgrade card.
+  const canBecomePro = role === "hobbyist_author" && !isMonetizationEnabled
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -215,6 +220,13 @@ function UserMenu({
           <DropdownMenuItem asChild>
             <Link to="/authors/apply">
               <PenLine className="size-4" /> {t("nav.becomeAuthor")}
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {canBecomePro && (
+          <DropdownMenuItem asChild>
+            <Link to="/author/books">
+              <Sparkles className="size-4" /> {t("nav.becomeProfessional")}
             </Link>
           </DropdownMenuItem>
         )}
@@ -267,6 +279,13 @@ function MobileMenu() {
             {user?.role === "professional_author" && (
               <DropdownMenuItem asChild>
                 <Link to="/author/earnings">{t("nav.earnings")}</Link>
+              </DropdownMenuItem>
+            )}
+            {user?.role === "hobbyist_author" && !user.isMonetizationEnabled && (
+              <DropdownMenuItem asChild>
+                <Link to="/author/books">
+                  <Sparkles className="size-4" /> {t("nav.becomeProfessional")}
+                </Link>
               </DropdownMenuItem>
             )}
           </>

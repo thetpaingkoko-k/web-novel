@@ -135,7 +135,8 @@ public class AdminUserService {
                             p == null ? null : p.getMonthlySubscriptionPrice(),
                             p == null ? null : p.getBio(),
                             p == null ? null : p.getWritingMotivation(),
-                            p == null ? null : p.getWritingInterests());
+                            p == null ? null : p.getWritingInterests(),
+                            u.getSuspensionReason());
                 })
                 .toList();
     }
@@ -165,23 +166,29 @@ public class AdminUserService {
         return authorProfiles.findUpgradeRequests();
     }
 
-    /** Suspend ({@code ban=false}) or ban ({@code ban=true}) a user (FR-1.4). Audited. */
+    /**
+     * Suspend ({@code ban=false}) or ban ({@code ban=true}) a user (FR-1.4). The required
+     * {@code reason} is stored on the account (shown to the user on a blocked login) and
+     * recorded as the audit note. Audited.
+     */
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
-    public UserResponse suspend(Long userId, boolean ban) {
+    public UserResponse suspend(Long userId, boolean ban, String reason) {
         User user = users.findById(userId).orElseThrow(() -> new NotFoundException("user.not_found"));
         user.setStatus(ban ? UserStatus.banned : UserStatus.suspended);
+        user.setSuspensionReason(reason);
         adminActions.log(SecurityUtils.currentUserId(), AdminActionType.ban,
-                "user", userId, ban ? "ban" : "suspend");
+                "user", userId, (ban ? "ban" : "suspend") + ": " + reason);
         return userService.toResponse(user);
     }
 
-    /** Restore a suspended/banned account to {@code approved} (§4.1.1). Audited. */
+    /** Restore a suspended/banned account to {@code approved}, clearing the reason (§4.1.1). Audited. */
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponse reactivate(Long userId) {
         User user = users.findById(userId).orElseThrow(() -> new NotFoundException("user.not_found"));
         user.setStatus(UserStatus.approved);
+        user.setSuspensionReason(null);
         adminActions.log(SecurityUtils.currentUserId(), AdminActionType.user_approval,
                 "user", userId, "reactivate");
         return userService.toResponse(user);

@@ -8,6 +8,7 @@ function comment(id: number, parentId: number | null): Comment {
     chapterId: 1,
     readerId: id,
     readerUsername: `reader${id}`,
+    readerAvatarUrl: null,
     parentCommentId: parentId,
     content: `comment ${id}`,
     spoilerFlagged: false,

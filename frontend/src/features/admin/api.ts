@@ -37,8 +37,16 @@ export function useApproveUser() {
 export function useSuspendUser() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ userId, ban }: { userId: number; ban: boolean }) => {
-      await apiClient.put(`/admin/users/${userId}/suspend`, { ban })
+    mutationFn: async ({
+      userId,
+      ban,
+      reason,
+    }: {
+      userId: number
+      ban: boolean
+      reason: string
+    }) => {
+      await apiClient.put(`/admin/users/${userId}/suspend`, { ban, reason })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
   })

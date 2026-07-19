@@ -1,5 +1,5 @@
-import { ArrowUpRight, BookOpen, BookPlus, CheckCircle2, Clock, Coins, FileText, ListPlus, Pencil, Plus, Sparkles, Wallet } from "lucide-react"
-import { useMemo } from "react"
+import { ArrowUpRight, BookOpen, BookPlus, CheckCircle2, Clock, Coins, FileText, ListPlus, Pencil, Plus, Search, Sparkles, Wallet } from "lucide-react"
+import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
 import { toast } from "sonner"
@@ -10,6 +10,14 @@ import { StatCard } from "@/components/stat-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { AuthUser } from "@/types/auth"
 import type { BookListItem } from "@/types/content"
@@ -223,10 +231,13 @@ function AuthorBookCard({ book }: { book: BookListItem }) {
                 <span aria-hidden>·</span>
               </>
             )}
-            <span className="flex items-center gap-1">
+            <Link
+              to={`/author/books/${book.bookId}/edit`}
+              className="flex items-center gap-1 font-medium hover:text-primary"
+            >
               <FileText className="h-3.5 w-3.5" aria-hidden="true" />
               {t("author.chaptersCount", { count: book.chapterCount })}
-            </span>
+            </Link>
           </div>
 
           <div className="mt-auto flex flex-wrap gap-2 pt-1">
@@ -249,10 +260,14 @@ function AuthorBookCard({ book }: { book: BookListItem }) {
   )
 }
 
+type BookStatusFilter = "all" | "draft" | "published"
+
 export function AuthorDashboardPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
   const { data, isLoading, isError, refetch } = useMyBooks(user?.userId ?? Number.NaN)
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState<BookStatusFilter>("all")
 
   const stats = useMemo(() => {
     const books = data ?? []
@@ -262,6 +277,18 @@ export function AuthorDashboardPage() {
       published: books.filter((b) => b.status !== "draft").length,
     }
   }, [data])
+
+  const filteredBooks = useMemo(() => {
+    const books = data ?? []
+    const query = search.trim().toLowerCase()
+    return books.filter((b) => {
+      const matchesQuery = query === "" || b.title.toLowerCase().includes(query)
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "draft" ? b.status === "draft" : b.status !== "draft")
+      return matchesQuery && matchesStatus
+    })
+  }, [data, search, statusFilter])
 
   const hasBooks = !isError && !isLoading && data && data.length > 0
 
@@ -311,12 +338,52 @@ export function AuthorDashboardPage() {
 
       {hasBooks && (
         <section className="flex flex-col gap-4">
-          <h2 className="font-display text-lg font-semibold">{t("author.yourBooks")}</h2>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {data.map((book) => (
-              <AuthorBookCard key={book.bookId} book={book} />
-            ))}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="font-display text-lg font-semibold">{t("author.yourBooks")}</h2>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative min-w-0 sm:w-56">
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t("author.searchBooks")}
+                  aria-label={t("author.searchBooks")}
+                  className="pl-9"
+                />
+              </div>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as BookStatusFilter)}
+              >
+                <SelectTrigger className="sm:w-40" aria-label={t("author.filterByStatus")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("author.statusAll")}</SelectItem>
+                  <SelectItem value="draft">{t("books.status.draft")}</SelectItem>
+                  <SelectItem value="published">{t("author.statusPublished")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          {filteredBooks.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent>
+                <EmptyState icon={Search} message={t("author.noBooksMatch")} />
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {filteredBooks.map((book) => (
+                <AuthorBookCard key={book.bookId} book={book} />
+              ))}
+            </div>
+          )}
         </section>
       )}
     </div>

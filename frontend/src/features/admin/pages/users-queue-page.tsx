@@ -14,6 +14,7 @@ import { useApproveUser, usePendingUsers, useSuspendUser } from "../api"
 import { AdminPageHeader } from "../components/admin-page-header"
 import { AdminAvatar } from "../components/admin-primitives"
 import { AuthorApplicationAnswers } from "../components/author-application-answers"
+import { RejectWithReasonDialog } from "../components/reject-with-reason-dialog"
 import {
   DataTable,
   type DataColumn,
@@ -25,6 +26,7 @@ export function UsersQueuePage() {
   const { t } = useTranslation()
   const [search, setSearch] = useState("")
   const [detailsUser, setDetailsUser] = useState<AdminUser | null>(null)
+  const [blockTarget, setBlockTarget] = useState<{ user: AdminUser; ban: boolean } | null>(null)
   const { data, isLoading, isError, refetch } = usePendingUsers()
   const approve = useApproveUser()
   const suspend = useSuspendUser()
@@ -39,11 +41,14 @@ export function UsersQueuePage() {
     )
   }
 
-  function onSuspend(userId: number, ban: boolean) {
+  function onSuspend(userId: number, ban: boolean, reason: string) {
     suspend.mutate(
-      { userId, ban },
+      { userId, ban, reason },
       {
-        onSuccess: () => toast.success(t(ban ? "admin.userBanned" : "admin.userSuspended")),
+        onSuccess: () => {
+          toast.success(t(ban ? "admin.userBanned" : "admin.userSuspended"))
+          setBlockTarget(null)
+        },
         onError: () => toast.error(t("common.genericError")),
       },
     )
@@ -100,28 +105,14 @@ export function UsersQueuePage() {
         label: t("admin.suspend"),
         icon: PauseCircle,
         separatorBefore: true,
-        onSelect: () => onSuspend(u.userId, false),
-        confirm: {
-          title: t("admin.suspendTitle", { user: u.username }),
-          description: t("admin.suspendDescription"),
-          confirmLabel: t("admin.suspend"),
-          tone: "warning",
-          icon: PauseCircle,
-        },
+        onSelect: () => setBlockTarget({ user: u, ban: false }),
       },
       {
         key: "ban",
         label: t("admin.ban"),
         icon: Ban,
         tone: "destructive",
-        onSelect: () => onSuspend(u.userId, true),
-        confirm: {
-          title: t("admin.banTitle", { user: u.username }),
-          description: t("admin.banDescription"),
-          confirmLabel: t("admin.ban"),
-          tone: "destructive",
-          icon: Ban,
-        },
+        onSelect: () => setBlockTarget({ user: u, ban: true }),
       },
     ]
   }
@@ -150,6 +141,23 @@ export function UsersQueuePage() {
           const q = search.trim().toLowerCase()
           return !q || u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
         }}
+      />
+
+      <RejectWithReasonDialog
+        hideTrigger
+        open={blockTarget !== null}
+        onOpenChange={(open) => !open && setBlockTarget(null)}
+        pending={suspend.isPending}
+        title={
+          blockTarget?.ban
+            ? t("admin.banTitle", { user: blockTarget.user.username })
+            : t("admin.suspendTitle", { user: blockTarget?.user.username ?? "" })
+        }
+        description={blockTarget?.ban ? t("admin.banDescription") : t("admin.suspendDescription")}
+        confirmLabel={blockTarget?.ban ? t("admin.ban") : t("admin.suspend")}
+        onReject={(reason) =>
+          blockTarget && onSuspend(blockTarget.user.userId, blockTarget.ban, reason)
+        }
       />
 
       <Dialog open={detailsUser !== null} onOpenChange={(open) => !open && setDetailsUser(null)}>

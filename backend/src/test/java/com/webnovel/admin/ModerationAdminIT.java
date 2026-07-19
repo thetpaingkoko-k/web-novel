@@ -170,17 +170,43 @@ class ModerationAdminIT extends AuthTestSupport {
                 .andExpect(status().isOk());
 
         mvc.perform(put("/api/v1/admin/users/{id}/suspend", userId).header("Authorization", bearer(adminToken))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"ban\":false}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ban\":false,\"reason\":\"Spamming the debate board\"}"))
                 .andExpect(status().isOk());
 
         // same (still-valid) token is now rejected at the auth filter (FR-1.4)
         mvc.perform(get("/api/v1/users/me").header("Authorization", bearer(token)))
                 .andExpect(status().isForbidden());
 
-        // reactivation restores access
+        // a fresh login surfaces the stored reason so the UI can explain the block (FR-1.4)
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"victim@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code", is("account_blocked")))
+                .andExpect(jsonPath("$.details.status", is("suspended")))
+                .andExpect(jsonPath("$.details.reason", is("Spamming the debate board")));
+
+        // the reason also appears on the admin user-management row
+        mvc.perform(get("/api/v1/admin/users").header("Authorization", bearer(adminToken))
+                        .param("search", "victim@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].suspensionReason", is("Spamming the debate board")));
+
+        // suspend requires a reason: an empty body is a 400 validation error
+        mvc.perform(put("/api/v1/admin/users/{id}/suspend", userId).header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"ban\":false}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("validation_failed")))
+                .andExpect(jsonPath("$.fieldErrors.reason", org.hamcrest.Matchers.notNullValue()));
+
+        // reactivation restores access and clears the reason
         mvc.perform(put("/api/v1/admin/users/{id}/reactivate", userId).header("Authorization", bearer(adminToken)))
                 .andExpect(status().isOk());
         mvc.perform(get("/api/v1/users/me").header("Authorization", bearer(token)))
                 .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/admin/users").header("Authorization", bearer(adminToken))
+                        .param("search", "victim@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].suspensionReason", org.hamcrest.Matchers.nullValue()));
     }
 }

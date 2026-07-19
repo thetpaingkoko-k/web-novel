@@ -20,6 +20,8 @@ export interface AdminUser {
   writingMotivation: string | null
   /** "What do you want to write?" answer; `null` for non-authors. */
   writingInterests: string | null
+  /** Reason recorded when the account was suspended or banned; `null` otherwise. */
+  suspensionReason: string | null
 }
 
 /** `GET /admin/users?status=pending` returns the same row shape. */

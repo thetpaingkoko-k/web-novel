@@ -27,6 +27,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -143,7 +144,9 @@ public class AuthService {
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.UNAUTHORIZED, ErrorCode.unauthorized, "auth.invalid_credentials"));
         if (user.isBlocked()) {
-            throw new ApiException(HttpStatus.FORBIDDEN, ErrorCode.forbidden, "auth.account_blocked");
+            throw new ApiException(HttpStatus.FORBIDDEN, ErrorCode.account_blocked, "auth.account_blocked",
+                    Map.of("status", user.getStatus().name(),
+                            "reason", Optional.ofNullable(user.getSuspensionReason()).orElse("")));
         }
         if (user.getStatus() == UserStatus.pending) {
             // Login blocked until verified; details.email lets the frontend open the verify screen.
@@ -178,7 +181,9 @@ public class AuthService {
                     ErrorCode.email_registered_with_password, "auth.email_registered_with_password");
         }
         if (user.isBlocked()) {
-            throw new ApiException(HttpStatus.FORBIDDEN, ErrorCode.forbidden, "auth.account_blocked");
+            throw new ApiException(HttpStatus.FORBIDDEN, ErrorCode.account_blocked, "auth.account_blocked",
+                    Map.of("status", user.getStatus().name(),
+                            "reason", Optional.ofNullable(user.getSuspensionReason()).orElse("")));
         }
         enforceSessionLimit(user.getId());
         return issueTokens(user);

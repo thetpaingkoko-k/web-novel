@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { http, HttpResponse } from "msw"
 import { afterEach, describe, expect, it } from "vitest"
 import { MemoryRouter, Route, Routes } from "react-router"
@@ -78,5 +79,30 @@ describe("AppLayout navigation", () => {
     // Wait for the account avatar (auth resolved), then assert no Studio link.
     await screen.findByRole("button", { name: /account/i })
     expect(screen.queryByRole("link", { name: /^studio$/i })).not.toBeInTheDocument()
+  })
+
+  it("offers Become Professional to an unmonetized hobbyist", async () => {
+    const user = userEvent.setup()
+    mockUser("hobbyist_author", false)
+
+    renderLayout()
+
+    await user.click(await screen.findByRole("button", { name: /account/i }))
+    const item = await screen.findByRole("menuitem", { name: /become professional/i })
+    expect(item).toHaveAttribute("href", "/author/books")
+  })
+
+  it("does not offer Become Professional to a professional author", async () => {
+    const user = userEvent.setup()
+    mockUser("professional_author", true)
+
+    renderLayout()
+
+    await user.click(await screen.findByRole("button", { name: /account/i }))
+    // The menu is open (Account item present) but no upgrade entry.
+    await screen.findByRole("menuitem", { name: /^account$/i })
+    expect(
+      screen.queryByRole("menuitem", { name: /become professional/i })
+    ).not.toBeInTheDocument()
   })
 })

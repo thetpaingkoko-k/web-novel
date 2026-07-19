@@ -73,4 +73,19 @@ describe("LoginPage", () => {
 
     expect(await screen.findByText("home page")).toBeInTheDocument()
   })
+
+  it("shows a persistent alert with the reason when the account is blocked", async () => {
+    const user = userEvent.setup()
+    renderLoginPage()
+
+    await user.type(screen.getByLabelText("Email"), "banned@example.com")
+    await user.type(screen.getByLabelText("Password"), "password123")
+    await user.click(screen.getByRole("button", { name: /log in/i }))
+
+    const alert = await screen.findByRole("alert")
+    expect(alert).toHaveTextContent(/banned/i)
+    expect(alert).toHaveTextContent(/repeated policy violations/i)
+    // It stays on the login page (no redirect) as a persistent inline alert.
+    expect(screen.queryByText("home page")).not.toBeInTheDocument()
+  })
 })

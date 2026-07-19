@@ -9,7 +9,8 @@ import java.math.BigDecimal;
  * Admin user-management row (§10.2, FR-1.4/13.1). {@code careerStage},
  * {@code monetizationEnabled}, {@code monthlySubscriptionPrice}, and the author-application
  * answers ({@code bio}, {@code writingMotivation}, {@code writingInterests}) are null/false for
- * users without an author profile.
+ * users without an author profile. {@code suspensionReason} carries the admin-supplied reason for a
+ * suspended/banned account (null otherwise).
  */
 public record AdminUserRow(
         Long userId,
@@ -22,5 +23,6 @@ public record AdminUserRow(
         BigDecimal monthlySubscriptionPrice,
         String bio,
         String writingMotivation,
-        String writingInterests) {
+        String writingInterests,
+        String suspensionReason) {
 }

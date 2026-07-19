@@ -21,6 +21,7 @@ import { AdminPageHeader } from "../components/admin-page-header"
 import { AuthorApplicationAnswers } from "../components/author-application-answers"
 import { AdminAvatar, StatusPill, type AdminTone } from "../components/admin-primitives"
 import { DataTable, type DataColumn, type RowAction } from "../components/data-table"
+import { RejectWithReasonDialog } from "../components/reject-with-reason-dialog"
 import { SetPriceDialog } from "../components/set-price-dialog"
 
 const STATUS_TONE: Record<UserStatus, AdminTone> = {
@@ -53,6 +54,8 @@ export function UsersManagementPage() {
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all")
   const [priceUser, setPriceUser] = useState<AdminUser | null>(null)
   const [detailsUser, setDetailsUser] = useState<AdminUser | null>(null)
+  // One dialog serves both suspend and ban; `ban` switches the copy/label.
+  const [blockTarget, setBlockTarget] = useState<{ user: AdminUser; ban: boolean } | null>(null)
   const deferredSearch = useDeferredValue(search)
 
   const { data, isLoading, isError, refetch } = useAllUsers(deferredSearch)
@@ -71,11 +74,14 @@ export function UsersManagementPage() {
     )
   }
 
-  function onSuspend(userId: number, ban: boolean) {
+  function onSuspend(userId: number, ban: boolean, reason: string) {
     suspend.mutate(
-      { userId, ban },
+      { userId, ban, reason },
       {
-        onSuccess: () => toast.success(t(ban ? "admin.userBanned" : "admin.userSuspended")),
+        onSuccess: () => {
+          toast.success(t(ban ? "admin.userBanned" : "admin.userSuspended"))
+          setBlockTarget(null)
+        },
         onError: () => toast.error(t("common.genericError")),
       },
     )
@@ -158,28 +164,14 @@ export function UsersManagementPage() {
         label: t("admin.suspend"),
         icon: PauseCircle,
         separatorBefore: true,
-        onSelect: () => onSuspend(u.userId, false),
-        confirm: {
-          title: t("admin.suspendTitle", { user: u.username }),
-          description: t("admin.suspendDescription"),
-          confirmLabel: t("admin.suspend"),
-          tone: "warning",
-          icon: PauseCircle,
-        },
+        onSelect: () => setBlockTarget({ user: u, ban: false }),
       })
       actions.push({
         key: "ban",
         label: t("admin.ban"),
         icon: Ban,
         tone: "destructive",
-        onSelect: () => onSuspend(u.userId, true),
-        confirm: {
-          title: t("admin.banTitle", { user: u.username }),
-          description: t("admin.banDescription"),
-          confirmLabel: t("admin.ban"),
-          tone: "destructive",
-          icon: Ban,
-        },
+        onSelect: () => setBlockTarget({ user: u, ban: true }),
       })
     }
     if (u.status === "suspended" || u.status === "banned") {
@@ -248,6 +240,23 @@ export function UsersManagementPage() {
         onSubmit={(priceMmk) => priceUser && onSetPrice(priceUser.userId, priceMmk)}
       />
 
+      <RejectWithReasonDialog
+        hideTrigger
+        open={blockTarget !== null}
+        onOpenChange={(open) => !open && setBlockTarget(null)}
+        pending={suspend.isPending}
+        title={
+          blockTarget?.ban
+            ? t("admin.banTitle", { user: blockTarget.user.username })
+            : t("admin.suspendTitle", { user: blockTarget?.user.username ?? "" })
+        }
+        description={blockTarget?.ban ? t("admin.banDescription") : t("admin.suspendDescription")}
+        confirmLabel={blockTarget?.ban ? t("admin.ban") : t("admin.suspend")}
+        onReject={(reason) =>
+          blockTarget && onSuspend(blockTarget.user.userId, blockTarget.ban, reason)
+        }
+      />
+
       <Dialog open={detailsUser !== null} onOpenChange={(open) => !open && setDetailsUser(null)}>
         <DialogContent className="rounded-2xl">
           {detailsUser && (
@@ -279,6 +288,18 @@ export function UsersManagementPage() {
                   </dd>
                 </div>
               </dl>
+              {(detailsUser.status === "suspended" || detailsUser.status === "banned") && (
+                <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                  <p className="text-xs font-medium text-destructive">
+                    {t("admin.suspensionReasonLabel")}
+                  </p>
+                  <p className="mt-0.5 whitespace-pre-line text-foreground">
+                    {detailsUser.suspensionReason?.trim()
+                      ? detailsUser.suspensionReason
+                      : t("admin.noSuspensionReason")}
+                  </p>
+                </div>
+              )}
               <AuthorApplicationAnswers
                 bio={detailsUser.bio}
                 writingMotivation={detailsUser.writingMotivation}

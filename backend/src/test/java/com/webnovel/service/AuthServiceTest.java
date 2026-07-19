@@ -2,6 +2,7 @@ package com.webnovel.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -175,13 +176,32 @@ class AuthServiceTest {
     }
 
     @Test
-    void login_blockedUser_throwsForbidden() {
+    void login_blockedUser_throwsForbiddenWithCodeStatusAndReason() {
         User u = persistedUser("password123");
-        u.setStatus(UserStatus.banned);
+        u.setStatus(UserStatus.suspended);
+        u.setSuspensionReason("Repeated harassment");
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
         assertThatThrownBy(() -> service.login(new LoginRequest("alice@example.com", "password123")))
                 .isInstanceOf(ApiException.class)
                 .extracting("messageKey").isEqualTo("auth.account_blocked");
+
+        ApiException ex = catchThrowableOfType(
+                () -> service.login(new LoginRequest("alice@example.com", "password123")), ApiException.class);
+        assertThat(ex.getCode()).isEqualTo(ErrorCode.account_blocked);
+        assertThat(ex.getDetails()).containsEntry("status", "suspended")
+                .containsEntry("reason", "Repeated harassment");
+    }
+
+    @Test
+    void login_blockedUserWithoutReason_returnsEmptyReason() {
+        User u = persistedUser("password123");
+        u.setStatus(UserStatus.banned); // suspensionReason left null (legacy rows)
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
+
+        ApiException ex = catchThrowableOfType(
+                () -> service.login(new LoginRequest("alice@example.com", "password123")), ApiException.class);
+        assertThat(ex.getCode()).isEqualTo(ErrorCode.account_blocked);
+        assertThat(ex.getDetails()).containsEntry("status", "banned").containsEntry("reason", "");
     }
 
     @Test

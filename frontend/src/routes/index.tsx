@@ -29,6 +29,8 @@ import { ChapterReaderPage } from "@/features/chapters/chapter-reader-page"
 import { DebateListPage } from "@/features/debates/debate-list-page"
 import { DebateThreadPage } from "@/features/debates/debate-thread-page"
 import { EarningsDashboardPage } from "@/features/earnings/earnings-dashboard-page"
+import { EarningsLedgerPage } from "@/features/earnings/earnings-ledger-page"
+import { EarningsWithdrawalsPage } from "@/features/earnings/earnings-withdrawals-page"
 import { AuthorFeedPage } from "@/features/feed/author-feed-page"
 import { MySubscriptionsPage } from "@/features/subscriptions/my-subscriptions-page"
 import { SubscribePage } from "@/features/subscriptions/subscribe-page"
@@ -89,7 +91,11 @@ export const router = createBrowserRouter([
       },
       {
         element: <ProtectedRoute allowedRoles={["professional_author"]} />,
-        children: [{ path: "author/earnings", element: <EarningsDashboardPage /> }],
+        children: [
+          { path: "author/earnings", element: <EarningsDashboardPage /> },
+          { path: "author/earnings/ledger", element: <EarningsLedgerPage /> },
+          { path: "author/earnings/withdrawals", element: <EarningsWithdrawalsPage /> },
+        ],
       },
     ],
   },

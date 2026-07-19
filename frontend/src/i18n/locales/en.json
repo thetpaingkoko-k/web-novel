@@ -20,7 +20,8 @@
     "account": "Account",
     "earnings": "Earnings",
     "admin": "Admin",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "becomeProfessional": "Become Professional"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -123,7 +124,11 @@
       "prefer_not_to_say": "Prefer not to say"
     },
     "birthday": "Birthday",
-    "acceptTerms": "I agree to the Terms & Conditions and Privacy Policy."
+    "acceptTerms": "I agree to the Terms & Conditions and Privacy Policy.",
+    "accountSuspendedTitle": "Your account is suspended",
+    "accountBannedTitle": "Your account is banned",
+    "suspensionReasonLabel": "Reason:",
+    "noReasonProvided": "No reason was provided. Contact support if you think this is a mistake."
   },
   "validation": {
     "required": "This field is required",
@@ -527,7 +532,12 @@
     "deleteDraftOnly": "Only draft or rejected chapters can be deleted.",
     "existingDraft": "This book already has a draft chapter. Publish or delete it before publishing another.",
     "openExistingDraft": "Open the existing draft",
-    "contentLockedNote": "Published or written content can't be edited. To revise a draft, delete it and add a new chapter."
+    "contentLockedNote": "Published or written content can't be edited. To revise a draft, delete it and add a new chapter.",
+    "searchBooks": "Search your books…",
+    "filterByStatus": "Filter by status",
+    "statusAll": "All statuses",
+    "statusPublished": "Published",
+    "noBooksMatch": "No books match your search."
   },
   "imageUpload": {
     "choose": "Choose image",
@@ -618,7 +628,17 @@
       "rejected": "Rejected"
     },
     "withdrawalTooMuch": "You can withdraw at most {{amount}} MMK — that's your available balance.",
-    "withdrawalBelowMin": "That amount is below the minimum withdrawal."
+    "withdrawalBelowMin": "That amount is below the minimum withdrawal.",
+    "navOverview": "Overview",
+    "navLedger": "Ledger",
+    "navWithdrawals": "Withdrawals",
+    "ledgerSubtitle": "Every credit to your balance as subscriptions are approved.",
+    "withdrawalsSubtitle": "Every payout you've requested and its status.",
+    "backToEarnings": "Back to earnings",
+    "viewLedger": "View earning ledger",
+    "viewLedgerDescription": "See each credit to your balance.",
+    "viewWithdrawals": "View withdrawal history",
+    "viewWithdrawalsDescription": "Track your payout requests."
   },
   "admin": {
     "title": "Admin dashboard",
@@ -862,7 +882,9 @@
       "interests": "What do you want to write?"
     },
     "console": "Admin",
-    "backToSite": "Back to site"
+    "backToSite": "Back to site",
+    "suspensionReasonLabel": "Suspension reason",
+    "noSuspensionReason": "No reason recorded."
   },
   "home": {
     "heroBadge": "A home for serialized fiction",
@@ -919,5 +941,11 @@
     "account": "Account",
     "rights": "All rights reserved.",
     "browseAll": "Browse all"
+  },
+  "pagination": {
+    "showing": "Showing {{from}}–{{to}} of {{total}}",
+    "pageOf": "Page {{page}} of {{total}}",
+    "prev": "Previous",
+    "next": "Next"
   }
 }

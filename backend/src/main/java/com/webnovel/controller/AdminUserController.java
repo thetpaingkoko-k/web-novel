@@ -40,7 +40,7 @@ public class AdminUserController {
 
     @PutMapping("/{id}/suspend")
     public UserResponse suspend(@PathVariable Long id, @Valid @RequestBody SuspendRequest req) {
-        return adminUserService.suspend(id, req.ban());
+        return adminUserService.suspend(id, req.ban(), req.reason());
     }
 
     @PutMapping("/{id}/reactivate")

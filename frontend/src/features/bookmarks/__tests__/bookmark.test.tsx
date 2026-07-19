@@ -30,6 +30,7 @@ const READER: AuthUser = {
 const SAVED_BOOK: BookListItem = {
   bookId: 7,
   authorUsername: "moonlight_writer",
+  authorAvatarUrl: null,
   title: "The Saved Tale",
   genres: ["Fantasy"],
   coverImageUrl: null,

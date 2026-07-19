@@ -59,6 +59,10 @@ public class User {
     @Column(name = "terms_accepted_at")
     private OffsetDateTime termsAcceptedAt;
 
+    /** Admin-supplied reason captured on suspend/ban; shown on a blocked login and cleared on reactivate (FR-1.4). */
+    @Column(name = "suspension_reason", length = 500)
+    private String suspensionReason;
+
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 

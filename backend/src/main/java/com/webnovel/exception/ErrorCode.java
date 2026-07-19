@@ -20,6 +20,7 @@ public enum ErrorCode {
     email_registered_with_password,
     email_registered_with_google,
     email_not_verified,
+    account_blocked,
     invalid_verification_code,
     already_verified,
     resend_too_soon,

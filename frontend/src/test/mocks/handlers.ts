@@ -56,6 +56,18 @@ export const mockBookDetail: Book = {
 export const handlers = [
   http.post("/api/v1/auth/login", async ({ request }) => {
     const body = (await request.json()) as { email: string; password: string }
+    // Blocked accounts get a 403 with the status + reason so the login form can
+    // explain why (mirrors the account_blocked contract).
+    if (body.email === "suspended@example.com" || body.email === "banned@example.com") {
+      const status = body.email === "banned@example.com" ? "banned" : "suspended"
+      return HttpResponse.json(
+        {
+          ...errorBody("account_blocked", "This account is blocked"),
+          details: { status, reason: "Repeated policy violations" },
+        },
+        { status: 403 }
+      )
+    }
     if (body.email === "reader@example.com" && body.password === "password123") {
       return HttpResponse.json({
         accessToken: "test-access-token",

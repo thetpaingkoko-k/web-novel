@@ -28,6 +28,7 @@ const users = [
     careerStage: "professional",
     monetizationEnabled: true,
     monthlySubscriptionPrice: 5000,
+    suspensionReason: null,
   },
   {
     userId: 5,
@@ -38,6 +39,7 @@ const users = [
     careerStage: null,
     monetizationEnabled: false,
     monthlySubscriptionPrice: null,
+    suspensionReason: "Repeated violations",
   },
 ]
 
@@ -91,5 +93,44 @@ describe("UsersManagementPage", () => {
     expect(await screen.findByRole("menuitem", { name: /reactivate/i })).toBeInTheDocument()
     expect(screen.queryByRole("menuitem", { name: /^ban$/i })).not.toBeInTheDocument()
     expect(screen.queryByRole("menuitem", { name: /suspend/i })).not.toBeInTheDocument()
+  })
+
+  it("requires a reason and sends { ban, reason } when suspending", async () => {
+    const user = userEvent.setup()
+    let sent: unknown = null
+    server.use(
+      http.get("/api/v1/admin/users", () => HttpResponse.json(users)),
+      http.put("/api/v1/admin/users/1/suspend", async ({ request }) => {
+        sent = await request.json()
+        return new HttpResponse(null, { status: 204 })
+      })
+    )
+
+    renderPage()
+
+    await openRowMenu(user, "reader_rin")
+    await user.click(await screen.findByRole("menuitem", { name: /suspend/i }))
+
+    // Submitting with no reason is blocked by the dialog's validation.
+    await user.click(await screen.findByRole("button", { name: /^suspend$/i }))
+    expect(sent).toBeNull()
+
+    await user.type(screen.getByLabelText("Reason"), "Posting spam")
+    await user.click(screen.getByRole("button", { name: /^suspend$/i }))
+
+    await waitFor(() => expect(sent).toEqual({ ban: false, reason: "Posting spam" }))
+    expect(await screen.findByText(/user suspended/i)).toBeInTheDocument()
+  })
+
+  it("shows the suspension reason in the details dialog for a banned user", async () => {
+    const user = userEvent.setup()
+    server.use(http.get("/api/v1/admin/users", () => HttpResponse.json([users[1]])))
+
+    renderPage()
+
+    await openRowMenu(user, "banned_bob")
+    await user.click(await screen.findByRole("menuitem", { name: /view details/i }))
+
+    expect(await screen.findByText(/repeated violations/i)).toBeInTheDocument()
   })
 })
