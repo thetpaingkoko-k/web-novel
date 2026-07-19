@@ -38,6 +38,7 @@ const SAVED_BOOK: BookListItem = {
   isPremium: false,
   chapterCount: 2,
   readChaptersCount: null,
+  hidden: false,
 }
 
 function withProviders(ui: React.ReactNode) {

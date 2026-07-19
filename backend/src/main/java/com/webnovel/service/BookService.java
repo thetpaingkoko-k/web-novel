@@ -4,6 +4,7 @@ import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.Book;
 import com.webnovel.domain.entity.Chapter;
 import com.webnovel.domain.entity.User;
+import com.webnovel.domain.enums.AdminActionType;
 import com.webnovel.domain.enums.BookStatus;
 import com.webnovel.domain.enums.CareerStage;
 import com.webnovel.domain.enums.ChapterStatus;
@@ -52,6 +53,7 @@ public class BookService {
     private final BookmarkRepository bookmarks;
     private final ChapterCommentRepository comments;
     private final NotificationService notifications;
+    private final AdminActionService adminActions;
 
     /** Upper bound on browse page size, so a client can't request an unbounded page (§10.3). */
     private static final int MAX_PAGE_SIZE = 100;
@@ -96,17 +98,42 @@ public class BookService {
         // Tell the author an admin removed their book. The book row — and its title — is about to
         // be gone, so carry the title as the render payload rather than a (soon-dead) book deep link.
         notifications.notify(book.getAuthorId(), NotificationType.book_deleted, null, null, book.getTitle());
+        adminActions.log(principal.getId(), AdminActionType.content_removal, "book", bookId, null);
         books.delete(book);
+    }
+
+    /**
+     * Admin-only: hide a book from public browse ({@code hidden=true}) or restore it
+     * ({@code hidden=false}), independent of the report queue. Audited, and — on hide — the
+     * author is notified their book was removed. Idempotent: toggling to the current state is a
+     * no-op beyond re-asserting it.
+     */
+    @Transactional
+    public void setHidden(AppUserPrincipal principal, Long bookId, boolean hidden) {
+        if (!principal.isAdmin()) {
+            throw new ForbiddenException("content.hide_admin_only");
+        }
+        Book book = books.findById(bookId).orElseThrow(() -> new NotFoundException("book.not_found"));
+        book.setHidden(hidden);
+        // Mirror the report-queue moderation audit: removal on hide, approval (restore) on unhide.
+        adminActions.log(principal.getId(),
+                hidden ? AdminActionType.content_removal : AdminActionType.content_approval,
+                "book", bookId, null);
+        if (hidden) {
+            notifications.notify(book.getAuthorId(), NotificationType.content_removed,
+                    "book", bookId, book.getTitle());
+        }
     }
 
     /** One page of browse results plus the total match count (drives §10.3 pagination). */
     public record BooksPage(List<BookListItem> items, long totalItems) {}
 
     @Transactional(readOnly = true)
-    public BooksPage browse(String genre, BookStatus status, String search, int page, int size) {
+    public BooksPage browse(String genre, BookStatus status, String search,
+                            int page, int size, boolean includeHidden) {
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
         int safePage = Math.max(page, 0);
-        var result = books.browse(parseGenre(genre), status, toSearchPattern(search),
+        var result = books.browse(parseGenre(genre), status, toSearchPattern(search), includeHidden,
                 org.springframework.data.domain.PageRequest.of(safePage, safeSize));
         return new BooksPage(populateGenres(result.getContent(), books), result.getTotalElements());
     }

@@ -112,6 +112,23 @@ export function useDeleteBook() {
   })
 }
 
+/**
+ * Admin-only: hide a book from public browse or restore it (`PUT /books/:id/hide|unhide`).
+ * Invalidates browse listings so the row's hidden state refreshes in place.
+ */
+export function useSetBookHidden() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ bookId, hidden }: { bookId: number; hidden: boolean }) => {
+      await apiClient.put(`/books/${bookId}/${hidden ? "hide" : "unhide"}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["books", "list"] })
+      queryClient.invalidateQueries({ queryKey: ["books", "detail"] })
+    },
+  })
+}
+
 export function useReadingProgress(bookId: number, enabled: boolean) {
   return useQuery({
     queryKey: ["books", "progress", bookId] as const,

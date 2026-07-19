@@ -62,7 +62,11 @@ public class BookController {
         if (authorId != null) {
             return ResponseEntity.ok(bookService.byAuthor(authorId));
         }
-        BookService.BooksPage result = bookService.browse(genre, status, search, page, size);
+        // Admins browse with hidden books included (badged + unhideable); everyone else sees the
+        // public listing only.
+        boolean includeHidden = SecurityUtils.currentPrincipal()
+                .map(com.webnovel.security.AppUserPrincipal::isAdmin).orElse(false);
+        BookService.BooksPage result = bookService.browse(genre, status, search, page, size, includeHidden);
         return ResponseEntity.ok()
                 .header("X-Total-Count", Long.toString(result.totalItems()))
                 .body(result.items());
@@ -87,6 +91,22 @@ public class BookController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         bookService.delete(SecurityUtils.requirePrincipal(), id);
+    }
+
+    /** Hide a book from public browse (admin only); audited. */
+    @PutMapping("/{id}/hide")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void hide(@PathVariable Long id) {
+        bookService.setHidden(SecurityUtils.requirePrincipal(), id, true);
+    }
+
+    /** Restore a hidden book to public browse (admin only); audited. */
+    @PutMapping("/{id}/unhide")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void unhide(@PathVariable Long id) {
+        bookService.setHidden(SecurityUtils.requirePrincipal(), id, false);
     }
 
     @PostMapping("/{bookId}/chapters")

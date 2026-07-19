@@ -49,6 +49,12 @@ export interface BookListItem {
    * `null` for anonymous requests.
    */
   readChaptersCount: number | null
+  /**
+   * Admin moderation flag: the book is hidden from public browse. Only ever
+   * `true` in an admin's browse listing (the backend excludes hidden books for
+   * everyone else), so admin controls can badge the row and offer to restore it.
+   */
+  hidden: boolean
 }
 
 export interface BookListParams {

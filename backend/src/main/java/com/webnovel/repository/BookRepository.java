@@ -15,22 +15,24 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     /**
      * Public browse/search (§10.3). Joins the author's username and counts
-     * published chapters (denormalized read-model fields, §4.1.1). Draft and
-     * admin-hidden books are excluded from public listings. {@code searchPattern} is a pre-built,
-     * lower-cased, wildcard-escaped {@code %term%} LIKE pattern (built by the
-     * service) matched against the book title OR the author's username.
-     * {@code genre} filters to books containing that genre ({@code member of});
+     * published chapters (denormalized read-model fields, §4.1.1). Draft books are always
+     * excluded; admin-hidden books are excluded unless {@code includeHidden} is true (admin
+     * moderation view), and the row's {@code hidden} flag is projected so an admin listing can
+     * badge them. {@code searchPattern} is a pre-built, lower-cased, wildcard-escaped
+     * {@code %term%} LIKE pattern (built by the service) matched against the book title OR the
+     * author's username. {@code genre} filters to books containing that genre ({@code member of});
      * genres themselves are not projected here — the service batch-loads them.
      */
     @Query(value = """
             select new com.webnovel.dto.content.BookListItem(
                 b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, u.avatarUrl, ap.careerStage,
-                (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published))
+                (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published),
+                b.hidden)
             from Book b
                 join User u on u.id = b.authorId
                 left join AuthorProfile ap on ap.userId = b.authorId
             where b.status <> com.webnovel.domain.enums.BookStatus.draft
-              and b.hidden = false
+              and (:includeHidden = true or b.hidden = false)
               and (:genre is null or :genre member of b.genres)
               and (:status is null or b.status = :status)
               and (:searchPattern is null
@@ -42,7 +44,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             select count(b) from Book b
                 join User u on u.id = b.authorId
             where b.status <> com.webnovel.domain.enums.BookStatus.draft
-              and b.hidden = false
+              and (:includeHidden = true or b.hidden = false)
               and (:genre is null or :genre member of b.genres)
               and (:status is null or b.status = :status)
               and (:searchPattern is null
@@ -52,6 +54,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     org.springframework.data.domain.Page<BookListItem> browse(
             @Param("genre") Genre genre, @Param("status") BookStatus status,
             @Param("searchPattern") String searchPattern,
+            @Param("includeHidden") boolean includeHidden,
             org.springframework.data.domain.Pageable pageable);
 
     /** Books authored by a given user (for the author's own dashboard / public profile). */

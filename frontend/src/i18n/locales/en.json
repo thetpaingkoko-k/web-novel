@@ -159,6 +159,13 @@
       "updated": "Updated"
     },
     "premium": "Premium",
+    "hiddenBadge": "Hidden",
+    "admin": {
+      "hide": "Hide",
+      "unhide": "Restore",
+      "hidden": "Book hidden from browse",
+      "restored": "Book restored to browse"
+    },
     "status": {
       "draft": "Draft",
       "ongoing": "Ongoing",

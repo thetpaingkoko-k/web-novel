@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useAuth } from "@/features/auth/auth-context"
 import { cn } from "@/lib/utils"
 import { GENRES, genreLabelKey } from "@/lib/genres"
 import { genreIcon } from "@/lib/genre-icons"
@@ -27,6 +28,8 @@ const PAGE_SIZE = 24
 
 export function BooksBrowsePage() {
   const { t } = useTranslation()
+  const { user } = useAuth()
+  const isAdmin = user?.role === "admin"
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "")
   const [genre, setGenre] = useState<string | undefined>(() => searchParams.get("genre") ?? undefined)
@@ -181,7 +184,7 @@ export function BooksBrowsePage() {
       {!isError && !isLoading && books.length > 0 && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {books.map((book) => (
-            <BookCard key={book.bookId} book={book} />
+            <BookCard key={book.bookId} book={book} showAdminControls={isAdmin} />
           ))}
         </div>
       )}

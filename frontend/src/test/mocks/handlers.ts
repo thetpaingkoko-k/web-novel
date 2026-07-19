@@ -19,6 +19,7 @@ export const mockBookList: BookListItem[] = [
     isPremium: false,
     chapterCount: 3,
     readChaptersCount: null,
+    hidden: false,
   },
 ]
 
