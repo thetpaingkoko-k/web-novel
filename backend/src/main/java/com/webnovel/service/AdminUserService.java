@@ -103,7 +103,7 @@ public class AdminUserService {
         user.setStatus(UserStatus.approved); // back to a normal reader
         adminActions.log(SecurityUtils.currentUserId(), AdminActionType.user_rejection,
                 "user", userId, "reject_application: " + reason);
-        notifications.notify(userId, NotificationType.author_rejected, "user", userId, null);
+        notifications.notify(userId, NotificationType.author_rejected, "user", userId, reason);
         return userService.toResponse(user);
     }
 
@@ -115,7 +115,7 @@ public class AdminUserService {
      */
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
-    public UserResponse rejectUpgrade(Long userId) {
+    public UserResponse rejectUpgrade(Long userId, String reason) {
         User user = users.findById(userId).orElseThrow(() -> new NotFoundException("user.not_found"));
         AuthorProfile profile = authorProfiles.findByUserId(userId)
                 .filter(AuthorProfile::isProfessionalRequested)
@@ -123,8 +123,8 @@ public class AdminUserService {
         profile.setProfessionalRequested(false);
         profile.setProfessionalRequestedAt(null);
         adminActions.log(SecurityUtils.currentUserId(), AdminActionType.user_rejection,
-                "user", userId, "reject_upgrade");
-        notifications.notify(userId, NotificationType.upgrade_rejected, "user", userId, null);
+                "user", userId, "reject_upgrade: " + reason);
+        notifications.notify(userId, NotificationType.upgrade_rejected, "user", userId, reason);
         return userService.toResponse(user);
     }
 

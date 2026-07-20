@@ -130,7 +130,8 @@ class AdminUserServiceTest {
         assertThat(applicant.getStatus()).isEqualTo(UserStatus.approved);
         verify(adminActions).log(any(), eq(AdminActionType.user_rejection), eq("user"), eq(30L),
                 eq("reject_application: Not a good fit right now"));
-        verify(notifications).notify(30L, NotificationType.author_rejected, "user", 30L, null);
+        verify(notifications).notify(30L, NotificationType.author_rejected, "user", 30L,
+                "Not a good fit right now");
     }
 
     @Test

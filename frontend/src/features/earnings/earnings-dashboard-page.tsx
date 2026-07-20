@@ -35,7 +35,7 @@ import { useAuthorBalance, useAuthorWithdrawals, useRequestWithdrawal } from "./
 import { EarningsNav } from "./earnings-nav"
 import { buildWithdrawalSchema, type WithdrawalFormSchema } from "./schemas"
 
-const WALLET_PROVIDERS = ["KBZPay", "WavePay", "AYAPay", "other"] as const
+const WALLET_PROVIDERS = ["KBZPay", "WavePay", "AYAPay"] as const
 
 export function EarningsDashboardPage() {
   const { t } = useTranslation()

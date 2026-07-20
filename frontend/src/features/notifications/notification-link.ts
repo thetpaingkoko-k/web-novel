@@ -22,6 +22,7 @@ export function notificationHref(n: Notification): string | null {
     case "withdrawal_requested":
       return "/admin/withdrawals"
     case "withdrawal_approved":
+    case "withdrawal_rejected":
       return "/author/earnings"
     case "subscription_activated":
     case "subscription_expiring":

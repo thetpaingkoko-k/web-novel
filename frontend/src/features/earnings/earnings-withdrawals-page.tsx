@@ -76,17 +76,25 @@ export function EarningsWithdrawalsPage() {
                       </TableCell>
                       <TableCell>{w.payoutWalletProvider}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            w.status === "paid"
-                              ? "default"
-                              : w.status === "rejected"
-                                ? "destructive"
-                                : "secondary"
-                          }
-                        >
-                          {t("earnings.withdrawalStatus." + w.status)}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge
+                            variant={
+                              w.status === "paid"
+                                ? "default"
+                                : w.status === "rejected"
+                                  ? "destructive"
+                                  : "secondary"
+                            }
+                            className="w-fit"
+                          >
+                            {t("earnings.withdrawalStatus." + w.status)}
+                          </Badge>
+                          {w.status === "rejected" && w.rejectionReason && (
+                            <span className="max-w-xs text-xs text-muted-foreground">
+                              {t("earnings.rejectionReason", { reason: w.rejectionReason })}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground tabular-nums">
                         {new Date(w.requestedAt).toLocaleDateString()}

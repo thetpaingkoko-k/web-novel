@@ -163,6 +163,9 @@ public class EarningsService {
         w.setStatus(WithdrawalStatus.rejected);
         w.setRejectionReason(reason);
         w.setReviewedBy(adminId);
+        // Tell the author their payout was declined and why (mirrors the approval notification).
+        notifications.notify(w.getAuthorId(), NotificationType.withdrawal_rejected,
+                "withdrawal", withdrawalId, reason);
         return toResponse(w);
     }
 

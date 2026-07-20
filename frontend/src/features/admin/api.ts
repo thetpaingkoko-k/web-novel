@@ -128,8 +128,8 @@ export function useApproveUpgradeRequest() {
 export function useRejectUpgradeRequest() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (userId: number) => {
-      await apiClient.put(`/admin/authors/upgrade-requests/${userId}/reject`)
+    mutationFn: async ({ userId, reason }: { userId: number; reason: string }) => {
+      await apiClient.put(`/admin/authors/upgrade-requests/${userId}/reject`, { reason })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "upgrade-requests"] })

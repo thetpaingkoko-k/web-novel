@@ -19,6 +19,7 @@ export type NotificationType =
   | "book_rejected"
   | "book_deleted"
   | "withdrawal_approved"
+  | "withdrawal_rejected"
   | "author_verified"
   | "author_rejected"
   | "upgrade_approved"

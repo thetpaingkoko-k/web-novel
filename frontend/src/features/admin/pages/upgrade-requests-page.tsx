@@ -1,10 +1,12 @@
 import { BadgeCheck, Sparkles, XCircle } from "lucide-react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import type { UpgradeRequestRow } from "@/types/admin"
 import { useApproveUpgradeRequest, useRejectUpgradeRequest, useUpgradeRequests } from "../api"
 import { AdminPageHeader } from "../components/admin-page-header"
 import { AdminAvatar } from "../components/admin-primitives"
+import { RejectWithReasonDialog } from "../components/reject-with-reason-dialog"
 import {
   DataTable,
   type DataColumn,
@@ -17,6 +19,20 @@ export function UpgradeRequestsPage() {
   const { data, isLoading, isError, refetch } = useUpgradeRequests()
   const approve = useApproveUpgradeRequest()
   const reject = useRejectUpgradeRequest()
+  const [rejectTarget, setRejectTarget] = useState<UpgradeRequestRow | null>(null)
+
+  function onReject(userId: number, reason: string) {
+    reject.mutate(
+      { userId, reason },
+      {
+        onSuccess: () => {
+          toast.success(t("admin.upgradeRejected"))
+          setRejectTarget(null)
+        },
+        onError: () => toast.error(t("common.genericError")),
+      },
+    )
+  }
 
   const columns: DataColumn<UpgradeRequestRow>[] = [
     {
@@ -78,17 +94,7 @@ export function UpgradeRequestsPage() {
         label: t("admin.rejectUpgrade"),
         icon: XCircle,
         tone: "destructive",
-        confirm: {
-          title: t("admin.rejectUpgradeConfirmTitle"),
-          description: t("admin.rejectUpgradeConfirmDesc", { name: r.username }),
-          confirmLabel: t("admin.rejectUpgrade"),
-          tone: "destructive",
-        },
-        onSelect: () =>
-          reject.mutate(r.userId, {
-            onSuccess: () => toast.success(t("admin.upgradeRejected")),
-            onError: () => toast.error(t("common.genericError")),
-          }),
+        onSelect: () => setRejectTarget(r),
       },
     ]
   }
@@ -113,6 +119,17 @@ export function UpgradeRequestsPage() {
         rowPrimaryAction={rowPrimaryAction}
         rowActions={rowActions}
         defaultSort={{ key: "requestedAt", dir: "desc" }}
+      />
+
+      <RejectWithReasonDialog
+        hideTrigger
+        open={rejectTarget !== null}
+        onOpenChange={(open) => !open && setRejectTarget(null)}
+        pending={reject.isPending}
+        title={t("admin.rejectUpgradeConfirmTitle")}
+        description={t("admin.rejectUpgradeConfirmDesc", { name: rejectTarget?.username ?? "" })}
+        confirmLabel={t("admin.rejectUpgrade")}
+        onReject={(reason) => rejectTarget && onReject(rejectTarget.userId, reason)}
       />
     </div>
   )
