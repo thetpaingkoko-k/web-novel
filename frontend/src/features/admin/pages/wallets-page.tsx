@@ -25,7 +25,7 @@ import { AdminPageHeader } from "../components/admin-page-header"
 import { StatusPill } from "../components/admin-primitives"
 import { DataTable, type DataColumn, type RowAction } from "../components/data-table"
 
-const PROVIDERS: WalletProvider[] = ["KBZPay", "WavePay", "AYAPay", "other"]
+const PROVIDERS: WalletProvider[] = ["KBZPay", "WavePay", "AYAPay"]
 
 export function WalletsPage() {
   const { t } = useTranslation()
@@ -36,7 +36,7 @@ export function WalletsPage() {
   const schema = useMemo(
     () =>
       z.object({
-        provider: z.enum(["KBZPay", "WavePay", "AYAPay", "other"]),
+        provider: z.enum(["KBZPay", "WavePay", "AYAPay"]),
         walletNumber: z.string().min(1, t("validation.required")),
         accountName: z.string().max(100, t("admin.walletAccountNameTooLong")),
         qrImageUrl: z.string(),
@@ -170,7 +170,7 @@ export function WalletsPage() {
                 <FieldLabel htmlFor="wallet-provider">{t("earnings.walletProvider")}</FieldLabel>
                 <Select
                   value={watch("provider")}
-                  onValueChange={(v) => setValue("provider", v as WalletProvider)}
+                  onValueChange={(v) => setValue("provider", v as FormValues["provider"])}
                 >
                   <SelectTrigger id="wallet-provider">
                     <SelectValue />

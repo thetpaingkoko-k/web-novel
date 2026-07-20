@@ -52,6 +52,17 @@ export function useSuspendUser() {
   })
 }
 
+/** Decline a pending author application, returning the applicant to a regular reader. */
+export function useRejectApplication() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, reason }: { userId: number; reason: string }) => {
+      await apiClient.put(`/admin/users/${userId}/reject`, { reason })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
+  })
+}
+
 /** Full user-management list (any status), optionally filtered by search (FR-1.4). */
 export function useAllUsers(search: string) {
   return useQuery({

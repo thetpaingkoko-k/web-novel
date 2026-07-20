@@ -1,9 +1,10 @@
-import { ChevronDown, ChevronUp } from "lucide-react"
+import { ArrowBigDown, ArrowBigUp } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/user-avatar"
 import { cn } from "@/lib/utils"
+import { formatVotes } from "@/lib/format"
 import { useAuth } from "@/features/auth/auth-context"
 import { AuthorBadge } from "@/features/authors/author-badge"
 import { ReportDialog } from "@/features/moderation/report-dialog"
@@ -34,27 +35,57 @@ export function PostItem({ post, threadId, locked, canReply = true, depth = 0 }:
     <div className={depth > 0 ? "border-l pl-4" : undefined}>
       <div className="flex gap-3 py-3">
         <div className="flex flex-col items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label={t("debates.upvote")}
-            aria-pressed={post.myVote === "up"}
-            disabled={!isAuthenticated || locked || vote.isPending}
-            onClick={() => vote.mutate({ postId: post.postId, voteType: "up" })}
+          {/* Admins moderate discussions; they don't vote (backend also rejects it). */}
+          {!isAdmin && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={t("debates.upvote")}
+              aria-pressed={post.myVote === "up"}
+              disabled={!isAuthenticated || locked || vote.isPending}
+              onClick={() => vote.mutate({ postId: post.postId, voteType: "up" })}
+            >
+              <ArrowBigUp
+                className={cn(
+                  "h-4 w-4 transition-colors",
+                  post.myVote === "up" ? "fill-current text-orange-500" : "text-muted-foreground",
+                )}
+              />
+            </Button>
+          )}
+          {/* Reddit-style: score is tinted by the viewer's own vote and pops when it
+              changes (keyed so the zoom animation replays on each new value). */}
+          <span
+            key={score}
+            title={`+${post.upvoteCount} / -${post.downvoteCount}`}
+            className={cn(
+              "text-xs font-semibold tabular-nums transition-colors duration-150 animate-in zoom-in-75",
+              post.myVote === "up"
+                ? "text-orange-500"
+                : post.myVote === "down"
+                  ? "text-blue-500"
+                  : "text-foreground/80",
+            )}
           >
-            <ChevronUp className={cn("h-4 w-4", post.myVote === "up" && "text-primary")} />
-          </Button>
-          <span className="text-xs font-medium tabular-nums">{score}</span>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label={t("debates.downvote")}
-            aria-pressed={post.myVote === "down"}
-            disabled={!isAuthenticated || locked || vote.isPending}
-            onClick={() => vote.mutate({ postId: post.postId, voteType: "down" })}
-          >
-            <ChevronDown className={cn("h-4 w-4", post.myVote === "down" && "text-destructive")} />
-          </Button>
+            {formatVotes(score)}
+          </span>
+          {!isAdmin && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={t("debates.downvote")}
+              aria-pressed={post.myVote === "down"}
+              disabled={!isAuthenticated || locked || vote.isPending}
+              onClick={() => vote.mutate({ postId: post.postId, voteType: "down" })}
+            >
+              <ArrowBigDown
+                className={cn(
+                  "h-4 w-4 transition-colors",
+                  post.myVote === "down" ? "fill-current text-blue-500" : "text-muted-foreground",
+                )}
+              />
+            </Button>
+          )}
         </div>
 
         <div className="flex flex-1 flex-col gap-1">

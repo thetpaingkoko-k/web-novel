@@ -1,4 +1,4 @@
-import { BadgeCheck, Ban, Coins, Eye, PauseCircle, UserCheck } from "lucide-react"
+import { BadgeCheck, Ban, Coins, Eye, PauseCircle, UserCheck, UserX } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { AdminUser } from "@/types/admin"
-import { useApproveUser, usePendingUsers, useSuspendUser } from "../api"
+import { useApproveUser, usePendingUsers, useRejectApplication, useSuspendUser } from "../api"
 import { AdminPageHeader } from "../components/admin-page-header"
 import { AdminAvatar } from "../components/admin-primitives"
 import { AuthorApplicationAnswers } from "../components/author-application-answers"
@@ -27,9 +27,11 @@ export function UsersQueuePage() {
   const [search, setSearch] = useState("")
   const [detailsUser, setDetailsUser] = useState<AdminUser | null>(null)
   const [blockTarget, setBlockTarget] = useState<{ user: AdminUser; ban: boolean } | null>(null)
+  const [rejectTarget, setRejectTarget] = useState<AdminUser | null>(null)
   const { data, isLoading, isError, refetch } = usePendingUsers()
   const approve = useApproveUser()
   const suspend = useSuspendUser()
+  const rejectApplication = useRejectApplication()
 
   function onApprove(userId: number, kind: "verify_author" | "enable_monetization") {
     approve.mutate(
@@ -48,6 +50,19 @@ export function UsersQueuePage() {
         onSuccess: () => {
           toast.success(t(ban ? "admin.userBanned" : "admin.userSuspended"))
           setBlockTarget(null)
+        },
+        onError: () => toast.error(t("common.genericError")),
+      },
+    )
+  }
+
+  function onReject(userId: number, reason: string) {
+    rejectApplication.mutate(
+      { userId, reason },
+      {
+        onSuccess: () => {
+          toast.success(t("admin.applicationRejected"))
+          setRejectTarget(null)
         },
         onError: () => toast.error(t("common.genericError")),
       },
@@ -101,10 +116,17 @@ export function UsersQueuePage() {
         onSelect: () => onApprove(u.userId, "enable_monetization"),
       },
       {
+        key: "reject",
+        label: t("admin.rejectApplication"),
+        icon: UserX,
+        tone: "destructive",
+        separatorBefore: true,
+        onSelect: () => setRejectTarget(u),
+      },
+      {
         key: "suspend",
         label: t("admin.suspend"),
         icon: PauseCircle,
-        separatorBefore: true,
         onSelect: () => setBlockTarget({ user: u, ban: false }),
       },
       {
@@ -158,6 +180,17 @@ export function UsersQueuePage() {
         onReject={(reason) =>
           blockTarget && onSuspend(blockTarget.user.userId, blockTarget.ban, reason)
         }
+      />
+
+      <RejectWithReasonDialog
+        hideTrigger
+        open={rejectTarget !== null}
+        onOpenChange={(open) => !open && setRejectTarget(null)}
+        pending={rejectApplication.isPending}
+        title={t("admin.rejectApplicationTitle", { user: rejectTarget?.username ?? "" })}
+        description={t("admin.rejectApplicationDescription")}
+        confirmLabel={t("admin.reject")}
+        onReject={(reason) => rejectTarget && onReject(rejectTarget.userId, reason)}
       />
 
       <Dialog open={detailsUser !== null} onOpenChange={(open) => !open && setDetailsUser(null)}>

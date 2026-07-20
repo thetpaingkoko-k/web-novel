@@ -1,6 +1,7 @@
 import { Users } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { EmptyState } from "@/components/empty-state"
+import { Pagination, usePagination } from "@/components/pagination"
 import { QueryError } from "@/components/query-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -24,6 +25,9 @@ export function AuthorBalancesTable() {
   const { t } = useTranslation()
   const { data, isLoading, isError, refetch } = useAuthorPayouts()
   const fmt = (n: number) => t("earnings.mmk", { amount: n.toLocaleString() })
+  // Paginate the rows so the ledger stays readable as authors accumulate; the
+  // footer totals below still sum the full dataset, not just the current page.
+  const pagination = usePagination(data ?? [], 10)
 
   return (
     <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
@@ -62,7 +66,7 @@ export function AuthorBalancesTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((a) => (
+            {pagination.pageItems.map((a) => (
               <TableRow key={a.authorId}>
                 <TableCell>
                   <div className="flex items-center gap-2.5">
@@ -110,6 +114,12 @@ export function AuthorBalancesTable() {
             </TableRow>
           </TableFooter>
         </Table>
+      )}
+
+      {!isError && !isLoading && data && data.length > 0 && (
+        <div className="mt-4">
+          <Pagination {...pagination} />
+        </div>
       )}
     </section>
   )

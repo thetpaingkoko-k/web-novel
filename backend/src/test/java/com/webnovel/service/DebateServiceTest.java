@@ -266,6 +266,16 @@ class DebateServiceTest {
     }
 
     @Test
+    void vote_whenAdmin_isForbidden() {
+        assertThatThrownBy(() -> service.vote(admin, 88L, new VoteRequest(VoteType.up)))
+                .isInstanceOf(ForbiddenException.class)
+                .extracting("code").isEqualTo(ErrorCode.forbidden);
+        verify(votes, never()).save(any());
+        verify(posts, never()).addUpvotes(any(), anyInt());
+        verify(posts, never()).findById(any());
+    }
+
+    @Test
     void vote_lockedThread_rejected() {
         stubPostInThread(ThreadStatus.locked);
 

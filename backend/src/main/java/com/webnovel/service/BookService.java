@@ -211,10 +211,19 @@ public class BookService {
                 ? chapters.findByBookIdOrderByChapterNumberAsc(book.getId())
                 : chapters.findByBookIdAndStatusOrderByChapterNumberAsc(book.getId(), ChapterStatus.published);
         Set<Long> previewIds = previewChapterIds(book, list);
-        return list.stream().map(c -> new ChapterSummary(
-                c.getId(), c.getChapterNumber(), c.getTitle(), c.getStatus(),
-                c.getLikeCount(), c.getUniqueViewCount(), c.getCompletionCount(),
-                c.getPublishedAt(), previewIds.contains(c.getId()))).toList();
+        // Readers see a gapless sequence: the published-only list is numbered by position so a
+        // rejected/removed chapter leaves no hole. Author/admin (includeUnpublished) keep the
+        // true stored numbers so drafts and rejections stay identifiable.
+        List<ChapterSummary> summaries = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            Chapter c = list.get(i);
+            int number = includeUnpublished ? c.getChapterNumber() : i + 1;
+            summaries.add(new ChapterSummary(
+                    c.getId(), number, c.getTitle(), c.getStatus(),
+                    c.getLikeCount(), c.getUniqueViewCount(), c.getCompletionCount(),
+                    c.getPublishedAt(), previewIds.contains(c.getId())));
+        }
+        return summaries;
     }
 
     /**

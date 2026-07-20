@@ -32,6 +32,77 @@ class ChapterReviewIT extends AuthTestSupport {
         return objectMapper.readTree(body).get("accessToken").asText();
     }
 
+    /** Create a draft chapter (auto-numbered) and return its id. */
+    private long createChapter(String author, long bookId, String title, String body) throws Exception {
+        String ch = mvc.perform(post("/api/v1/books/{b}/chapters", bookId).header("Authorization", bearer(author))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"" + title + "\",\"content\":\"" + body + "\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(ch).get("chapterId").asLong();
+    }
+
+    private void submit(String author, long chapterId) throws Exception {
+        mvc.perform(post("/api/v1/chapters/{id}/publish", chapterId).header("Authorization", bearer(author)))
+                .andExpect(status().isOk());
+    }
+
+    /**
+     * A rejected chapter keeps its stored number (so the author still sees it), but readers see a
+     * gapless sequence: publishing the next chapter after a rejection must not leave a hole.
+     */
+    @Test
+    void rejectedChapter_leavesNoGap_forReaders() throws Exception {
+        registerAndGetToken("gaphobby", "gaphobby@example.com");
+        long authorId = userIdOf("gaphobby@example.com");
+        String adminToken = seedAdminAndGetToken("gapadmin@webnovel.local");
+        approve(adminToken, authorId, ApproveRequest.Kind.verify_author);
+        String author = relogin("gaphobby@example.com");
+
+        String book = mvc.perform(post("/api/v1/books").header("Authorization", bearer(author))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Gap Tale","status":"ongoing","isPremium":false}"""))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long bookId = objectMapper.readTree(book).get("bookId").asLong();
+
+        // Ch1 → approved (stored #1).
+        long ch1 = createChapter(author, bookId, "Ch1", "body one");
+        submit(author, ch1);
+        mvc.perform(put("/api/v1/admin/chapters/{id}/approve", ch1).header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk());
+
+        // Ch2 → REJECTED (stored #2 lingers, held by the rejected row).
+        long ch2 = createChapter(author, bookId, "Ch2", "body two");
+        submit(author, ch2);
+        mvc.perform(put("/api/v1/admin/chapters/{id}/reject", ch2).header("Authorization", bearer(adminToken))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"needs work\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status", is("rejected")));
+
+        // Ch3 → approved. Its stored number is 3 (max still counts the rejected #2).
+        long ch3 = createChapter(author, bookId, "Ch3", "body three");
+        submit(author, ch3);
+        mvc.perform(put("/api/v1/admin/chapters/{id}/approve", ch3).header("Authorization", bearer(adminToken)))
+                .andExpect(status().isOk());
+
+        // Reader: two published chapters, numbered 1 and 2 (no gap at the rejected slot).
+        String reader = registerAndGetToken("gapreader", "gapreader@example.com");
+        mvc.perform(get("/api/v1/books/{id}", bookId).header("Authorization", bearer(reader)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.chapters.length()", is(2)))
+                .andExpect(jsonPath("$.chapters[0].chapterNumber", is(1)))
+                .andExpect(jsonPath("$.chapters[1].chapterNumber", is(2)));
+
+        // Reader opening the 2nd published chapter (stored #3) sees it as Chapter 2.
+        mvc.perform(get("/api/v1/chapters/{id}", ch3).header("Authorization", bearer(reader)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.chapterNumber", is(2)));
+
+        // The author (privileged) still sees the true stored number.
+        mvc.perform(get("/api/v1/chapters/{id}", ch3).header("Authorization", bearer(author)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.chapterNumber", is(3)));
+    }
+
     @Test
     void pendingChapter_isReadableByAdminViaChapterRead_hiddenFromReaders_thenApproved() throws Exception {
         registerAndGetToken("revhobby", "revhobby@example.com");

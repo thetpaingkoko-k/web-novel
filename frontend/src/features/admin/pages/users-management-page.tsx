@@ -158,7 +158,8 @@ export function UsersManagementPage() {
         onSelect: () => setPriceUser(u),
       })
     }
-    if (u.status !== "banned") {
+    // Admins can't suspend/ban fellow admins (backend enforces this too), so don't offer it.
+    if (u.role !== "admin" && u.status !== "banned") {
       actions.push({
         key: "suspend",
         label: t("admin.suspend"),

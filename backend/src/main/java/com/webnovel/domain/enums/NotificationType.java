@@ -22,6 +22,8 @@ public enum NotificationType {
     book_rejected,
     book_deleted,
     withdrawal_approved,
+    author_verified,
+    author_rejected,
     upgrade_approved,
     upgrade_rejected,
 

@@ -164,6 +164,9 @@ public class DebateService {
 
     @Transactional
     public PostResponse vote(AppUserPrincipal reader, Long postId, VoteRequest req) {
+        if (reader.isAdmin()) {
+            throw new ForbiddenException("debate.admin_cannot_participate"); // admins moderate, not vote
+        }
         DebatePost post = posts.findById(postId)
                 .orElseThrow(() -> new NotFoundException("debate.post_not_found"));
         // A locked thread is frozen — no posting and no voting (FR-9.6).

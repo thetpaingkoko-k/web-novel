@@ -54,14 +54,14 @@ export function BookCard({
           {/* Bottom scrim keeps overlaid meta legible on bright covers. */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/45 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
           {book.hidden && (
-            <span className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm">
-              <EyeOff className="size-3" aria-hidden="true" />
+            <span className="absolute top-2 left-2 flex items-center gap-0.5 rounded-full bg-black/70 px-1.5 py-px text-[10px] font-semibold text-white shadow-sm">
+              <EyeOff className="size-2.5" aria-hidden="true" />
               {t("books.hiddenBadge")}
             </span>
           )}
           {book.isPremium && (
-            <span className="brand-gradient absolute top-2 right-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm">
-              <Sparkles className="size-3" />
+            <span className="brand-gradient absolute top-2 right-2 flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-semibold text-white shadow-sm">
+              <Sparkles className="size-2.5" />
               {t("books.premium")}
             </span>
           )}
@@ -88,7 +88,7 @@ export function BookCard({
           <p className="flex items-center gap-x-1.5 text-xs text-muted-foreground">
             <UserAvatar name={book.authorUsername} src={book.authorAvatarUrl} className="size-5" />
             <span className="min-w-0 truncate">{t("books.byAuthor", { author: book.authorUsername })}</span>
-            <AuthorBadge careerStage={book.careerStage} className="shrink-0" />
+            <AuthorBadge careerStage={book.careerStage} iconOnly className="shrink-0" />
           </p>
           <div className="mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-0.5 pt-1 text-xs text-muted-foreground">
             {primaryGenre && (

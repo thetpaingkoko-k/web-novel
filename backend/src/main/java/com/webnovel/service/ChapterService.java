@@ -112,7 +112,14 @@ public class ChapterService {
         boolean likedByMe = viewer
                 .map(v -> chapterLikes.existsByChapterIdAndReaderId(chapterId, v.getId()))
                 .orElse(false);
-        return toResponse(chapter, likedByMe, preview);
+        // Readers see a gapless sequence: a rejected/removed chapter must not leave a hole,
+        // so a published chapter is numbered by its position among published chapters, not by
+        // its stored number. Author/admin keep the true stored number to manage drafts.
+        int displayNumber = privileged
+                ? chapter.getChapterNumber()
+                : (int) chapters.countByBookIdAndStatusAndChapterNumberLessThanEqual(
+                        book.getId(), ChapterStatus.published, chapter.getChapterNumber());
+        return toResponse(chapter, likedByMe, preview, displayNumber);
     }
 
     Book requireOwnedBook(AppUserPrincipal principal, Long bookId) {
@@ -132,8 +139,14 @@ public class ChapterService {
     }
 
     public static ChapterResponse toResponse(Chapter c, boolean likedByMe, boolean preview) {
+        return toResponse(c, likedByMe, preview, c.getChapterNumber());
+    }
+
+    /** As {@link #toResponse(Chapter, boolean, boolean)} but with an explicit display number
+     *  (the reader-facing gapless sequence differs from the stored number). */
+    public static ChapterResponse toResponse(Chapter c, boolean likedByMe, boolean preview, int displayNumber) {
         return new ChapterResponse(
-                c.getId(), c.getBookId(), c.getChapterNumber(), c.getTitle(), c.getContent(),
+                c.getId(), c.getBookId(), displayNumber, c.getTitle(), c.getContent(),
                 c.getStatus(), c.getLikeCount(), c.getUniqueViewCount(), c.getCompletionCount(),
                 c.getRejectionReason(), c.getPublishedAt(), likedByMe, preview);
     }

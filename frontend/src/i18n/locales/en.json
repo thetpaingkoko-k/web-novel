@@ -140,6 +140,7 @@
     "genderRequired": "Please select your gender",
     "birthdayRequired": "Please enter your birthday",
     "birthdayPast": "Enter a valid date in the past",
+    "birthdayMinAge": "You must be at least {{age}} years old to register",
     "termsRequired": "You must accept the terms to continue"
   },
   "books": {
@@ -761,6 +762,10 @@
     "verifyAuthor": "Verify author",
     "enableMonetization": "Enable monetization",
     "userApproved": "User approved",
+    "rejectApplication": "Reject application",
+    "rejectApplicationTitle": "Reject {{user}}'s author application?",
+    "rejectApplicationDescription": "The application is declined and the user returns to a regular reader. They can apply again later.",
+    "applicationRejected": "Application rejected",
     "suspend": "Suspend",
     "ban": "Ban",
     "suspendTitle": "Suspend {{user}}?",
@@ -934,6 +939,8 @@
       "book_rejected": "Your book \"{{data}}\" was rejected.",
       "book_deleted": "Your book \"{{data}}\" was removed by an administrator.",
       "withdrawal_approved": "Your withdrawal of {{data}} was approved.",
+      "author_verified": "Your author account was approved. You can now start publishing.",
+      "author_rejected": "Your author application was not approved.",
       "upgrade_approved": "Your upgrade to professional author was approved.",
       "upgrade_rejected": "Your professional upgrade request was declined.",
       "report_filed": "A new report was filed and needs review.",

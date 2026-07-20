@@ -6,6 +6,7 @@ import com.webnovel.dto.admin.ApproveRequest;
 import com.webnovel.dto.admin.SetSubscriptionPriceRequest;
 import com.webnovel.dto.admin.SuspendRequest;
 import com.webnovel.dto.author.SubscriptionPriceResponse;
+import com.webnovel.dto.content.RejectRequest;
 import com.webnovel.dto.user.UserResponse;
 import com.webnovel.service.AdminUserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,6 +37,12 @@ public class AdminUserController {
     @PutMapping("/{id}/approve")
     public UserResponse approve(@PathVariable Long id, @Valid @RequestBody ApproveRequest req) {
         return adminUserService.approve(id, req);
+    }
+
+    /** Decline a pending author application, returning the applicant to a regular reader (§4.1.1). */
+    @PutMapping("/{id}/reject")
+    public UserResponse rejectApplication(@PathVariable Long id, @Valid @RequestBody RejectRequest req) {
+        return adminUserService.rejectApplication(id, req.reason());
     }
 
     @PutMapping("/{id}/suspend")

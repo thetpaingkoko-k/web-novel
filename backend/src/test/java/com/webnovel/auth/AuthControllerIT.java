@@ -172,6 +172,21 @@ class AuthControllerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void register_underage_returns400() throws Exception {
+        // Under the 10-year minimum: a 5-year-old birthday, computed so the test never ages out.
+        String recentBirthday = java.time.LocalDate.now().minusYears(5).toString();
+        String payload = ("""
+                {"username":"kiddo","email":"kiddo@example.com","password":"password123",\
+                "gender":"male","birthday":"%s","acceptedTerms":true}""").formatted(recentBirthday);
+        mvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code", is("validation_failed")))
+                .andExpect(jsonPath("$.fieldErrors.oldEnough", notNullValue()));
+    }
+
+    @Test
     void register_verifiedEmail_returns409() throws Exception {
         registerVerifyAndToken("dupe1", "dupe@example.com"); // email is now a verified account
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)

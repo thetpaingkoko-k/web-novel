@@ -14,6 +14,7 @@ import com.webnovel.dto.admin.UpgradeRequestRow;
 import com.webnovel.dto.author.SubscriptionPriceResponse;
 import com.webnovel.dto.user.UserResponse;
 import com.webnovel.exception.BadRequestException;
+import com.webnovel.exception.ForbiddenException;
 import com.webnovel.exception.NotFoundException;
 import com.webnovel.repository.AuthorProfileRepository;
 import com.webnovel.repository.UserRepository;
@@ -77,8 +78,32 @@ public class AdminUserService {
         }
         adminActions.log(SecurityUtils.currentUserId(), AdminActionType.user_approval,
                 "user", userId, req.kind().name());
-        notifications.notify(userId, NotificationType.upgrade_approved,
-                "user", userId, req.kind().name());
+        // Verifying a new author (hobbyist) is a different event than upgrading an existing
+        // author to professional — they must not share the "upgraded to professional" message.
+        NotificationType notifType = req.kind() == ApproveRequest.Kind.verify_author
+                ? NotificationType.author_verified
+                : NotificationType.upgrade_approved;
+        notifications.notify(userId, notifType, "user", userId, req.kind().name());
+        return userService.toResponse(user);
+    }
+
+    /**
+     * Declines a pending author application (§4.1.1): the applicant returns to a regular
+     * reader ({@code approved}) — so they leave the review queue and can re-apply — with the
+     * required reason audited and the applicant notified. 400 if the user has no application
+     * awaiting review.
+     */
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponse rejectApplication(Long userId, String reason) {
+        User user = users.findById(userId).orElseThrow(() -> new NotFoundException("user.not_found"));
+        if (user.getStatus() != UserStatus.pending) {
+            throw new BadRequestException("user.no_application");
+        }
+        user.setStatus(UserStatus.approved); // back to a normal reader
+        adminActions.log(SecurityUtils.currentUserId(), AdminActionType.user_rejection,
+                "user", userId, "reject_application: " + reason);
+        notifications.notify(userId, NotificationType.author_rejected, "user", userId, null);
         return userService.toResponse(user);
     }
 
@@ -175,6 +200,10 @@ public class AdminUserService {
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponse suspend(Long userId, boolean ban, String reason) {
         User user = users.findById(userId).orElseThrow(() -> new NotFoundException("user.not_found"));
+        // Admins don't suspend/ban fellow admins (nor themselves) — moderation targets non-admins.
+        if (user.getRole() == Role.admin) {
+            throw new ForbiddenException("admin.cannot_ban_admin");
+        }
         user.setStatus(ban ? UserStatus.banned : UserStatus.suspended);
         user.setSuspensionReason(reason);
         adminActions.log(SecurityUtils.currentUserId(), AdminActionType.ban,

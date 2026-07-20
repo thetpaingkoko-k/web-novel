@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { RefObject } from "react"
 import { isAxiosError } from "axios"
-import { CheckCircle2, ChevronLeft, ChevronRight, Clock, Eye, Heart, Library, Lock, Maximize, Minimize, Sparkles } from "lucide-react"
+import { BookMarked, CheckCircle2, ChevronLeft, ChevronRight, Clock, Eye, Heart, Lock, Maximize, Minimize, Sparkles } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
@@ -320,7 +320,7 @@ export function ChapterReaderPage() {
             to={`/books/${chapter.bookId}`}
             className="inline-flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            <Library className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <BookMarked className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span className="max-w-[38vw] truncate sm:max-w-xs">
               {book?.title ?? t("chapters.backToBook")}
             </span>
@@ -520,7 +520,7 @@ function ChapterNav({
       <div className="col-span-2 flex justify-center">
         <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
           <Link to={`/books/${bookId}`}>
-            <Library className="h-4 w-4" aria-hidden="true" />
+            <BookMarked className="h-4 w-4" aria-hidden="true" />
             {t("chapters.backToBook")}
           </Link>
         </Button>

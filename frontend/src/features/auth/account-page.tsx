@@ -95,6 +95,8 @@ export function AccountPage() {
   const avatarUrl = watch("avatarUrl")
   const initial = user?.username?.charAt(0).toUpperCase() ?? "U"
   const isAuthor = Boolean(user && AUTHOR_ROLES.includes(user.role))
+  // Admins moderate the platform; they never subscribe, so hide the card entirely.
+  const isAdmin = user?.role === "admin"
 
   const birthday = formatDate(user?.dateOfBirth, i18n.language)
   const memberSince = formatDate(user?.createdAt, i18n.language)
@@ -240,7 +242,7 @@ export function AccountPage() {
         </CardContent>
       </Card>
 
-      <SubscriptionsCard />
+      {!isAdmin && <SubscriptionsCard />}
     </div>
   )
 }

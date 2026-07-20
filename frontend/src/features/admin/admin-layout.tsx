@@ -4,6 +4,7 @@ import {
   Banknote,
   BarChart3,
   FileCheck,
+  Home,
   LogOut,
   Menu,
   ScrollText,
@@ -133,6 +134,13 @@ export function AdminLayout() {
             {t(current.key)}
           </h1>
           <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+            {/* Always-visible escape hatch back to the public site (also in the avatar menu). */}
+            <Button asChild variant="outline" size="sm">
+              <Link to="/" aria-label={t("admin.backToSite")}>
+                <Home className="size-4" />
+                <span className="hidden sm:inline">{t("admin.backToSite")}</span>
+              </Link>
+            </Button>
             <LanguageSwitcher />
             <ModeToggle />
             <AdminUserMenu />
