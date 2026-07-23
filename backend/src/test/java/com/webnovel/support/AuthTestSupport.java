@@ -35,7 +35,7 @@ public abstract class AuthTestSupport extends AbstractIntegrationTest {
         mvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"username":"%s","email":"%s","password":"password123",\
+                                {"username":"%s","email":"%s","password":"Password123!",\
                                 "gender":"male","birthday":"1990-01-01","acceptedTerms":true}"""
                                 .formatted(username, email)))
                 .andExpect(status().isAccepted());
@@ -47,7 +47,7 @@ public abstract class AuthTestSupport extends AbstractIntegrationTest {
         String body = mvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"%s","password":"password123"}""".formatted(email)))
+                                {"email":"%s","password":"Password123!"}""".formatted(email)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).get("accessToken").asText();
@@ -58,14 +58,14 @@ public abstract class AuthTestSupport extends AbstractIntegrationTest {
         User admin = new User();
         admin.setUsername("admin_" + Math.abs(email.hashCode()));
         admin.setEmail(email);
-        admin.setPasswordHash(passwordEncoder.encode("password123"));
+        admin.setPasswordHash(passwordEncoder.encode("Password123!"));
         admin.setRole(Role.admin);
         admin.setStatus(UserStatus.approved);
         users.save(admin);
         String body = mvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"%s","password":"password123"}""".formatted(email)))
+                                {"email":"%s","password":"Password123!"}""".formatted(email)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).get("accessToken").asText();

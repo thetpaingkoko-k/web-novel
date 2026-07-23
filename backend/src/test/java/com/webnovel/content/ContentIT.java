@@ -210,11 +210,11 @@ class ContentIT extends AuthTestSupport {
                 .andExpect(jsonPath("$.code", is("validation_failed")));
     }
 
-    /** Re-login an existing user (password is always "password123" in these tests) for a fresh-role token. */
+    /** Re-login an existing user (password is always "Password123!" in these tests) for a fresh-role token. */
     private String seedRelogin(String email) throws Exception {
         String body = mvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"" + email + "\",\"password\":\"password123\"}"))
+                        .content("{\"email\":\"" + email + "\",\"password\":\"Password123!\"}"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).get("accessToken").asText();

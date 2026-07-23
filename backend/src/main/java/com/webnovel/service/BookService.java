@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /** Book creation/update and public reads (FR-2.1–2.4). */
 @Service
@@ -221,7 +222,8 @@ public class BookService {
             summaries.add(new ChapterSummary(
                     c.getId(), number, c.getTitle(), c.getStatus(),
                     c.getLikeCount(), c.getUniqueViewCount(), c.getCompletionCount(),
-                    c.getPublishedAt(), previewIds.contains(c.getId())));
+                    c.getPublishedAt(), previewIds.contains(c.getId()),
+                    StringUtils.hasText(c.getAudioUrl())));
         }
         return summaries;
     }

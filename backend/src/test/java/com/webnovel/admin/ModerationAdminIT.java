@@ -26,7 +26,7 @@ class ModerationAdminIT extends AuthTestSupport {
 
     private String relogin(String email) throws Exception {
         String body = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"" + email + "\",\"password\":\"password123\"}"))
+                        .content("{\"email\":\"" + email + "\",\"password\":\"Password123!\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).get("accessToken").asText();
     }
@@ -180,7 +180,7 @@ class ModerationAdminIT extends AuthTestSupport {
 
         // a fresh login surfaces the stored reason so the UI can explain the block (FR-1.4)
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"victim@example.com\",\"password\":\"password123\"}"))
+                        .content("{\"email\":\"victim@example.com\",\"password\":\"Password123!\"}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code", is("account_blocked")))
                 .andExpect(jsonPath("$.details.status", is("suspended")))

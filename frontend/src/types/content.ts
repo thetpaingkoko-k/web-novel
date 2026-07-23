@@ -105,6 +105,12 @@ export interface ChapterSummary {
    * carry a "Free preview" badge; non-preview premium chapters stay paywalled.
    */
   preview: boolean
+  /**
+   * True when the chapter has narration audio (audiobook). Lets the chapter list
+   * badge audio-enabled chapters without shipping the full audio URL; the actual
+   * `audioUrl` is only on the full `Chapter` (GET /chapters/{id}).
+   */
+  hasAudio: boolean
 }
 
 /** `GET /chapters/{id}` — ChapterResponse (= ChapterSummary + content fields). */

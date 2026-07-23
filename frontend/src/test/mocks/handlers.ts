@@ -50,6 +50,7 @@ export const mockBookDetail: Book = {
       completionCount: 6,
       publishedAt: new Date(0).toISOString(),
       preview: false,
+      hasAudio: false,
     },
   ],
 }

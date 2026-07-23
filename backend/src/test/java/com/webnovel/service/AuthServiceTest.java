@@ -101,7 +101,7 @@ class AuthServiceTest {
         });
 
         RegistrationResponse res = service.register(
-                new RegisterRequest("alice", "alice@example.com", "password123",
+                new RegisterRequest("alice", "alice@example.com", "Password123!",
                         Gender.male, LocalDate.of(1990, 1, 1), true));
 
         assertThat(res.email()).isEqualTo("alice@example.com");
@@ -123,7 +123,7 @@ class AuthServiceTest {
         verified.setAuthProvider(AuthProvider.LOCAL);
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(verified));
         assertThatThrownBy(() -> service.register(
-                new RegisterRequest("alice", "alice@example.com", "password123",
+                new RegisterRequest("alice", "alice@example.com", "Password123!",
                         Gender.male, LocalDate.of(1990, 1, 1), true)))
                 .isInstanceOf(ConflictException.class)
                 .extracting("messageKey").isEqualTo("auth.email_taken");
@@ -137,7 +137,7 @@ class AuthServiceTest {
         google.setAuthProvider(AuthProvider.GOOGLE);
         when(users.findByEmail("g@example.com")).thenReturn(Optional.of(google));
         assertThatThrownBy(() -> service.register(
-                new RegisterRequest("guser", "g@example.com", "password123",
+                new RegisterRequest("guser", "g@example.com", "Password123!",
                         Gender.male, LocalDate.of(1990, 1, 1), true)))
                 .isInstanceOf(ConflictException.class)
                 .extracting("messageKey").isEqualTo("auth.email_registered_with_google");
@@ -155,21 +155,21 @@ class AuthServiceTest {
         when(users.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
         RegistrationResponse res = service.register(
-                new RegisterRequest("alice", "alice@example.com", "newpassword123",
+                new RegisterRequest("alice", "alice@example.com", "newPassword123!",
                         Gender.female, LocalDate.of(1992, 5, 6), true));
 
         assertThat(res.email()).isEqualTo("alice@example.com");
         assertThat(res.verificationRequired()).isTrue();
         // No new account — the existing pending one is reused with refreshed creds.
         assertThat(pending.getUsername()).isEqualTo("alice");
-        assertThat(passwordEncoder.matches("newpassword123", pending.getPasswordHash())).isTrue();
+        assertThat(passwordEncoder.matches("newPassword123!", pending.getPasswordHash())).isTrue();
         // Still no send here; the verify screen emails the code (/resend-code).
         verifyNoInteractions(emailVerification);
     }
 
     @Test
     void login_wrongPassword_throwsUnauthorized() {
-        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(persistedUser("password123")));
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(persistedUser("Password123!")));
         assertThatThrownBy(() -> service.login(new LoginRequest("alice@example.com", "wrongpass")))
                 .isInstanceOf(ApiException.class)
                 .extracting("messageKey").isEqualTo("auth.invalid_credentials");
@@ -177,16 +177,16 @@ class AuthServiceTest {
 
     @Test
     void login_blockedUser_throwsForbiddenWithCodeStatusAndReason() {
-        User u = persistedUser("password123");
+        User u = persistedUser("Password123!");
         u.setStatus(UserStatus.suspended);
         u.setSuspensionReason("Repeated harassment");
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
-        assertThatThrownBy(() -> service.login(new LoginRequest("alice@example.com", "password123")))
+        assertThatThrownBy(() -> service.login(new LoginRequest("alice@example.com", "Password123!")))
                 .isInstanceOf(ApiException.class)
                 .extracting("messageKey").isEqualTo("auth.account_blocked");
 
         ApiException ex = catchThrowableOfType(
-                () -> service.login(new LoginRequest("alice@example.com", "password123")), ApiException.class);
+                () -> service.login(new LoginRequest("alice@example.com", "Password123!")), ApiException.class);
         assertThat(ex.getCode()).isEqualTo(ErrorCode.account_blocked);
         assertThat(ex.getDetails()).containsEntry("status", "suspended")
                 .containsEntry("reason", "Repeated harassment");
@@ -194,29 +194,29 @@ class AuthServiceTest {
 
     @Test
     void login_blockedUserWithoutReason_returnsEmptyReason() {
-        User u = persistedUser("password123");
+        User u = persistedUser("Password123!");
         u.setStatus(UserStatus.banned); // suspensionReason left null (legacy rows)
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
 
         ApiException ex = catchThrowableOfType(
-                () -> service.login(new LoginRequest("alice@example.com", "password123")), ApiException.class);
+                () -> service.login(new LoginRequest("alice@example.com", "Password123!")), ApiException.class);
         assertThat(ex.getCode()).isEqualTo(ErrorCode.account_blocked);
         assertThat(ex.getDetails()).containsEntry("status", "banned").containsEntry("reason", "");
     }
 
     @Test
     void login_pendingUser_throwsEmailNotVerified() {
-        User u = persistedUser("password123");
+        User u = persistedUser("Password123!");
         u.setStatus(UserStatus.pending);
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
-        assertThatThrownBy(() -> service.login(new LoginRequest("alice@example.com", "password123")))
+        assertThatThrownBy(() -> service.login(new LoginRequest("alice@example.com", "Password123!")))
                 .isInstanceOf(ApiException.class)
                 .extracting("code").isEqualTo(ErrorCode.email_not_verified);
     }
 
     @Test
     void verifyEmail_validCode_approvesAndIssuesTokens() {
-        User u = persistedUser("password123");
+        User u = persistedUser("Password123!");
         u.setStatus(UserStatus.pending);
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
         when(userService.toResponse(any())).thenReturn(
@@ -232,7 +232,7 @@ class AuthServiceTest {
 
     @Test
     void verifyEmail_alreadyApproved_throwsAlreadyVerified() {
-        User u = persistedUser("password123"); // approved by default
+        User u = persistedUser("Password123!"); // approved by default
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
         assertThatThrownBy(() -> service.verifyEmail(new VerifyEmailRequest("alice@example.com", "123456")))
                 .isInstanceOf(ConflictException.class)
@@ -241,7 +241,7 @@ class AuthServiceTest {
 
     @Test
     void login_pastDeviceLimit_evictsOldestSession() {
-        User u = persistedUser("password123");
+        User u = persistedUser("Password123!");
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(u));
         when(userService.toResponse(any())).thenReturn(
                 new UserResponse(1L, "alice", "alice@example.com", Role.reader, UserStatus.approved, false,
@@ -253,7 +253,7 @@ class AuthServiceTest {
         when(refreshTokens.findByUserIdOrderByCreatedAtAscIdAsc(1L))
                 .thenReturn(List.of(oldest, mid, newest));
 
-        service.login(new LoginRequest("alice@example.com", "password123"));
+        service.login(new LoginRequest("alice@example.com", "Password123!"));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<RefreshToken>> evicted = ArgumentCaptor.forClass(List.class);
@@ -343,7 +343,7 @@ class AuthServiceTest {
     @Test
     void google_emailBelongsToPasswordAccount_throwsConflict() {
         stubGoogle("alice@example.com", true);
-        User local = persistedUser("password123"); // authProvider defaults to LOCAL
+        User local = persistedUser("Password123!"); // authProvider defaults to LOCAL
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(local));
 
         assertThatThrownBy(() -> service.loginWithGoogle(new GoogleLoginRequest("tok")))

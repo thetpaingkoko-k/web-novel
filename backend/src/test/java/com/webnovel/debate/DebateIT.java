@@ -26,7 +26,7 @@ class DebateIT extends AuthTestSupport {
                         .content("{\"kind\":\"" + ApproveRequest.Kind.verify_author + "\"}"))
                 .andExpect(status().isOk());
         String body = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"" + email + "\",\"password\":\"password123\"}"))
+                        .content("{\"email\":\"" + email + "\",\"password\":\"Password123!\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).get("accessToken").asText();
     }

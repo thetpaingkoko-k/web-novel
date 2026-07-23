@@ -6,6 +6,7 @@ import com.webnovel.domain.enums.ChapterStatus;
 import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.domain.enums.SubscriptionStatus;
 import com.webnovel.repository.ChapterRepository;
+import com.webnovel.repository.NotificationRepository;
 import com.webnovel.repository.SubscriptionRepository;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -30,9 +31,13 @@ public class ScheduledJobs {
     /** Renewal reminder lead time (§14: 3 days before end_date). */
     static final Duration REMINDER_LEAD = Duration.ofDays(3);
 
+    /** In-app notifications are auto-cleared once older than this. */
+    static final Duration NOTIFICATION_RETENTION = Duration.ofDays(7);
+
     private final ChapterRepository chapters;
     private final SubscriptionRepository subscriptions;
     private final NotificationService notifications;
+    private final NotificationRepository notificationRepository;
 
     /** FR-2.6: publish scheduled chapters whose time has arrived. */
     @Scheduled(fixedDelayString = "${app.jobs.publish-interval-ms:60000}")
@@ -79,6 +84,18 @@ public class ScheduledJobs {
         int expired = subscriptions.expireEnded(now);
         if (expired > 0) {
             log.info("Expired {} subscription(s)", expired);
+        }
+    }
+
+    /** Auto-clear in-app notifications older than {@link #NOTIFICATION_RETENTION} (7 days). */
+    @Scheduled(fixedDelayString = "${app.jobs.notification-cleanup-interval-ms:86400000}")
+    @Transactional
+    public void purgeOldNotifications() {
+        OffsetDateTime cutoff = OffsetDateTime.now().minus(NOTIFICATION_RETENTION);
+        int removed = notificationRepository.deleteByCreatedAtBefore(cutoff);
+        if (removed > 0) {
+            log.info("Purged {} notification(s) older than {} days",
+                    removed, NOTIFICATION_RETENTION.toDays());
         }
     }
 }

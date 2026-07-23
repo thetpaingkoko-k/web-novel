@@ -1,4 +1,4 @@
-import { BookOpen, Bookmark, CheckCircle2, Eye, Heart, ListX, Lock, MessageSquare, Sparkles } from "lucide-react"
+import { BookOpen, Bookmark, CheckCircle2, Eye, Headphones, Heart, ListX, Lock, MessageSquare, Sparkles } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useEffect } from "react"
 import { Trans, useTranslation } from "react-i18next"
@@ -273,6 +273,15 @@ export function BookDetailPage() {
                         />
                       </span>
                     </span>
+                    {chapter.hasAudio && (
+                      <span
+                        className="flex shrink-0 items-center text-muted-foreground"
+                        title={t("chapters.hasAudio")}
+                      >
+                        <Headphones className="size-4" aria-hidden="true" />
+                        <span className="sr-only">{t("chapters.hasAudio")}</span>
+                      </span>
+                    )}
                     {isRead && (
                       <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-primary">
                         <CheckCircle2 className="size-4" aria-hidden="true" />

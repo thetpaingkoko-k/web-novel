@@ -36,8 +36,8 @@ interface FillOptions {
 }
 
 async function fillForm({
-  password = "password123",
-  confirmPassword = "password123",
+  password = "Password123!",
+  confirmPassword = "Password123!",
   gender = true,
   birthday = "2000-01-15",
   acceptTerms = true,
@@ -64,9 +64,17 @@ async function fillForm({
 describe("RegisterPage", () => {
   it("shows a field error when the passwords don't match", async () => {
     renderRegisterPage()
-    await fillForm({ password: "password123", confirmPassword: "password124" })
+    await fillForm({ password: "Password123!", confirmPassword: "Password124!" })
 
     expect(await screen.findByText(/passwords don't match/i)).toBeInTheDocument()
+    expect(screen.queryByText("verify page")).not.toBeInTheDocument()
+  })
+
+  it("rejects a weak password that lacks the required character types", async () => {
+    renderRegisterPage()
+    await fillForm({ password: "password", confirmPassword: "password" })
+
+    expect(await screen.findByText(/must include an uppercase letter/i)).toBeInTheDocument()
     expect(screen.queryByText("verify page")).not.toBeInTheDocument()
   })
 
@@ -95,7 +103,7 @@ describe("RegisterPage", () => {
     expect(captured).toEqual({
       username: "new_reader",
       email: "reader@example.com",
-      password: "password123",
+      password: "Password123!",
       gender: "female",
       birthday: "2000-01-15",
       acceptedTerms: true,

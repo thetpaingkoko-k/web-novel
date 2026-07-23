@@ -24,4 +24,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Modifying
     @Query("update Notification n set n.readAt = :now where n.userId = :uid and n.readAt is null")
     int markAllRead(@Param("uid") Long uid, @Param("now") OffsetDateTime now);
+
+    /** Retention sweep: delete notifications created before {@code cutoff}; returns rows removed. */
+    @Modifying
+    @Query("delete from Notification n where n.createdAt < :cutoff")
+    int deleteByCreatedAtBefore(@Param("cutoff") OffsetDateTime cutoff);
 }

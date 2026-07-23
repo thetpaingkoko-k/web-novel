@@ -18,8 +18,23 @@ export function buildRegisterSchema(t: TFunction) {
   return z
     .object({
       username: z.string().min(3, t("validation.usernameMin")),
-      email: z.string().min(1, t("validation.required")).email(t("validation.emailInvalid")),
-      password: z.string().min(8, t("validation.passwordMin")),
+      email: z
+        .string()
+        .min(1, t("validation.required"))
+        .email(t("validation.emailInvalid"))
+        // Stricter than zod's .email() (which accepts "a@b"): require a dotted domain,
+        // mirroring the backend RegisterRequest @Pattern.
+        .regex(/^[^@\s]+@[^@\s]+\.[^@\s]+$/, t("validation.emailInvalid")),
+      // Strong password: 8+ chars with an uppercase, lowercase, number, and special char
+      // (mirrors the backend RegisterRequest rule). Each rule has its own message so the
+      // user sees exactly what's missing.
+      password: z
+        .string()
+        .min(8, t("validation.passwordMin"))
+        .regex(/[A-Z]/, t("validation.passwordUppercase"))
+        .regex(/[a-z]/, t("validation.passwordLowercase"))
+        .regex(/\d/, t("validation.passwordNumber"))
+        .regex(/[^A-Za-z0-9]/, t("validation.passwordSpecial")),
       confirmPassword: z.string().min(1, t("validation.required")),
       gender: z.enum(GENDER_OPTIONS, { message: t("validation.genderRequired") }),
       birthday: z

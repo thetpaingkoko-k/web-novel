@@ -41,7 +41,7 @@ class AuthControllerIT extends AbstractIntegrationTest {
     }
 
     private static final String REGISTER = """
-            {"username":"%s","email":"%s","password":"password123",\
+            {"username":"%s","email":"%s","password":"Password123!",\
             "gender":"male","birthday":"1990-01-01","acceptedTerms":true}""";
 
     private void register(String username, String email) throws Exception {
@@ -84,7 +84,7 @@ class AuthControllerIT extends AbstractIntegrationTest {
         // login before verifying → 403 with the email so the UI can reopen the verify screen
         mvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"roundtrip@example.com\",\"password\":\"password123\"}"))
+                        .content("{\"email\":\"roundtrip@example.com\",\"password\":\"Password123!\"}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code", is("email_not_verified")))
                 .andExpect(jsonPath("$.details.email", is("roundtrip@example.com")));
@@ -176,7 +176,7 @@ class AuthControllerIT extends AbstractIntegrationTest {
         // Under the 10-year minimum: a 5-year-old birthday, computed so the test never ages out.
         String recentBirthday = java.time.LocalDate.now().minusYears(5).toString();
         String payload = ("""
-                {"username":"kiddo","email":"kiddo@example.com","password":"password123",\
+                {"username":"kiddo","email":"kiddo@example.com","password":"Password123!",\
                 "gender":"male","birthday":"%s","acceptedTerms":true}""").formatted(recentBirthday);
         mvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

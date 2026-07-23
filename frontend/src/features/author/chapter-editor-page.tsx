@@ -29,6 +29,13 @@ import {
 } from "@/features/chapters/api"
 import { buildChapterSchema, type ChapterFormSchema } from "./schemas"
 
+/** Average reading speed used to estimate a chapter's reading time (matches the reader). */
+const WORDS_PER_MINUTE = 200
+/** Soft cap: chapters longer than this (in reading minutes) get a "consider splitting" warning. */
+const MAX_READING_MINUTES = 7
+/** Word count equivalent to the reading-time cap. Warn-only — saving/publishing isn't blocked. */
+const MAX_WORDS = MAX_READING_MINUTES * WORDS_PER_MINUTE
+
 function countWords(text: string) {
   const trimmed = text.trim()
   return trimmed ? trimmed.split(/\s+/).length : 0
@@ -102,7 +109,9 @@ export function ChapterEditorPage() {
   const audioUrl = watch("audioUrl") ?? ""
   const wordCount = useMemo(() => countWords(content), [content])
   const charCount = content.length
-  const readingMinutes = Math.max(1, Math.round(wordCount / 200))
+  const readingMinutes = Math.max(1, Math.round(wordCount / WORDS_PER_MINUTE))
+  // Warn-only: the chapter is longer than the 7-minute reading target. Never blocks save/publish.
+  const overReadingLimit = wordCount > MAX_WORDS
 
   // ⌘/Ctrl-S saves the draft without leaving the editor. `saveOnly` is a hoisted
   // function declaration, so referencing it here is safe.
@@ -274,6 +283,13 @@ export function ChapterEditorPage() {
         </div>
       )}
 
+      {!focusMode && overReadingLimit && (
+        <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+          <span>{t("author.readingLimitWarning", { max: MAX_READING_MINUTES })}</span>
+        </div>
+      )}
+
       {!focusMode && publishBlockedByDraft && existingDraft && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
           <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
@@ -341,7 +357,15 @@ export function ChapterEditorPage() {
                     <FileText className="h-3.5 w-3.5" aria-hidden="true" />
                     {t("author.charCount", { count: charCount })}
                   </span>
-                  <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-primary">
+                  <span
+                    className={cn(
+                      "flex items-center gap-1 rounded-full px-2.5 py-1",
+                      overReadingLimit
+                        ? "bg-warning/15 text-warning"
+                        : "bg-primary/10 text-primary"
+                    )}
+                    title={overReadingLimit ? t("author.readingLimitWarning", { max: MAX_READING_MINUTES }) : undefined}
+                  >
                     <Timer className="h-3.5 w-3.5" aria-hidden="true" />
                     {t("author.readingTimeMin", { count: readingMinutes })}
                   </span>
