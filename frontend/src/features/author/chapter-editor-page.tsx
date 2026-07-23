@@ -111,7 +111,11 @@ export function ChapterEditorPage() {
   const charCount = content.length
   const readingMinutes = Math.max(1, Math.round(wordCount / WORDS_PER_MINUTE))
   // Warn-only: the chapter is longer than the 7-minute reading target. Never blocks save/publish.
+  // These recompute on every keystroke (the form `watch` above re-renders), so the meter and
+  // warning below track the chapter length in real time.
   const overReadingLimit = wordCount > MAX_WORDS
+  const nearReadingLimit = !overReadingLimit && wordCount >= MAX_WORDS * 0.8
+  const lengthProgress = Math.min(1, wordCount / MAX_WORDS)
 
   // ⌘/Ctrl-S saves the draft without leaving the editor. `saveOnly` is a hoisted
   // function declaration, so referencing it here is safe.
@@ -400,6 +404,49 @@ export function ChapterEditorPage() {
               {...register("content")}
             />
             <FieldError errors={[errors.content]} />
+
+            {/* Live 7-minute length meter. Recomputes on every keystroke, so the author
+                sees the limit approaching (amber from 80%) instead of only learning
+                about it after crossing. Warn-only — nothing here blocks save/publish. */}
+            <div className="flex flex-col gap-1.5">
+              <div
+                className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={MAX_WORDS}
+                aria-valuenow={Math.min(wordCount, MAX_WORDS)}
+                aria-label={t("author.readingLimitMeter", { max: MAX_READING_MINUTES })}
+              >
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all duration-200",
+                    overReadingLimit
+                      ? "bg-warning"
+                      : nearReadingLimit
+                        ? "bg-warning/70"
+                        : "bg-primary"
+                  )}
+                  style={{ width: `${lengthProgress * 100}%` }}
+                />
+              </div>
+              <p
+                className={cn(
+                  "text-xs tabular-nums",
+                  overReadingLimit || nearReadingLimit ? "text-warning" : "text-muted-foreground"
+                )}
+                aria-live="polite"
+              >
+                {overReadingLimit
+                  ? t("author.wordsOverLimit", {
+                      count: wordCount - MAX_WORDS,
+                      max: MAX_READING_MINUTES,
+                    })
+                  : t("author.wordsLeftOfLimit", {
+                      count: MAX_WORDS - wordCount,
+                      max: MAX_READING_MINUTES,
+                    })}
+              </p>
+            </div>
           </CardContent>
         </Card>
 
