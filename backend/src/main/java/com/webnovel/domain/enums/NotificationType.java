@@ -29,6 +29,7 @@ public enum NotificationType {
     upgrade_rejected,
 
     // Admin-facing ("something needs review")
+    chapter_submitted,
     report_filed,
     upgrade_requested,
     payment_submitted,

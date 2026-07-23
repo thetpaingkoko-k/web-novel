@@ -163,6 +163,9 @@ export const handlers = [
   http.get("/api/v1/categories", () => HttpResponse.json(mockCategories)),
   http.get("/api/v1/admin/categories", () => HttpResponse.json(mockCategories)),
 
+  // Trending carousel: default to empty so pages that don't test it render nothing.
+  http.get("/api/v1/books/trending", () => HttpResponse.json([])),
+
   http.get("/api/v1/books", () => HttpResponse.json(mockBookList)),
   http.get("/api/v1/books/:bookId", () => HttpResponse.json(mockBookDetail)),
   http.post("/api/v1/books/:bookId/view", () => HttpResponse.json({ unique: true })),

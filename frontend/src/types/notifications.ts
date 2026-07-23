@@ -25,6 +25,7 @@ export type NotificationType =
   | "upgrade_approved"
   | "upgrade_rejected"
   // admin
+  | "chapter_submitted"
   | "report_filed"
   | "upgrade_requested"
   | "payment_submitted"

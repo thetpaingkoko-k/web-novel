@@ -154,6 +154,28 @@ export interface AudioTrack {
   locked: boolean
 }
 
+/**
+ * A book on the home "trending" carousel — `GET /books/trending`. Carries the browse
+ * fields plus the raw engagement counters its popularity rank is built from, so a slide
+ * can both link to the book and show why it's trending.
+ */
+export interface TrendingBook {
+  bookId: number
+  title: string
+  coverImageUrl: string | null
+  status: BookStatus
+  isPremium: boolean
+  authorUsername: string
+  authorAvatarUrl: string | null
+  careerStage?: CareerStage | null
+  chapterCount: number
+  viewCount: number
+  likeCount: number
+  commentCount: number
+  /** Category codes (see `features/categories/api.ts`). */
+  genres: string[]
+}
+
 export type AccessDenialCode = "no_subscription" | "expired_subscription"
 
 /**

@@ -118,15 +118,15 @@ export function EarningsDashboardPage() {
         ) : (
           <>
             <StatCard
+              icon={Coins}
+              label={t("earnings.totalEarned")}
+              value={t("earnings.mmk", { amount: balance.totalEarned })}
+            />
+            <StatCard
               icon={Wallet}
               label={t("earnings.availableBalance")}
               value={t("earnings.mmk", { amount: balance.availableBalance })}
               className="glow-brand-hover border-primary/25 bg-primary/5"
-            />
-            <StatCard
-              icon={Coins}
-              label={t("earnings.totalEarned")}
-              value={t("earnings.mmk", { amount: balance.totalEarned })}
             />
             <StatCard
               icon={Clock}

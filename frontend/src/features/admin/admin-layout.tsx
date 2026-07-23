@@ -1,6 +1,5 @@
 import { useState } from "react"
 import {
-  ArrowLeft,
   Banknote,
   BarChart3,
   FileCheck,
@@ -136,7 +135,7 @@ export function AdminLayout() {
             {t(current.key)}
           </h1>
           <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-            {/* Always-visible escape hatch back to the public site (also in the avatar menu). */}
+            {/* The one escape hatch back to the public site. */}
             <Button asChild variant="outline" size="sm">
               <Link to="/" aria-label={t("admin.backToSite")}>
                 <Home className="size-4" />
@@ -256,11 +255,6 @@ function AdminUserMenu() {
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel className="truncate text-sm text-foreground">{username}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/">
-            <ArrowLeft className="size-4" /> {t("admin.backToSite")}
-          </Link>
-        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to="/account">
             <UserCheck className="size-4" /> {t("nav.account")}

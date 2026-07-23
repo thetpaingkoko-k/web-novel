@@ -1,5 +1,6 @@
 package com.webnovel.content;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -101,6 +102,12 @@ class ChapterReviewIT extends AuthTestSupport {
         mvc.perform(get("/api/v1/chapters/{id}", ch3).header("Authorization", bearer(author)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.chapterNumber", is(3)));
+
+        // The rejection notification carries the admin's reason (not the book title), so the
+        // author can read WHY straight from the bell.
+        mvc.perform(get("/api/v1/notifications").header("Authorization", bearer(author)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.type == 'chapter_rejected')].data", hasItem("needs work")));
     }
 
     @Test

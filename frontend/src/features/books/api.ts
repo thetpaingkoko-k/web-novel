@@ -8,6 +8,7 @@ import type {
   BookListItem,
   BookListParams,
   BookUpdateValues,
+  TrendingBook,
 } from "@/types/content"
 import type { ReadingProgress } from "@/types/engagement"
 
@@ -73,6 +74,19 @@ export function useBookAudioPlaylist(bookId: number) {
     queryKey: ["books", "audio-playlist", bookId] as const,
     queryFn: () => getList<AudioTrack>(`/books/${bookId}/audio-playlist`),
     enabled: Number.isFinite(bookId),
+  })
+}
+
+/**
+ * Top books for the home "trending" carousel, ranked server-side by a weighted score
+ * over views, likes, and comments. Kept fresh-ish but not aggressively — the ranking
+ * only shifts as engagement accrues.
+ */
+export function useTrendingBooks() {
+  return useQuery({
+    queryKey: ["books", "trending"] as const,
+    queryFn: () => getList<TrendingBook>("/books/trending"),
+    staleTime: 5 * 60_000,
   })
 }
 

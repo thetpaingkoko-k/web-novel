@@ -71,6 +71,11 @@ public class ChapterPublishService {
         } else {
             chapter.setStatus(ChapterStatus.pending_review); // FR-3.1
             chapter.setPublishedAt(scheduledFor); // tentative; finalized on approval
+            // The review queue is pull-only, so without this an admin has no signal that a
+            // hobbyist submitted anything — mirrors the other "needs review" fan-outs
+            // (report_filed, payment_submitted, withdrawal_requested).
+            notifications.notifyAdmins(NotificationType.chapter_submitted,
+                    "chapter", chapter.getId(), book.getTitle());
         }
         return ChapterService.toResponse(chapter);
     }
@@ -110,11 +115,18 @@ public class ChapterPublishService {
         chapter.setReviewedAt(OffsetDateTime.now());
         adminActions.log(SecurityUtils.currentUserId(), AdminActionType.content_rejection,
                 "chapter", chapterId, reason);
-        notifyBookAuthor(chapter, NotificationType.chapter_rejected);
+        // Unlike an approval, a rejection carries the admin's reason as the payload — consistent
+        // with every other *_rejected notification — so the author sees WHY without having to
+        // open the chapter editor.
+        Book book = books.findById(chapter.getBookId()).orElse(null);
+        if (book != null) {
+            notifications.notify(book.getAuthorId(), NotificationType.chapter_rejected,
+                    "chapter", chapter.getId(), reason);
+        }
         return ChapterService.toResponse(chapter);
     }
 
-    /** Notifies the chapter's book author of an approval/rejection; {@code data} is the book title. */
+    /** Notifies the chapter's book author of an approval; {@code data} is the book title. */
     private void notifyBookAuthor(Chapter chapter, NotificationType type) {
         Book book = books.findById(chapter.getBookId()).orElse(null);
         if (book == null) {

@@ -11,6 +11,7 @@ import { categoryIcon } from "@/lib/category-icons"
 import type { BookListItem } from "@/types/content"
 import { useAuth } from "@/features/auth/auth-context"
 import { useBooks } from "@/features/books/api"
+import { TrendingCarousel } from "./components/trending-carousel"
 
 const RAIL_LIMIT = 12
 // The home rails only need the first page of books; browse is where readers page through everything.
@@ -64,6 +65,9 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Trending — a rotating showcase of the most popular books (views + likes + comments). */}
+      <TrendingCarousel />
 
       {/* Browse by genre — the discovery grid (replaces a plain filter bar). */}
       <section className="flex flex-col gap-5">

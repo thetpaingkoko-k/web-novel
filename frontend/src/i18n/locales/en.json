@@ -714,13 +714,13 @@
     "tabs": {
       "users": "Approvals",
       "manageUsers": "Users",
-      "upgradeRequests": "Upgrade requests",
-      "chapters": "Chapter review",
+      "upgradeRequests": "Upgrade Requests",
+      "chapters": "Chapter Review",
       "payments": "Payments",
       "withdrawals": "Withdrawals",
       "wallets": "Wallets",
       "reports": "Reports",
-      "audit": "Audit log",
+      "audit": "Audit Log",
       "analytics": "Analytics",
       "categories": "Categories"
     },
@@ -858,7 +858,7 @@
     "withdrawalMarkedPaid": "Withdrawal marked as paid",
     "withdrawalRejected": "Withdrawal rejected",
     "rejectWithdrawalTitle": "Reject this withdrawal",
-    "addWallet": "Add wallet",
+    "addWallet": "Add Wallet",
     "walletAdded": "Wallet added",
     "walletQr": "Payment QR code",
     "walletsEmpty": "No platform wallets yet. Add one above.",
@@ -1012,7 +1012,15 @@
     "ctaTitle": "Have a story to tell?",
     "ctaBody": "Publish your own serialized novel and reach thousands of readers.",
     "ctaButton": "Start writing",
-    "loadError": "Couldn't load stories right now."
+    "loadError": "Couldn't load stories right now.",
+    "trending": {
+      "title": "Trending now",
+      "read": "Read now",
+      "prev": "Previous book",
+      "next": "Next book",
+      "chooseSlide": "Choose a trending book",
+      "goToSlide": "Show {{title}} (slide {{number}})"
+    }
   },
   "notifications": {
     "title": "Notifications",
@@ -1030,7 +1038,7 @@
       "content_removed": "Your content was removed for a policy violation.",
       "new_subscriber": "{{data}} subscribed to you.",
       "chapter_approved": "A chapter in \"{{data}}\" was approved.",
-      "chapter_rejected": "A chapter in \"{{data}}\" was rejected.",
+      "chapter_rejected": "A chapter you submitted was rejected. Reason: {{data}}",
       "book_approved": "Your book \"{{data}}\" was approved.",
       "book_rejected": "Your book \"{{data}}\" was rejected.",
       "book_deleted": "Your book \"{{data}}\" was removed by an administrator.",
@@ -1043,7 +1051,8 @@
       "report_filed": "A new report was filed and needs review.",
       "upgrade_requested": "{{data}} requested a professional upgrade.",
       "payment_submitted": "A new payment of {{data}} needs review.",
-      "withdrawal_requested": "A withdrawal of {{data}} needs review."
+      "withdrawal_requested": "A withdrawal of {{data}} needs review.",
+      "chapter_submitted": "A new chapter in \"{{data}}\" needs review."
     }
   },
   "footer": {

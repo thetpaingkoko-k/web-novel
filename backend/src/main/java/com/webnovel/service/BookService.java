@@ -17,6 +17,7 @@ import com.webnovel.dto.content.BookGenreRow;
 import com.webnovel.dto.content.BookListItem;
 import com.webnovel.dto.content.BookUpdateRequest;
 import com.webnovel.dto.content.ChapterSummary;
+import com.webnovel.dto.content.TrendingBook;
 import com.webnovel.exception.BadRequestException;
 import com.webnovel.exception.ForbiddenException;
 import com.webnovel.exception.NotFoundException;
@@ -159,6 +160,37 @@ public class BookService {
     @Transactional(readOnly = true)
     public List<BookListItem> byAuthor(Long authorId) {
         return populateGenres(books.findByAuthor(authorId), books);
+    }
+
+    /** How many books the trending carousel returns at most. */
+    private static final int TRENDING_LIMIT = 10;
+    // Popularity weights: likes and comments are deliberate acts, so they count for more than a
+    // passive view. Tunable here without a schema change (they're query params).
+    private static final int TRENDING_VIEW_WEIGHT = 1;
+    private static final int TRENDING_LIKE_WEIGHT = 4;
+    private static final int TRENDING_COMMENT_WEIGHT = 6;
+
+    /**
+     * Top books for the home "trending" carousel, ranked by a weighted score over views,
+     * chapter likes, and visible comments (§5). Draft and admin-hidden books are excluded.
+     * Genres are batch-loaded so each slide can badge its primary category.
+     */
+    @Transactional(readOnly = true)
+    public List<TrendingBook> trending() {
+        List<TrendingBook> rows = books.findTrending(
+                TRENDING_VIEW_WEIGHT, TRENDING_LIKE_WEIGHT, TRENDING_COMMENT_WEIGHT,
+                org.springframework.data.domain.PageRequest.of(0, TRENDING_LIMIT));
+        if (rows.isEmpty()) {
+            return rows;
+        }
+        List<Long> ids = rows.stream().map(TrendingBook::bookId).toList();
+        Map<Long, List<String>> byBook = new HashMap<>();
+        for (BookGenreRow row : books.findGenresByBookIds(ids)) {
+            byBook.computeIfAbsent(row.bookId(), k -> new ArrayList<>()).add(row.genre());
+        }
+        return rows.stream()
+                .map(b -> b.withGenres(byBook.getOrDefault(b.bookId(), List.of())))
+                .toList();
     }
 
     @Transactional(readOnly = true)

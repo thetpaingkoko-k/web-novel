@@ -158,10 +158,7 @@ export function WalletsPage() {
 
       <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Plus className="size-4 text-primary" aria-hidden />
-            {t("admin.addWallet")}
-          </CardTitle>
+          <CardTitle className="text-lg">{t("admin.addWallet")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} noValidate>

@@ -7,6 +7,7 @@ import com.webnovel.dto.content.BookDetailResponse;
 import com.webnovel.dto.content.BookListItem;
 import com.webnovel.dto.content.BookUpdateRequest;
 import com.webnovel.dto.content.ChapterCreateRequest;
+import com.webnovel.dto.content.TrendingBook;
 import com.webnovel.dto.content.ChapterResponse;
 import com.webnovel.dto.engagement.RecordViewRequest;
 import com.webnovel.dto.engagement.ViewResponse;
@@ -71,6 +72,12 @@ public class BookController {
         return ResponseEntity.ok()
                 .header("X-Total-Count", Long.toString(result.totalItems()))
                 .body(result.items());
+    }
+
+    /** Top books for the home carousel, ranked by views + likes + comments. Anonymous-readable. */
+    @GetMapping("/trending")
+    public List<TrendingBook> trending() {
+        return bookService.trending();
     }
 
     @GetMapping("/{id}")
