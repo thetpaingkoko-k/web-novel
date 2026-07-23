@@ -27,11 +27,11 @@ export function AuthorApplicationAnswers({
   if (answers.length === 0) return null
 
   return (
-    <dl className="mt-3 flex flex-col gap-2.5 rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
+    <dl className="mt-3 flex min-w-0 flex-col gap-2.5 rounded-xl border border-border/60 bg-muted/30 p-3 text-sm">
       {answers.map((answer) => (
-        <div key={answer.label} className="flex flex-col gap-0.5">
+        <div key={answer.label} className="flex min-w-0 flex-col gap-0.5">
           <dt className="text-xs font-medium text-muted-foreground">{answer.label}</dt>
-          <dd className="whitespace-pre-line text-foreground">{answer.value}</dd>
+          <dd className="text-foreground break-words whitespace-pre-line">{answer.value}</dd>
         </div>
       ))}
     </dl>

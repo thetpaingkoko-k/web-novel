@@ -259,7 +259,7 @@ export function UsersManagementPage() {
       />
 
       <Dialog open={detailsUser !== null} onOpenChange={(open) => !open && setDetailsUser(null)}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent className="max-h-[85dvh] overflow-y-auto rounded-2xl">
           {detailsUser && (
             <>
               <DialogHeader>
@@ -290,11 +290,11 @@ export function UsersManagementPage() {
                 </div>
               </dl>
               {(detailsUser.status === "suspended" || detailsUser.status === "banned") && (
-                <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                <div className="mt-3 min-w-0 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
                   <p className="text-xs font-medium text-destructive">
                     {t("admin.suspensionReasonLabel")}
                   </p>
-                  <p className="mt-0.5 whitespace-pre-line text-foreground">
+                  <p className="mt-0.5 text-foreground break-words whitespace-pre-line">
                     {detailsUser.suspensionReason?.trim()
                       ? detailsUser.suspensionReason
                       : t("admin.noSuspensionReason")}
