@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/features/admin/components/confirm-dialog"
 import { useDeleteBook, useSetBookHidden } from "@/features/books/api"
 import { cn } from "@/lib/utils"
-import { genreLabelKey } from "@/lib/genres"
+import { useCategoryLabel } from "@/features/categories/api"
 import { AuthorBadge } from "@/features/authors/author-badge"
 import type { BookListItem } from "@/types/content"
 
@@ -24,6 +24,7 @@ export function BookCard({
   showAdminControls?: boolean
 }) {
   const { t } = useTranslation()
+  const categoryLabel = useCategoryLabel()
   const primaryGenre = book.genres[0]
   const hasProgress =
     book.readChaptersCount != null && book.readChaptersCount > 0 && book.chapterCount > 0
@@ -92,7 +93,7 @@ export function BookCard({
           </p>
           <div className="mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-0.5 pt-1 text-xs text-muted-foreground">
             {primaryGenre && (
-              <span className="font-medium text-foreground/70">{t(genreLabelKey(primaryGenre))}</span>
+              <span className="font-medium text-foreground/70">{categoryLabel(primaryGenre)}</span>
             )}
             {primaryGenre && <span aria-hidden>·</span>}
             <span>{t("books.status." + book.status)}</span>

@@ -46,6 +46,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/books/**",
                                 "/api/v1/authors/**",
+                                "/api/v1/categories",
                                 "/api/v1/chapters/**").permitAll()
                         // View recording is anonymous-capable (FR-5.1: reader_id nullable)
                         .requestMatchers(HttpMethod.POST, "/api/v1/chapters/*/view").permitAll()

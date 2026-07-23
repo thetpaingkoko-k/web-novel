@@ -23,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { genreLabelKey } from "@/lib/genres"
+import { useCategories, useCategoryLabel } from "@/features/categories/api"
 import { NotificationBell } from "@/features/notifications/notification-bell"
 import { AmbientSoundRouteGuard } from "@/features/chapters/ambient-sound"
 import { useAuth } from "@/features/auth/auth-context"
@@ -322,7 +322,8 @@ function MobileMenu() {
   )
 }
 
-const FOOTER_GENRES = ["Fantasy", "Romance", "SciFi", "Mystery", "Isekai"] as const
+/** How many categories the footer links to, taken from the top of the admin's order. */
+const FOOTER_GENRE_COUNT = 5
 
 function FooterLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
@@ -348,6 +349,8 @@ function FooterColumn({ title, children }: { title: string; children: React.Reac
 
 function SiteFooter() {
   const { t } = useTranslation()
+  const { data: categories } = useCategories()
+  const categoryLabel = useCategoryLabel()
   return (
     <footer className="mt-16 border-t border-border/70 bg-muted/25">
       <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6">
@@ -371,9 +374,9 @@ function SiteFooter() {
           </FooterColumn>
 
           <FooterColumn title={t("footer.genres")}>
-            {FOOTER_GENRES.map((g) => (
-              <FooterLink key={g} to={`/books?genre=${g}`}>
-                {t(genreLabelKey(g))}
+            {(categories ?? []).slice(0, FOOTER_GENRE_COUNT).map((c) => (
+              <FooterLink key={c.code} to={`/books?genre=${c.code}`}>
+                {categoryLabel(c.code)}
               </FooterLink>
             ))}
           </FooterColumn>

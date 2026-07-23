@@ -1,7 +1,6 @@
 package com.webnovel.domain.entity;
 
 import com.webnovel.domain.enums.BookStatus;
-import com.webnovel.domain.enums.Genre;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashSet;
@@ -30,11 +29,12 @@ public class Book {
     @Column(columnDefinition = "text")
     private String synopsis;
 
+    /** Category codes (see {@code categories.code}); the admin-managed replacement for the
+     * old {@code Genre} enum. Stored verbatim in {@code book_genres.genre}. */
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "book_genres", joinColumns = @JoinColumn(name = "book_id"))
-    @Enumerated(EnumType.STRING)
     @Column(name = "genre", nullable = false, length = 30)
-    private Set<Genre> genres = new LinkedHashSet<>();
+    private Set<String> genres = new LinkedHashSet<>();
 
     @Column(name = "cover_image_url", length = 500)
     private String coverImageUrl;

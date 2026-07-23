@@ -12,5 +12,8 @@ public enum AdminActionType {
     withdrawal_approval,
     subscription_price_update,
     payment_approval,
-    payment_rejection
+    payment_rejection,
+    category_create,
+    category_update,
+    category_delete
 }

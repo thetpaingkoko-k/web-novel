@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/select"
 import { useAuth } from "@/features/auth/auth-context"
 import { cn } from "@/lib/utils"
-import { GENRES, genreLabelKey } from "@/lib/genres"
-import { genreIcon } from "@/lib/genre-icons"
+import { useCategories, useCategoryLabel } from "@/features/categories/api"
+import { categoryIcon } from "@/lib/category-icons"
 import type { BookStatus } from "@/types/content"
 import { useBooksBrowse } from "./api"
 
@@ -32,6 +32,8 @@ export function BooksBrowsePage() {
   const isAdmin = user?.role === "admin"
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "")
+  const { data: categories } = useCategories()
+  const categoryLabel = useCategoryLabel()
   const [genre, setGenre] = useState<string | undefined>(() => searchParams.get("genre") ?? undefined)
   const [status, setStatus] = useState<BookStatus | undefined>(
     () => (searchParams.get("status") as BookStatus) || undefined,
@@ -121,13 +123,13 @@ export function BooksBrowsePage() {
             label={t("books.allGenres")}
             onClick={() => setGenre(undefined)}
           />
-          {GENRES.map((g) => (
+          {(categories ?? []).map((c) => (
             <GenreChip
-              key={g}
-              active={genre === g}
-              icon={genreIcon(g)}
-              label={t(genreLabelKey(g))}
-              onClick={() => setGenre(genre === g ? undefined : g)}
+              key={c.code}
+              active={genre === c.code}
+              icon={categoryIcon(c.icon)}
+              label={categoryLabel(c.code)}
+              onClick={() => setGenre(genre === c.code ? undefined : c.code)}
             />
           ))}
         </div>

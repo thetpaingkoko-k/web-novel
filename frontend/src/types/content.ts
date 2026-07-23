@@ -12,7 +12,7 @@ export interface Book {
   careerStage?: CareerStage | null
   title: string
   synopsis: string | null
-  /** Canonical genre enum names (see `lib/genres.ts`). */
+  /** Category codes (see `features/categories/api.ts`). */
   genres: string[]
   coverImageUrl: string | null
   status: BookStatus
@@ -37,7 +37,7 @@ export interface BookListItem {
   /** Author's career stage; rendered as an {@link AuthorBadge} when present. */
   careerStage?: CareerStage | null
   title: string
-  /** Canonical genre enum names (see `lib/genres.ts`). */
+  /** Category codes (see `features/categories/api.ts`). */
   genres: string[]
   coverImageUrl: string | null
   status: BookStatus
@@ -76,7 +76,7 @@ export interface BookListParams {
 export interface BookFormValues {
   title: string
   synopsis: string
-  /** Canonical genre enum names (see `lib/genres.ts`). */
+  /** Category codes (see `features/categories/api.ts`). */
   genres: string[]
   coverImageUrl: string
   status: BookStatus
@@ -139,6 +139,19 @@ export interface ChapterFormValues {
   scheduledFor?: string
   /** Optional narration audio URL, sent on chapter create (audiobook feature). */
   audioUrl?: string
+}
+
+/**
+ * One track of `GET /books/{id}/audio-playlist` — a published chapter with narration
+ * audio. A `locked` track is behind the premium paywall for this viewer: it keeps its
+ * number and title so the playlist mirrors the chapter list, but carries no `audioUrl`.
+ */
+export interface AudioTrack {
+  chapterId: number
+  chapterNumber: number
+  title: string
+  audioUrl: string | null
+  locked: boolean
 }
 
 export type AccessDenialCode = "no_subscription" | "expired_subscription"

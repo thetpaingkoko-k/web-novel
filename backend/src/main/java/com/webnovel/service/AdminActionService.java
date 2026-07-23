@@ -2,6 +2,7 @@ package com.webnovel.service;
 
 import com.webnovel.domain.entity.AdminAction;
 import com.webnovel.domain.entity.Book;
+import com.webnovel.domain.entity.Category;
 import com.webnovel.domain.entity.Chapter;
 import com.webnovel.domain.entity.User;
 import com.webnovel.domain.enums.AdminActionType;
@@ -9,6 +10,7 @@ import com.webnovel.dto.moderation.AdminActionRow;
 import com.webnovel.repository.AdminActionRepository;
 import com.webnovel.repository.AuthorWithdrawalRepository;
 import com.webnovel.repository.BookRepository;
+import com.webnovel.repository.CategoryRepository;
 import com.webnovel.repository.ChapterCommentRepository;
 import com.webnovel.repository.ChapterRepository;
 import com.webnovel.repository.DebatePostRepository;
@@ -37,6 +39,7 @@ public class AdminActionService {
     private final DebatePostRepository debatePosts;
     private final AuthorWithdrawalRepository withdrawals;
     private final ReportRepository reports;
+    private final CategoryRepository categories;
 
     /** Removes a single audit-log entry (FR-13.7 admin housekeeping). 404 if it does not exist. */
     @Transactional
@@ -85,6 +88,8 @@ public class AdminActionService {
             case "debate_post" -> debatePosts.findAllById(ids).stream()
                     .collect(Collectors.toMap(p -> p.getId(), p -> excerpt(p.getContent())));
             case "withdrawal" -> withdrawalLabels(ids);
+            case "category" -> categories.findAllById(ids).stream()
+                    .collect(Collectors.toMap(Category::getId, Category::getName));
             case "report" -> reports.findAllById(ids).stream()
                     .collect(Collectors.toMap(r -> r.getId(), r -> excerpt(r.getReason())));
             default -> Map.of();

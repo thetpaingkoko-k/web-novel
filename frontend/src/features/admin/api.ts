@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient, getList } from "@/api/client"
+import { categoryKeys } from "@/features/categories/api"
 import type {
   AdminActionLog,
   AdminUser,
@@ -13,6 +14,7 @@ import type {
   UpgradeRequestRow,
 } from "@/types/admin"
 import type { AdminWallet } from "@/types/subscriptions"
+import type { Category, CategoryCreateRequest, CategoryUpdateRequest } from "@/types/categories"
 import type { Withdrawal } from "@/types/earnings"
 
 // ---- Users & authors ----
@@ -294,5 +296,51 @@ export function useAuthorPayouts() {
   return useQuery({
     queryKey: ["admin", "analytics", "author-payouts"] as const,
     queryFn: () => getList<AuthorPayout>("/admin/analytics/author-payouts"),
+  })
+}
+
+// ---- Categories ----
+
+/**
+ * Every category, inactive ones included, each with the number of books filed under
+ * it. Mutations invalidate the public `categories` list too, so the browse pills,
+ * home tiles and author picker pick the change up immediately.
+ */
+export function useAdminCategories() {
+  return useQuery({
+    queryKey: categoryKeys.admin,
+    queryFn: () => getList<Category>("/admin/categories"),
+  })
+}
+
+function useCategoryMutation<TVariables>(mutationFn: (variables: TVariables) => Promise<void>) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.admin })
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all })
+    },
+  })
+}
+
+export function useCreateCategory() {
+  return useCategoryMutation(async (payload: CategoryCreateRequest) => {
+    await apiClient.post("/admin/categories", payload)
+  })
+}
+
+export function useUpdateCategory() {
+  return useCategoryMutation(
+    async ({ categoryId, ...payload }: CategoryUpdateRequest & { categoryId: number }) => {
+      await apiClient.put(`/admin/categories/${categoryId}`, payload)
+    },
+  )
+}
+
+/** Deletes an unused category; the backend answers 409 `category.in_use` when books reference it. */
+export function useDeleteCategory() {
+  return useCategoryMutation(async (categoryId: number) => {
+    await apiClient.delete(`/admin/categories/${categoryId}`)
   })
 }

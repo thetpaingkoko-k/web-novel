@@ -75,7 +75,9 @@
     "save": "Save",
     "submit": "Submit",
     "genericError": "Something went wrong, please try again",
-    "loadError": "Couldn't load this. Please try again."
+    "loadError": "Couldn't load this. Please try again.",
+    "edit": "Edit",
+    "delete": "Delete"
   },
   "auth": {
     "loginTitle": "Log in to your account",
@@ -201,7 +203,19 @@
     "chaptersCount": "{{count}} chapters",
     "read": "Read",
     "freePreview": "Free preview",
-    "subscribeToRead": "Subscribe to read"
+    "subscribeToRead": "Subscribe to read",
+    "audiobookTitle": "Listen",
+    "audiobookCount": "{{count}} narrated chapter",
+    "audiobookCount_other": "{{count}} narrated chapters",
+    "audiobookPlay": "Play",
+    "audiobookPause": "Pause",
+    "audiobookPrev": "Previous chapter",
+    "audiobookNext": "Next chapter",
+    "audiobookSeek": "Seek",
+    "audiobookSpeed": "Speed",
+    "audiobookIdle": "Play the book from the first narrated chapter",
+    "audiobookNowPlaying": "Ch. {{number}} · {{title}}",
+    "audiobookTrack": "Ch. {{number}} · {{title}}"
   },
   "chapters": {
     "chapterLabel": "Chapter {{number}}",
@@ -422,7 +436,8 @@
     "deletePost": "Delete post",
     "deleteConfirmTitle": "Delete this update?",
     "deleteConfirmBody": "This feed post will be permanently deleted. This action can't be undone.",
-    "postDeleted": "Post deleted"
+    "postDeleted": "Post deleted",
+    "premiumOnlyUnavailable": "Feed posts are public. Restricting a post to subscribers becomes available once an admin enables monetization on your professional account."
   },
   "moderation": {
     "report": "Report",
@@ -706,7 +721,8 @@
       "wallets": "Wallets",
       "reports": "Reports",
       "audit": "Audit log",
-      "analytics": "Analytics"
+      "analytics": "Analytics",
+      "categories": "Categories"
     },
     "groups": {
       "people": "People",
@@ -724,7 +740,8 @@
       "wallets": "Manage the platform wallets readers pay into.",
       "reports": "Review content reported by the community.",
       "audit": "A record of every administrative action taken.",
-      "analytics": "Reader revenue, platform profit, and author earnings."
+      "analytics": "Reader revenue, platform profit, and author earnings.",
+      "categories": "Add, rename, reorder, and retire the categories readers browse by."
     },
     "searchUsers": "Search by username or email",
     "noUsersFound": "No users match your search.",
@@ -869,7 +886,10 @@
       "withdrawal_approval": "Withdrawal approved",
       "subscription_price_update": "Subscription price set",
       "payment_approval": "Payment approved",
-      "payment_rejection": "Payment rejected"
+      "payment_rejection": "Payment rejected",
+      "category_create": "Category added",
+      "category_update": "Category updated",
+      "category_delete": "Category deleted"
     },
     "auditGroups": {
       "approvals": "Approvals",
@@ -941,7 +961,38 @@
     "console": "Admin",
     "backToSite": "Back to site",
     "suspensionReasonLabel": "Suspension reason",
-    "noSuspensionReason": "No reason recorded."
+    "noSuspensionReason": "No reason recorded.",
+    "categories": {
+      "activate": "Reactivate",
+      "active": "Active",
+      "activeLabel": "Active",
+      "add": "Add category",
+      "addBody": "Readers browse and filter books by category. The code is permanent — the name can be changed later.",
+      "addTitle": "Add a category",
+      "books": "Books",
+      "code": "Code",
+      "codeHint": "Permanent identifier used in book data and /books?genre= links. Letters and numbers only.",
+      "codeLocked": "A category's code can't change — books and saved links reference it.",
+      "createFailed": "Could not add the category — that code or name may already be taken.",
+      "created": "Category added",
+      "deactivate": "Retire",
+      "deleteBody": "No books use this category, so it can be removed. This action can’t be undone.",
+      "deleteFailed": "Could not delete the category — retire it instead if books still use it.",
+      "deleteTitle": "Delete \"{{name}}\"?",
+      "deleted": "Category deleted",
+      "editBody": "Rename, reorder, or retire this category. Its code is fixed because books and links reference it.",
+      "editTitle": "Edit category",
+      "empty": "No categories yet.",
+      "icon": "Icon",
+      "iconHint": "Shown on the home tiles and browse filters. Click the selected icon again to clear it.",
+      "inactive": "Retired",
+      "name": "Name",
+      "nameHint": "The label readers see, e.g. \"Slice of Life\".",
+      "saved": "Category saved",
+      "searchPlaceholder": "Search categories",
+      "sortOrder": "Order",
+      "sortOrderHint": "Lower numbers appear first in the browse filters and home tiles."
+    }
   },
   "home": {
     "heroBadge": "A home for serialized fiction",

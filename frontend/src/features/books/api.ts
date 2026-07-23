@@ -1,7 +1,14 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient, getList } from "@/api/client"
 import { getDeviceFingerprint, getOrCreateSessionId } from "@/api/view-signals"
-import type { Book, BookFormValues, BookListItem, BookListParams, BookUpdateValues } from "@/types/content"
+import type {
+  AudioTrack,
+  Book,
+  BookFormValues,
+  BookListItem,
+  BookListParams,
+  BookUpdateValues,
+} from "@/types/content"
 import type { ReadingProgress } from "@/types/engagement"
 
 export const bookKeys = {
@@ -52,6 +59,19 @@ export function useBook(bookId: number) {
       const { data } = await apiClient.get<Book>(`/books/${bookId}`)
       return data
     },
+    enabled: Number.isFinite(bookId),
+  })
+}
+
+/**
+ * The book's audiobook playlist: published chapters that carry narration audio, in
+ * order. Premium tracks this reader can't play come back locked and URL-less, so the
+ * player can list them without ever exposing the audio.
+ */
+export function useBookAudioPlaylist(bookId: number) {
+  return useQuery({
+    queryKey: ["books", "audio-playlist", bookId] as const,
+    queryFn: () => getList<AudioTrack>(`/books/${bookId}/audio-playlist`),
     enabled: Number.isFinite(bookId),
   })
 }

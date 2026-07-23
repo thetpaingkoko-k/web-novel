@@ -2,7 +2,6 @@ package com.webnovel.repository;
 
 import com.webnovel.domain.entity.Book;
 import com.webnovel.domain.enums.BookStatus;
-import com.webnovel.domain.enums.Genre;
 import com.webnovel.dto.content.BookGenreRow;
 import com.webnovel.dto.content.BookListItem;
 import java.util.Collection;
@@ -52,7 +51,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
                    or lower(u.username) like :searchPattern)
             """)
     org.springframework.data.domain.Page<BookListItem> browse(
-            @Param("genre") Genre genre, @Param("status") BookStatus status,
+            @Param("genre") String genre, @Param("status") BookStatus status,
             @Param("searchPattern") String searchPattern,
             @Param("includeHidden") boolean includeHidden,
             org.springframework.data.domain.Pageable pageable);
@@ -77,6 +76,14 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             where b.id in :bookIds
             """)
     List<BookGenreRow> findGenresByBookIds(@Param("bookIds") Collection<Long> bookIds);
+
+    /** How many books are filed under a category code — guards category delete/retire (§5). */
+    @Query("select count(b) from Book b join b.genres g where g = :genre")
+    long countBooksWithGenre(@Param("genre") String genre);
+
+    /** (categoryCode, bookCount) pairs for the admin category console (§5). */
+    @Query("select g, count(b) from Book b join b.genres g group by g")
+    List<Object[]> countBooksByGenre();
 
     /** Bumps the denormalized book-level unique-view counter (§9.2, FR-5.3). */
     @org.springframework.data.jpa.repository.Modifying

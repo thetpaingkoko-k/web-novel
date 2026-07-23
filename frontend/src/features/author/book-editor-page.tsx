@@ -33,7 +33,7 @@ import { useBook, useCreateBook, useUpdateBook } from "@/features/books/api"
 import { useDeleteChapter } from "@/features/chapters/api"
 import type { ChapterSummary } from "@/types/content"
 import { cn } from "@/lib/utils"
-import { GENRES, genreLabelKey } from "@/lib/genres"
+import { useCategories, useCategoryLabel } from "@/features/categories/api"
 import { buildBookSchema, type BookFormSchema } from "./schemas"
 
 const STATUSES = ["draft", "ongoing", "completed", "hiatus"] as const
@@ -108,7 +108,15 @@ export function BookEditorPage() {
     }
   }, [book, reset])
 
+  const { data: categories } = useCategories()
+  const categoryLabel = useCategoryLabel()
   const selectedGenres = watch("genres")
+  // Offer the active categories, plus any the book already carries that an admin has
+  // since retired — so editing an older book never silently drops its categories.
+  const genreOptions = [
+    ...(categories ?? []).map((c) => c.code),
+    ...selectedGenres.filter((g) => !(categories ?? []).some((c) => c.code === g)),
+  ]
   function toggleGenre(genre: string) {
     const next = selectedGenres.includes(genre)
       ? selectedGenres.filter((g) => g !== genre)
@@ -194,7 +202,7 @@ export function BookEditorPage() {
               <Field>
                 <FieldLabel>{t("author.bookGenre")}</FieldLabel>
                 <div className="flex flex-wrap gap-2" role="group" aria-label={t("author.bookGenre")}>
-                  {GENRES.map((genre) => {
+                  {genreOptions.map((genre) => {
                     const active = selectedGenres.includes(genre)
                     return (
                       <button
@@ -209,7 +217,7 @@ export function BookEditorPage() {
                             : "border-border/70 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
                         )}
                       >
-                        {t(genreLabelKey(genre))}
+                        {categoryLabel(genre)}
                       </button>
                     )
                   })}

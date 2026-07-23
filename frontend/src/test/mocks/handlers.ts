@@ -55,6 +55,13 @@ export const mockBookDetail: Book = {
   ],
 }
 
+/** A trimmed stand-in for the seeded category list (codes match the real seed). */
+const mockCategories = [
+  { categoryId: 1, code: "Fantasy", name: "Fantasy", icon: "Sparkles", active: true, sortOrder: 1, bookCount: 2 },
+  { categoryId: 2, code: "Romance", name: "Romance", icon: "Heart", active: true, sortOrder: 2, bookCount: 0 },
+  { categoryId: 3, code: "SciFi", name: "Sci-Fi", icon: "Rocket", active: true, sortOrder: 3, bookCount: 1 },
+]
+
 export const handlers = [
   http.post("/api/v1/auth/login", async ({ request }) => {
     const body = (await request.json()) as { email: string; password: string }
@@ -151,6 +158,10 @@ export const handlers = [
     }
     return new HttpResponse(null, { status: 204 })
   }),
+
+  // Admin-managed categories; the browse pills, home tiles and author picker read these.
+  http.get("/api/v1/categories", () => HttpResponse.json(mockCategories)),
+  http.get("/api/v1/admin/categories", () => HttpResponse.json(mockCategories)),
 
   http.get("/api/v1/books", () => HttpResponse.json(mockBookList)),
   http.get("/api/v1/books/:bookId", () => HttpResponse.json(mockBookDetail)),

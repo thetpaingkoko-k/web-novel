@@ -5,15 +5,21 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { useAuth } from "@/features/auth/auth-context"
 import { useCreateFeedPost } from "../api"
 import { buildFeedPostSchema, type FeedPostFormSchema } from "../schemas"
 
 export function FeedComposer({ authorId }: { authorId: number }) {
   const { t } = useTranslation()
+  const { user } = useAuth()
+  // Only a monetized (professional) author has subscribers, so only they can hold a
+  // post back for them — the backend rejects `premiumOnly` from anyone else, and a
+  // hobbyist's feed is served in full to every viewer regardless of the flag.
+  const canRestrictToSubscribers = user?.isMonetizationEnabled ?? false
   const createPost = useCreateFeedPost(authorId)
   const schema = useMemo(() => buildFeedPostSchema(t), [t])
 
@@ -57,14 +63,20 @@ export function FeedComposer({ authorId }: { authorId: number }) {
               <Textarea id="feed-content" rows={4} aria-invalid={!!errors.content} {...register("content")} />
               <FieldError errors={[errors.content]} />
             </Field>
-            <Field orientation="horizontal">
-              <FieldLabel htmlFor="feed-premium">{t("feed.premiumOnly")}</FieldLabel>
-              <Switch
-                id="feed-premium"
-                checked={watch("premiumOnly")}
-                onCheckedChange={(checked) => setValue("premiumOnly", checked)}
-              />
-            </Field>
+            {canRestrictToSubscribers ? (
+              <Field orientation="horizontal">
+                <FieldLabel htmlFor="feed-premium">{t("feed.premiumOnly")}</FieldLabel>
+                <Switch
+                  id="feed-premium"
+                  checked={watch("premiumOnly")}
+                  onCheckedChange={(checked) => setValue("premiumOnly", checked)}
+                />
+              </Field>
+            ) : (
+              <Field>
+                <FieldDescription>{t("feed.premiumOnlyUnavailable")}</FieldDescription>
+              </Field>
+            )}
             <Button type="submit" className="w-fit" disabled={createPost.isPending}>
               {t("feed.publish")}
             </Button>

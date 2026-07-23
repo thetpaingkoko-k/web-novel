@@ -6,8 +6,8 @@ import { BookCard } from "@/components/book-card"
 import { BookCardSkeleton } from "@/components/book-card-skeleton"
 import { QueryError } from "@/components/query-error"
 import { Button } from "@/components/ui/button"
-import { GENRES, genreLabelKey } from "@/lib/genres"
-import { genreIcon } from "@/lib/genre-icons"
+import { useCategories, useCategoryLabel } from "@/features/categories/api"
+import { categoryIcon } from "@/lib/category-icons"
 import type { BookListItem } from "@/types/content"
 import { useAuth } from "@/features/auth/auth-context"
 import { useBooks } from "@/features/books/api"
@@ -20,6 +20,7 @@ export function HomePage() {
   const { t } = useTranslation()
   const { isAuthenticated } = useAuth()
   const { data, isLoading, isError, refetch } = useBooks({ size: HOME_PAGE_SIZE })
+  const { data: categories } = useCategories()
 
   const books = data ?? []
   const inProgress = books.filter(
@@ -68,8 +69,8 @@ export function HomePage() {
       <section className="flex flex-col gap-5">
         <SectionHeading title={t("home.browseByGenre")} />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {GENRES.map((genre) => (
-            <GenreTile key={genre} genre={genre} icon={genreIcon(genre)} />
+          {(categories ?? []).map((category) => (
+            <GenreTile key={category.code} genre={category.code} icon={categoryIcon(category.icon)} />
           ))}
         </div>
       </section>
@@ -167,7 +168,7 @@ function SectionHeading({
 }
 
 function GenreTile({ genre, icon: Icon }: { genre: string; icon: LucideIcon }) {
-  const { t } = useTranslation()
+  const categoryLabel = useCategoryLabel()
   return (
     <Link
       to={`/books?genre=${genre}`}
@@ -177,7 +178,7 @@ function GenreTile({ genre, icon: Icon }: { genre: string; icon: LucideIcon }) {
         <Icon className="size-[1.15rem]" aria-hidden="true" />
       </span>
       <span className="font-display text-sm font-medium transition-colors group-hover:text-primary">
-        {t(genreLabelKey(genre))}
+        {categoryLabel(genre)}
       </span>
     </Link>
   )

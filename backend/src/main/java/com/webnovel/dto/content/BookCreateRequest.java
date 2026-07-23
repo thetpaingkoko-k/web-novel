@@ -1,7 +1,6 @@
 package com.webnovel.dto.content;
 
 import com.webnovel.domain.enums.BookStatus;
-import com.webnovel.domain.enums.Genre;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;
@@ -14,7 +13,7 @@ public record BookCreateRequest(
 
         String synopsis,
 
-        List<Genre> genres,
+        List<String> genres,
 
         @Size(max = 500)
         String coverImageUrl,

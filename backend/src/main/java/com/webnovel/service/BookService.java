@@ -8,9 +8,9 @@ import com.webnovel.domain.enums.AdminActionType;
 import com.webnovel.domain.enums.BookStatus;
 import com.webnovel.domain.enums.CareerStage;
 import com.webnovel.domain.enums.ChapterStatus;
-import com.webnovel.domain.enums.Genre;
 import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.domain.enums.Role;
+import com.webnovel.dto.content.AudioTrack;
 import com.webnovel.dto.content.BookCreateRequest;
 import com.webnovel.dto.content.BookDetailResponse;
 import com.webnovel.dto.content.BookGenreRow;
@@ -30,7 +30,6 @@ import com.webnovel.security.AppUserPrincipal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -55,6 +54,8 @@ public class BookService {
     private final ChapterCommentRepository comments;
     private final NotificationService notifications;
     private final AdminActionService adminActions;
+    private final CategoryService categories;
+    private final AccessControlService accessControl;
 
     /** Upper bound on browse page size, so a client can't request an unbounded page (§10.3). */
     private static final int MAX_PAGE_SIZE = 100;
@@ -66,7 +67,7 @@ public class BookService {
         book.setAuthorId(principal.getId());
         book.setTitle(req.title());
         book.setSynopsis(req.synopsis());
-        book.setGenres(toGenreSet(req.genres()));
+        book.setGenres(categories.validateCodes(req.genres(), Set.of()));
         book.setCoverImageUrl(req.coverImageUrl());
         book.setStatus(req.status() != null ? req.status() : BookStatus.draft);
         book.setPremium(resolvePremium(principal, req.isPremium()));
@@ -80,7 +81,8 @@ public class BookService {
         requireOwnerOrAdmin(principal, book);
         // Title is immutable after creation — never set from an update request.
         book.setSynopsis(req.synopsis());
-        book.setGenres(toGenreSet(req.genres()));
+        // Categories the book already carries stay legal even if an admin has since retired them.
+        book.setGenres(categories.validateCodes(req.genres(), Set.copyOf(book.getGenres())));
         book.setCoverImageUrl(req.coverImageUrl());
         if (req.status() != null) {
             book.setStatus(req.status());
@@ -167,6 +169,44 @@ public class BookService {
             throw new NotFoundException("book.not_found"); // don't leak drafts or admin-hidden books
         }
         return toDetail(book, chapterSummaries(book, privileged));
+    }
+
+    /**
+     * The book's audiobook playlist (§4.1.1): every published chapter that carries narration
+     * audio, in chapter order. Premium gating is applied per track with the same rules the
+     * reader uses — free books and free-preview chapters are always playable, the author and
+     * admins bypass, and an active subscription unlocks the rest. A track the viewer may not
+     * play is still listed (so the playlist mirrors the chapter list) but carries no URL.
+     */
+    @Transactional(readOnly = true)
+    public List<AudioTrack> audioPlaylist(Long bookId, Optional<AppUserPrincipal> viewer) {
+        Book book = books.findById(bookId).orElseThrow(() -> new NotFoundException("book.not_found"));
+        boolean privileged = viewer.map(v -> canSeeUnpublished(v, book)).orElse(false);
+        if ((book.getStatus() == BookStatus.draft || book.isHidden()) && !privileged) {
+            throw new NotFoundException("book.not_found");
+        }
+
+        List<Chapter> published =
+                chapters.findByBookIdAndStatusOrderByChapterNumberAsc(book.getId(), ChapterStatus.published);
+        Set<Long> previewIds = previewChapterIds(book, published);
+        // A subscription only matters for a premium book the viewer neither owns nor administers.
+        boolean unlockAll = !book.isPremium() || privileged
+                || viewer.map(v -> accessControl.hasActiveSubscription(v.getId(), book.getAuthorId()))
+                        .orElse(false);
+
+        List<AudioTrack> tracks = new ArrayList<>();
+        for (int i = 0; i < published.size(); i++) {
+            Chapter c = published.get(i);
+            if (!StringUtils.hasText(c.getAudioUrl())) {
+                continue;
+            }
+            // Readers see the gapless numbering used by the chapter list, not the stored number.
+            int number = i + 1;
+            boolean locked = !unlockAll && !previewIds.contains(c.getId());
+            tracks.add(new AudioTrack(c.getId(), number, c.getTitle(),
+                    locked ? null : c.getAudioUrl(), locked));
+        }
+        return tracks;
     }
 
     // --- helpers ---
@@ -267,21 +307,13 @@ public class BookService {
                 viewCount, likeCount, bookmarkCount, commentCount, chapterSummaries);
     }
 
-    /** Copies the requested genres into a fresh set (null → empty), preserving order. */
-    private static Set<Genre> toGenreSet(List<Genre> genres) {
-        return genres == null ? new LinkedHashSet<>() : new LinkedHashSet<>(genres);
-    }
-
-    /** Blank/unknown genre filter → null (no restriction); otherwise the matching enum. */
-    static Genre parseGenre(String genre) {
-        if (genre == null || genre.isBlank()) {
-            return null;
-        }
-        try {
-            return Genre.valueOf(genre.trim());
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
+    /**
+     * Blank category filter → null (no restriction); otherwise the trimmed category code.
+     * An unknown code is passed through and simply matches nothing, so a stale
+     * {@code ?genre=} link degrades to an empty result rather than a 400.
+     */
+    static String parseGenre(String genre) {
+        return genre == null || genre.isBlank() ? null : genre.trim();
     }
 
     /**
@@ -293,7 +325,7 @@ public class BookService {
             return items;
         }
         List<Long> ids = items.stream().map(BookListItem::bookId).toList();
-        Map<Long, List<Genre>> byBook = new HashMap<>();
+        Map<Long, List<String>> byBook = new HashMap<>();
         for (BookGenreRow row : books.findGenresByBookIds(ids)) {
             byBook.computeIfAbsent(row.bookId(), k -> new ArrayList<>()).add(row.genre());
         }

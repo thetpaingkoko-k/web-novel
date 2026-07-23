@@ -28,24 +28,31 @@ class FeedIT extends AuthTestSupport {
         return objectMapper.readTree(body).get("accessToken").asText();
     }
 
-    private void postPremiumFeed(String token, long authorId) throws Exception {
-        mvc.perform(post("/api/v1/authors/{id}/feed", authorId).header("Authorization", bearer(token))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"title":"Members note","content":"secret","premiumOnly":true}"""))
-                .andExpect(status().isCreated());
+    private org.springframework.test.web.servlet.ResultActions postPremiumFeed(String token, long authorId)
+            throws Exception {
+        return mvc.perform(post("/api/v1/authors/{id}/feed", authorId).header("Authorization", bearer(token))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"title":"Members note","content":"secret","premiumOnly":true}"""));
     }
 
     @Test
-    void hobbyistPremiumPost_isVisibleToAnyone() throws Exception {
+    void hobbyistCannotRestrictPostToSubscribers() throws Exception {
         registerAndGetToken("hobfeed", "hobfeed@example.com");
         long authorId = userIdOf("hobfeed@example.com");
         String adminToken = seedAdminAndGetToken("hobfeedadmin@webnovel.local");
         approve(adminToken, authorId, ApproveRequest.Kind.verify_author); // hobbyist, cannot monetize
         String author = relogin("hobfeed@example.com");
-        postPremiumFeed(author, authorId);
 
-        // a hobbyist cannot monetize, so their premium-flagged post is free to an anonymous viewer
+        // No subscribers to hold the post back for, so the flag is rejected outright.
+        postPremiumFeed(author, authorId).andExpect(status().isBadRequest());
+
+        // A plain (free) post from the same hobbyist still publishes and is public.
+        mvc.perform(post("/api/v1/authors/{id}/feed", authorId).header("Authorization", bearer(author))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Open note","content":"hello","premiumOnly":false}"""))
+                .andExpect(status().isCreated());
         mvc.perform(get("/api/v1/authors/{id}/feed", authorId))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)));
     }
@@ -58,7 +65,7 @@ class FeedIT extends AuthTestSupport {
         approve(adminToken, authorId, ApproveRequest.Kind.verify_author);
         approve(adminToken, authorId, ApproveRequest.Kind.enable_monetization); // professional, monetized
         String author = relogin("profeed@example.com");
-        postPremiumFeed(author, authorId);
+        postPremiumFeed(author, authorId).andExpect(status().isCreated());
 
         // anonymous / non-subscribing readers do NOT see a monetized author's premium post
         mvc.perform(get("/api/v1/authors/{id}/feed", authorId))

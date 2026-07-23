@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { Trans, useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 import { resolveUploadUrl } from "@/api/uploads"
-import { genreLabelKey } from "@/lib/genres"
+import { useCategoryLabel } from "@/features/categories/api"
 import { EmptyState } from "@/components/empty-state"
 import { ProgressRing } from "@/components/progress-ring"
 import { QueryError } from "@/components/query-error"
@@ -16,12 +16,14 @@ import { AuthorBadge } from "@/features/authors/author-badge"
 import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button"
 import { ReportDialog } from "@/features/moderation/report-dialog"
 import { useSubscriptionTo } from "@/features/subscriptions/api"
+import { BookAudioPlaylist } from "./components/book-audio-playlist"
 import { useBook, useReadingProgress, useRecordBookView } from "./api"
 
 export function BookDetailPage() {
   const { bookId } = useParams<{ bookId: string }>()
   const { t } = useTranslation()
   const { isAuthenticated, user } = useAuth()
+  const categoryLabel = useCategoryLabel()
   // Readers and authors can subscribe to premium books by other authors; admins
   // can't, and no one subscribes to their own book. The CTA still shows to guests
   // (signup/login funnel).
@@ -105,7 +107,7 @@ export function BookDetailPage() {
                 <Badge variant="secondary">{t("books.status." + book.status)}</Badge>
                 {book.genres.map((genre) => (
                   <Badge key={genre} variant="outline">
-                    {t(genreLabelKey(genre))}
+                    {categoryLabel(genre)}
                   </Badge>
                 ))}
                 {book.isPremium && (
@@ -218,6 +220,9 @@ export function BookDetailPage() {
           </div>
         </div>
       </section>
+
+      {/* Audiobook — renders only when at least one chapter has narration audio. */}
+      <BookAudioPlaylist bookId={book.bookId} authorId={book.authorId} />
 
       {/* Chapters */}
       <div>

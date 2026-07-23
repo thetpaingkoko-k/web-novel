@@ -2,7 +2,6 @@ package com.webnovel.dto.content;
 
 import com.webnovel.domain.enums.BookStatus;
 import com.webnovel.domain.enums.CareerStage;
-import com.webnovel.domain.enums.Genre;
 import java.util.List;
 
 /**
@@ -22,7 +21,7 @@ public record BookListItem(
         Long bookId,
         String title,
         String coverImageUrl,
-        List<Genre> genres,
+        List<String> genres,
         BookStatus status,
         boolean isPremium,
         String authorUsername,
@@ -51,7 +50,7 @@ public record BookListItem(
     }
 
     /** Returns a copy with the given genres (immutable-record population pattern). */
-    public BookListItem withGenres(List<Genre> genres) {
+    public BookListItem withGenres(List<String> genres) {
         return new BookListItem(bookId, title, coverImageUrl, genres, status, isPremium,
                 authorUsername, authorAvatarUrl, careerStage, chapterCount, readChaptersCount, hidden);
     }

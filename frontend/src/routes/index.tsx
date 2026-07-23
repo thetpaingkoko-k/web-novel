@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout/app-layout"
 import { AdminLayout } from "@/features/admin/admin-layout"
 import { AnalyticsPage } from "@/features/admin/pages/analytics-page"
 import { AuditLogPage } from "@/features/admin/pages/audit-log-page"
+import { CategoriesPage } from "@/features/admin/pages/categories-page"
 import { ChaptersQueuePage } from "@/features/admin/pages/chapters-queue-page"
 import { PaymentsQueuePage } from "@/features/admin/pages/payments-queue-page"
 import { ReportsQueuePage } from "@/features/admin/pages/reports-queue-page"
@@ -113,6 +114,7 @@ export const router = createBrowserRouter([
           { path: "manage-users", element: <UsersManagementPage /> },
           { path: "upgrade-requests", element: <UpgradeRequestsPage /> },
           { path: "chapters", element: <ChaptersQueuePage /> },
+          { path: "categories", element: <CategoriesPage /> },
           { path: "payments", element: <PaymentsQueuePage /> },
           { path: "withdrawals", element: <WithdrawalsQueuePage /> },
           { path: "wallets", element: <WalletsPage /> },

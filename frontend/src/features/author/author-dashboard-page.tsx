@@ -22,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import type { AuthUser } from "@/types/auth"
 import type { BookListItem } from "@/types/content"
 import { cn } from "@/lib/utils"
-import { genreLabelKey } from "@/lib/genres"
+import { useCategoryLabel } from "@/features/categories/api"
 import { useAuth } from "@/features/auth/auth-context"
 import { useAuthorMe, useRequestUpgrade } from "@/features/authors/api"
 import { useMyBooks } from "@/features/books/api"
@@ -186,6 +186,7 @@ function EarningsSummaryCard() {
 
 function AuthorBookCard({ book }: { book: BookListItem }) {
   const { t } = useTranslation()
+  const categoryLabel = useCategoryLabel()
   const isDraft = book.status === "draft"
 
   return (
@@ -227,7 +228,7 @@ function AuthorBookCard({ book }: { book: BookListItem }) {
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
             {book.genres[0] && (
               <>
-                <span className="font-medium text-foreground/70">{t(genreLabelKey(book.genres[0]))}</span>
+                <span className="font-medium text-foreground/70">{categoryLabel(book.genres[0])}</span>
                 <span aria-hidden>·</span>
               </>
             )}

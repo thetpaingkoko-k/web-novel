@@ -1,6 +1,7 @@
 package com.webnovel.controller;
 
 import com.webnovel.domain.enums.BookStatus;
+import com.webnovel.dto.content.AudioTrack;
 import com.webnovel.dto.content.BookCreateRequest;
 import com.webnovel.dto.content.BookDetailResponse;
 import com.webnovel.dto.content.BookListItem;
@@ -75,6 +76,15 @@ public class BookController {
     @GetMapping("/{id}")
     public BookDetailResponse detail(@PathVariable Long id) {
         return bookService.getDetail(id, SecurityUtils.currentPrincipal());
+    }
+
+    /**
+     * The book's audiobook playlist: published chapters that carry narration audio, in order.
+     * Premium tracks the caller can't play are listed without a URL ({@code locked: true}).
+     */
+    @GetMapping("/{id}/audio-playlist")
+    public List<AudioTrack> audioPlaylist(@PathVariable Long id) {
+        return bookService.audioPlaylist(id, SecurityUtils.currentPrincipal());
     }
 
     /** Record a book-level view (§9.2). Anonymous-capable, like chapter views. */

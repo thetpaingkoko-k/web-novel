@@ -10,6 +10,7 @@ import {
   ScrollText,
   ShieldCheck,
   Sparkles,
+  Tags,
   UserCheck,
   Users,
   Wallet,
@@ -61,6 +62,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
     labelKey: "admin.groups.content",
     items: [
       { to: "/admin/chapters", key: "admin.tabs.chapters", icon: FileCheck },
+      { to: "/admin/categories", key: "admin.tabs.categories", icon: Tags },
       { to: "/admin/reports", key: "admin.tabs.reports", icon: ShieldCheck },
     ],
   },
