@@ -3,6 +3,7 @@ package com.webnovel.service;
 import com.webnovel.domain.entity.Book;
 import com.webnovel.domain.entity.Chapter;
 import com.webnovel.domain.enums.ChapterStatus;
+import com.webnovel.dto.content.ChapterAudioRequest;
 import com.webnovel.dto.content.ChapterCreateRequest;
 import com.webnovel.dto.content.ChapterResponse;
 import com.webnovel.dto.content.ChapterUpdateRequest;
@@ -46,8 +47,26 @@ public class ChapterService {
         chapter.setChapterNumber(chapterNumber);
         chapter.setTitle(req.title());
         chapter.setContent(req.content());
+        chapter.setAudioUrl(req.audioUrl());
         chapter.setStatus(ChapterStatus.draft);
         chapters.save(chapter);
+        return toResponse(chapter);
+    }
+
+    /**
+     * Attach, replace, or clear a chapter's narration audio (audiobook feature).
+     * Unlike content edits (admin-only), the owning author may set audio at any
+     * time — including after the chapter is published — so a {@code null}
+     * {@code audioUrl} clears it. Admins may set it on any chapter.
+     */
+    @Transactional
+    public ChapterResponse setAudio(AppUserPrincipal principal, Long chapterId, ChapterAudioRequest req) {
+        Chapter chapter = chapters.findById(chapterId)
+                .orElseThrow(() -> new NotFoundException("chapter.not_found"));
+        if (!principal.isAdmin()) {
+            requireOwnedBook(principal, chapter.getBookId());
+        }
+        chapter.setAudioUrl(req.audioUrl());
         return toResponse(chapter);
     }
 
@@ -147,7 +166,7 @@ public class ChapterService {
     public static ChapterResponse toResponse(Chapter c, boolean likedByMe, boolean preview, int displayNumber) {
         return new ChapterResponse(
                 c.getId(), c.getBookId(), displayNumber, c.getTitle(), c.getContent(),
-                c.getStatus(), c.getLikeCount(), c.getUniqueViewCount(), c.getCompletionCount(),
-                c.getRejectionReason(), c.getPublishedAt(), likedByMe, preview);
+                c.getAudioUrl(), c.getStatus(), c.getLikeCount(), c.getUniqueViewCount(),
+                c.getCompletionCount(), c.getRejectionReason(), c.getPublishedAt(), likedByMe, preview);
     }
 }

@@ -1,9 +1,13 @@
 import { useMutation } from "@tanstack/react-query"
 import { apiClient } from "@/api/client"
-import type { UploadImageResponse } from "@/types/uploads"
+import type { UploadAudioResponse, UploadImageResponse } from "@/types/uploads"
 
 /** Content types the backend accepts for image uploads (mirrors the contract). */
 export const ACCEPTED_IMAGE_TYPES = "image/png,image/jpeg,image/webp,image/gif"
+
+/** Content types the backend accepts for chapter-narration audio (mirrors the contract). */
+export const ACCEPTED_AUDIO_TYPES =
+  "audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/wav,audio/x-wav,audio/webm"
 
 /**
  * Backend root (without the `/api/v1` prefix) that serves `/uploads/**`.
@@ -48,6 +52,22 @@ export function useUploadImage() {
       const formData = new FormData()
       formData.append("file", file)
       const { data } = await apiClient.post<UploadImageResponse>("/uploads/images", formData)
+      return data
+    },
+  })
+}
+
+/**
+ * Upload a single chapter-narration audio file as `multipart/form-data` (field
+ * `file`) to `POST /uploads/audio`. As with the image upload, we let axios set
+ * the multipart `Content-Type` (including the boundary) itself.
+ */
+export function useUploadAudio() {
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData()
+      formData.append("file", file)
+      const { data } = await apiClient.post<UploadAudioResponse>("/uploads/audio", formData)
       return data
     },
   })

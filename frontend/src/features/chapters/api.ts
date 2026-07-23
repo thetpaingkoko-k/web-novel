@@ -49,11 +49,13 @@ export function useLikeChapter(chapterId: number) {
 export function useCreateChapter(bookId: number) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ title, content }: ChapterFormValues) => {
-      // The backend auto-numbers the chapter as the next in the book.
+    mutationFn: async ({ title, content, audioUrl }: ChapterFormValues) => {
+      // The backend auto-numbers the chapter as the next in the book. `audioUrl`
+      // is optional narration audio (audiobook feature).
       const { data } = await apiClient.post<Chapter>(`/books/${bookId}/chapters`, {
         title,
         content,
+        audioUrl: audioUrl || null,
       })
       return data
     },
@@ -92,6 +94,26 @@ export function useDeleteChapter(bookId: number) {
     onSuccess: (_data, chapterId) => {
       queryClient.removeQueries({ queryKey: chapterKeys.detail(chapterId) })
       queryClient.invalidateQueries({ queryKey: ["books", "detail", bookId] })
+    },
+  })
+}
+
+/**
+ * Attach, replace, or clear a chapter's narration audio (audiobook feature) via
+ * `PUT /chapters/{id}/audio`. Works in any status — including after publish —
+ * unlike content edits. Pass `null` to remove the audio. Returns the updated
+ * chapter, which we write straight into the cache.
+ */
+export function useSetChapterAudio(chapterId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (audioUrl: string | null) => {
+      const { data } = await apiClient.put<Chapter>(`/chapters/${chapterId}/audio`, { audioUrl })
+      return data
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(chapterKeys.detail(chapterId), data)
+      queryClient.invalidateQueries({ queryKey: ["books", "detail", data.bookId] })
     },
   })
 }

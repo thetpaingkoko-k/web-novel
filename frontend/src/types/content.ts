@@ -111,6 +111,12 @@ export interface ChapterSummary {
 export interface Chapter extends ChapterSummary {
   bookId: number
   content: string
+  /**
+   * Narration audio URL for the audiobook feature, or `null` when the author
+   * has attached no audio. A backend-root-relative `/uploads/audio/...` path (or
+   * an absolute storage URL in prod); render it through `resolveUploadUrl`.
+   */
+  audioUrl: string | null
   rejectionReason: string | null
   /**
    * Whether the authenticated caller has liked this chapter. Populated only by
@@ -125,6 +131,8 @@ export interface ChapterFormValues {
   title: string
   content: string
   scheduledFor?: string
+  /** Optional narration audio URL, sent on chapter create (audiobook feature). */
+  audioUrl?: string
 }
 
 export type AccessDenialCode = "no_subscription" | "expired_subscription"

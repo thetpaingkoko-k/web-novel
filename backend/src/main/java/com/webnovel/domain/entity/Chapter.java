@@ -30,6 +30,10 @@ public class Chapter {
     @Column(nullable = false, columnDefinition = "text")
     private String content;
 
+    /** Optional narration audio URL (audiobook). {@code null} when the chapter has no audio. */
+    @Column(name = "audio_url", length = 1024)
+    private String audioUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private ChapterStatus status = ChapterStatus.draft;

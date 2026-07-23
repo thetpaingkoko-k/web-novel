@@ -12,9 +12,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Default {@link ImageStore}: writes images to the local filesystem under
- * {@code {app.uploads.dir}/images/} and returns a backend-root-relative
- * {@code /uploads/images/<filename>} path, served read-only by
+ * Default {@link ImageStore}: writes uploads to the local filesystem under
+ * {@code {app.uploads.dir}/<folder>/} and returns a backend-root-relative
+ * {@code /uploads/<folder>/<filename>} path, served read-only by
  * {@code WebResourceConfig}.
  *
  * <p>Active unless {@code app.storage.type=supabase}. Suitable for local dev; on an
@@ -26,10 +26,10 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class LocalImageStore implements ImageStore {
 
-    private final Path imagesDir;
+    private final Path baseDir;
 
     public LocalImageStore(AppProperties props) {
-        this.imagesDir = baseDir(props).resolve("images");
+        this.baseDir = baseDir(props);
     }
 
     /** Absolute base uploads directory (the folder that {@code /uploads/**} serves from). */
@@ -42,22 +42,23 @@ public class LocalImageStore implements ImageStore {
     @PostConstruct
     void init() {
         try {
-            Files.createDirectories(imagesDir);
-            log.info("Image uploads directory: {}", imagesDir);
+            Files.createDirectories(baseDir);
+            log.info("Uploads directory: {}", baseDir);
         } catch (IOException e) {
-            throw new UncheckedIOException("Could not create uploads directory " + imagesDir, e);
+            throw new UncheckedIOException("Could not create uploads directory " + baseDir, e);
         }
     }
 
     @Override
-    public String save(String filename, byte[] bytes, String contentType) {
-        Path target = imagesDir.resolve(filename);
+    public String save(String folder, String filename, byte[] bytes, String contentType) {
+        Path dir = baseDir.resolve(folder);
+        Path target = dir.resolve(filename);
         try {
-            Files.createDirectories(imagesDir);
+            Files.createDirectories(dir);
             Files.write(target, bytes);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not store upload " + filename, e);
         }
-        return "/uploads/images/" + filename;
+        return "/uploads/" + folder + "/" + filename;
     }
 }

@@ -83,4 +83,36 @@ class FileStorageServiceTest {
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("upload.empty");
     }
+
+    @Test
+    void storeAudio_validMp3_savesUnderAudioFolder() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "ch1.mp3", "audio/mpeg", new byte[] {5, 6, 7});
+
+        UploadResponse res = service().storeAudio(file);
+
+        assertThat(res.url()).startsWith("/uploads/audio/").endsWith(".mp3");
+        Path stored = tempDir.resolve("audio").resolve(res.filename());
+        assertThat(Files.exists(stored)).isTrue();
+        assertThat(Files.readAllBytes(stored)).containsExactly(5, 6, 7);
+    }
+
+    @Test
+    void storeAudio_disallowedContentType_throwsBadRequest() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "pic.png", "image/png", new byte[] {1, 2, 3});
+        assertThatThrownBy(() -> service().storeAudio(file))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("upload.audio_invalid_type");
+    }
+
+    @Test
+    void storeAudio_oversizeFile_throwsBadRequest() {
+        byte[] tooBig = new byte[(int) (FileStorageService.AUDIO_MAX_SIZE_BYTES + 1)];
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "big.mp3", "audio/mpeg", tooBig);
+        assertThatThrownBy(() -> service().storeAudio(file))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("upload.audio_too_large");
+    }
 }

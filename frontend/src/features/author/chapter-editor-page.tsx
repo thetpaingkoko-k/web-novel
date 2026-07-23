@@ -1,12 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isAxiosError } from "axios"
-import { AlertTriangle, CalendarClock, FileText, Lock, Maximize2, Minimize2, PenLine, Send, Timer, Trash2, Type } from "lucide-react"
+import { AlertTriangle, CalendarClock, FileText, Headphones, Lock, Maximize2, Minimize2, PenLine, Send, Timer, Trash2, Type } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/features/admin/components/confirm-dialog"
+import { AudioUploadField } from "@/components/audio-upload-field"
 import { QueryError } from "@/components/query-error"
 import { StudioHero } from "@/components/studio-hero"
 import { Button } from "@/components/ui/button"
@@ -22,6 +23,7 @@ import {
   useChapter,
   useCreateChapter,
   useDeleteChapter,
+  useSetChapterAudio,
   useSubmitChapterForPublish,
   useUpdateChapter,
 } from "@/features/chapters/api"
@@ -67,6 +69,7 @@ export function ChapterEditorPage() {
   const createChapter = useCreateChapter(isEditMode ? (chapter?.bookId ?? Number.NaN) : bookId)
   const updateChapter = useUpdateChapter(chapterId)
   const deleteChapter = useDeleteChapter(chapter?.bookId ?? Number.NaN)
+  const setChapterAudio = useSetChapterAudio(chapterId)
   const submitForPublish = useSubmitChapterForPublish()
   const schema = useMemo(() => buildChapterSchema(t), [t])
 
@@ -75,10 +78,11 @@ export function ChapterEditorPage() {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<ChapterFormSchema>({
     resolver: zodResolver(schema),
-    defaultValues: { title: "", content: "", scheduledFor: "" },
+    defaultValues: { title: "", content: "", scheduledFor: "", audioUrl: "" },
   })
 
   useEffect(() => {
@@ -89,11 +93,13 @@ export function ChapterEditorPage() {
         // A scheduled chapter carries its target instant in `publishedAt`; echo
         // it back into the datetime-local input so the author can see/adjust it.
         scheduledFor: chapter.status === "scheduled" ? toDatetimeLocal(chapter.publishedAt) : "",
+        audioUrl: chapter.audioUrl ?? "",
       })
     }
   }, [chapter, reset])
 
   const content = watch("content") ?? ""
+  const audioUrl = watch("audioUrl") ?? ""
   const wordCount = useMemo(() => countWords(content), [content])
   const charCount = content.length
   const readingMinutes = Math.max(1, Math.round(wordCount / 200))
@@ -210,6 +216,19 @@ export function ChapterEditorPage() {
       onSuccess: (saved) => publishChapter(saved.chapterId, scheduledFor),
       onError: () => toast.error(t("common.genericError")),
     })
+  }
+
+  function handleAudioChange(url: string) {
+    setValue("audioUrl", url, { shouldDirty: true })
+    // Once the chapter exists it has its own audio endpoint, so persist right
+    // away — this works even after publish, unlike content edits. In create mode
+    // there's no id yet, so the value simply rides along with the create call.
+    if (isEditMode && chapter) {
+      setChapterAudio.mutate(url || null, {
+        onSuccess: () => toast.success(url ? t("author.audioSaved") : t("author.audioRemoved")),
+        onError: () => toast.error(t("common.genericError")),
+      })
+    }
   }
 
   function onDeleteDraft() {
@@ -359,6 +378,32 @@ export function ChapterEditorPage() {
             <FieldError errors={[errors.content]} />
           </CardContent>
         </Card>
+
+        {/* Optional narration audio (audiobook). Available in both create and edit
+            mode — including after publish — since audio is set through its own
+            endpoint, independent of the admin-only content lock. */}
+        {!focusMode && (
+          <Card>
+            <CardContent className="pt-2">
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="chapter-audio" className="flex items-center gap-1.5">
+                    <Headphones className="h-4 w-4 text-primary" aria-hidden="true" />
+                    {t("author.chapterAudio")}
+                  </FieldLabel>
+                  <FieldDescription>{t("author.chapterAudioHint")}</FieldDescription>
+                  <AudioUploadField
+                    id="chapter-audio"
+                    value={audioUrl}
+                    onChange={handleAudioChange}
+                    disabled={isPending}
+                    saving={setChapterAudio.isPending}
+                  />
+                </Field>
+              </FieldGroup>
+            </CardContent>
+          </Card>
+        )}
 
         {isProfessional && !focusMode && (
           <Card>

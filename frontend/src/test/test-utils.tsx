@@ -4,6 +4,7 @@ import { render } from "@testing-library/react"
 import { MemoryRouter } from "react-router"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/features/auth/auth-context"
+import { AmbientSoundProvider } from "@/features/chapters/ambient-sound"
 import "@/i18n"
 
 function createTestQueryClient() {
@@ -17,7 +18,9 @@ function AllProviders({ children }: { children: ReactNode }) {
     <QueryClientProvider client={createTestQueryClient()}>
       <ThemeProvider>
         <MemoryRouter>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <AmbientSoundProvider>{children}</AmbientSoundProvider>
+          </AuthProvider>
         </MemoryRouter>
       </ThemeProvider>
     </QueryClientProvider>

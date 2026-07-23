@@ -15,5 +15,9 @@ public record ChapterCreateRequest(
         String title,
 
         @NotBlank(message = "{validation.content.required}")
-        String content) {
+        String content,
+
+        // Optional narration audio URL (audiobook). Null when the author adds no audio.
+        @Size(max = 1024)
+        String audioUrl) {
 }

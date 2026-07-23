@@ -16,6 +16,8 @@ public record ChapterResponse(
         Integer chapterNumber,
         String title,
         String content,
+        // Narration audio URL for the audiobook feature; null when the chapter has no audio.
+        String audioUrl,
         ChapterStatus status,
         int likeCount,
         int uniqueViewCount,

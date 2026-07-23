@@ -7,6 +7,7 @@ import { MemoryRouter, Route, Routes } from "react-router"
 import { tokenStorage } from "@/api/client"
 import { AppLayout } from "@/components/layout/app-layout"
 import { AuthProvider } from "@/features/auth/auth-context"
+import { AmbientSoundProvider } from "@/features/chapters/ambient-sound"
 import { server } from "@/test/mocks/server"
 import "@/i18n"
 
@@ -33,13 +34,15 @@ function renderLayout() {
   return render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <MemoryRouter initialEntries={["/"]}>
-          <Routes>
-            <Route element={<AppLayout />}>
-              <Route index element={<div>home</div>} />
-            </Route>
-          </Routes>
-        </MemoryRouter>
+        <AmbientSoundProvider>
+          <MemoryRouter initialEntries={["/"]}>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route index element={<div>home</div>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </AmbientSoundProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

@@ -28,8 +28,10 @@ spring:
     fallback-to-system-locale: false
   servlet:
     multipart:
-      max-file-size: 5MB
-      max-request-size: 6MB
+      # Sized for chapter-narration audio (audiobook). Images are still capped at
+      # 5 MB in FileStorageService; this only sets the servlet-level ceiling.
+      max-file-size: 50MB
+      max-request-size: 51MB
 
 server:
   port: ${PORT:8080}          # Render (and other PaaS) inject the listen port via $PORT

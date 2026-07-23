@@ -202,6 +202,7 @@
   "chapters": {
     "chapterLabel": "Chapter {{number}}",
     "freePreview": "Free preview",
+    "listenTitle": "Listen to this chapter",
     "publishedOn": "Published {{date}}",
     "prevChapter": "Previous",
     "nextChapter": "Next",
@@ -231,7 +232,30 @@
     "resetPreferences": "Reset to default",
     "scheduledFor": "Scheduled for {{date}}",
     "enterFullscreen": "Enter fullscreen",
-    "exitFullscreen": "Exit fullscreen"
+    "exitFullscreen": "Exit fullscreen",
+    "ambient": {
+      "title": "Ambient sounds",
+      "turnOn": "Turn ambient sound on",
+      "turnOff": "Turn ambient sound off",
+      "sound": "Sound",
+      "volume": "Volume",
+      "unavailable": "This sound couldn't be loaded.",
+      "categoryAmbience": "Ambience",
+      "categoryLofi": "Lo-fi",
+      "categoryPiano": "Piano",
+      "rain": "Rain",
+      "storm": "Storm",
+      "ocean": "Ocean",
+      "wind": "Wind",
+      "fire": "Fireplace",
+      "cafe": "Café",
+      "lofiChill": "Chill",
+      "lofiDreamy": "Dreamy",
+      "lofiUpbeat": "Upbeat",
+      "pianoSatie": "Satie",
+      "pianoDebussy": "Debussy",
+      "pianoChopin": "Chopin"
+    }
   },
   "access": {
     "subscribeToUnlockTitle": "Subscribe to keep reading",
@@ -516,6 +540,10 @@
     "chapterNumberAuto": "The chapter number is assigned automatically.",
     "chapterTitle": "Chapter title",
     "chapterContent": "Content",
+    "chapterAudio": "Narration audio",
+    "chapterAudioHint": "Optional. Upload an audio recording so readers can listen to this chapter. You can add or replace it any time, even after publishing.",
+    "audioSaved": "Audio saved",
+    "audioRemoved": "Audio removed",
     "saveDraft": "Save draft",
     "publish": "Publish",
     "submitForReview": "Submit for review",
@@ -552,6 +580,13 @@
     "change": "Change image",
     "hint": "PNG, JPEG, WebP or GIF, up to 5 MB.",
     "error": "Upload failed. Please try another image."
+  },
+  "audioUpload": {
+    "choose": "Upload audio",
+    "change": "Replace audio",
+    "remove": "Remove",
+    "hint": "MP3, M4A, AAC, OGG, WAV or WebM, up to 50 MB.",
+    "error": "Upload failed. Please try another file."
   },
   "subscribe": {
     "title": "Subscribe to {{author}}",

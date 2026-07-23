@@ -20,6 +20,8 @@ export function buildChapterSchema(t: TFunction) {
     title: z.string().min(1, t("validation.required")),
     content: z.string().min(1, t("validation.required")),
     scheduledFor: z.string().optional(),
+    // Optional narration audio URL (audiobook feature); "" when none.
+    audioUrl: z.string().optional(),
   })
 }
 export type ChapterFormSchema = z.infer<ReturnType<typeof buildChapterSchema>>

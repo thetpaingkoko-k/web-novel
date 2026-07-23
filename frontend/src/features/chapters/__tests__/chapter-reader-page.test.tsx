@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { afterEach, describe, expect, it } from "vitest"
 import { AuthProvider } from "@/features/auth/auth-context"
+import { AmbientSoundProvider } from "@/features/chapters/ambient-sound"
 import { ChapterReaderPage } from "@/features/chapters/chapter-reader-page"
 import "@/i18n"
 import { server } from "@/test/mocks/server"
@@ -49,11 +50,13 @@ function renderChapterReader(chapterId: number) {
   return render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <MemoryRouter initialEntries={[`/chapters/${chapterId}`]}>
-          <Routes>
-            <Route path="/chapters/:chapterId" element={<ChapterReaderPage />} />
-          </Routes>
-        </MemoryRouter>
+        <AmbientSoundProvider>
+          <MemoryRouter initialEntries={[`/chapters/${chapterId}`]}>
+            <Routes>
+              <Route path="/chapters/:chapterId" element={<ChapterReaderPage />} />
+            </Routes>
+          </MemoryRouter>
+        </AmbientSoundProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

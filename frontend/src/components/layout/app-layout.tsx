@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { genreLabelKey } from "@/lib/genres"
 import { NotificationBell } from "@/features/notifications/notification-bell"
+import { AmbientSoundRouteGuard } from "@/features/chapters/ambient-sound"
 import { useAuth } from "@/features/auth/auth-context"
 
 const AUTHOR_ROLES = ["hobbyist_author", "professional_author"]
@@ -32,6 +33,7 @@ const AUTHOR_ROLES = ["hobbyist_author", "professional_author"]
 export function AppLayout() {
   return (
     <div className="flex min-h-screen flex-col">
+      <AmbientSoundRouteGuard />
       <SiteHeader />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-12">
         <Outlet />

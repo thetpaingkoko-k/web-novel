@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { RefObject } from "react"
 import { isAxiosError } from "axios"
-import { BookMarked, CheckCircle2, ChevronLeft, ChevronRight, Clock, Eye, Heart, Lock, Maximize, Minimize, Sparkles } from "lucide-react"
+import { BookMarked, CheckCircle2, ChevronLeft, ChevronRight, Clock, Eye, Headphones, Heart, Lock, Maximize, Minimize, Sparkles } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
+import { resolveUploadUrl } from "@/api/uploads"
 import { QueryError } from "@/components/query-error"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -15,6 +16,7 @@ import type { AccessDeniedError } from "@/types/content"
 import { CommentThread } from "./components/comment-thread"
 import { useChapter, useLikeChapter, useRecordChapterView } from "./api"
 import { ReaderControls, useReaderPreferences } from "./reader-preferences"
+import { AmbientSoundControls } from "./ambient-sound"
 
 /** Fraction of the page that must be scrolled to count a chapter as read. */
 const COMPLETION_SCROLL_RATIO = 0.9
@@ -344,6 +346,7 @@ export function ChapterReaderPage() {
                 <Maximize className="h-4 w-4" aria-hidden="true" />
               )}
             </Button>
+            <AmbientSoundControls />
             <ReaderControls controller={reader} />
           </div>
         </div>
@@ -389,6 +392,19 @@ export function ChapterReaderPage() {
             )}
           </div>
         </header>
+
+        {/* Audiobook player — shown only when the author attached narration audio.
+            Readers can listen instead of (or alongside) reading. */}
+        {chapter.audioUrl && (
+          <div className="mx-6 flex flex-col gap-2 rounded-2xl border border-border/60 bg-card/60 px-4 py-3 sm:mx-8">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Headphones className="h-4 w-4 text-primary" aria-hidden="true" />
+              {t("chapters.listenTitle")}
+            </div>
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption -- author narration, no captions available */}
+            <audio controls preload="metadata" src={resolveUploadUrl(chapter.audioUrl)} className="w-full" />
+          </div>
+        )}
 
         {/* Immersive reading surface — borderless, reader-themed, size-tuned.
             Copy/cut/context-menu are blocked here only (a soft deterrent, not DRM;

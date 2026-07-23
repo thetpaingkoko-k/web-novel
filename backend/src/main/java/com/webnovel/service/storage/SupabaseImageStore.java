@@ -48,8 +48,8 @@ public class SupabaseImageStore implements ImageStore {
     }
 
     @Override
-    public String save(String filename, byte[] bytes, String contentType) {
-        String objectPath = bucket + "/images/" + filename;
+    public String save(String folder, String filename, byte[] bytes, String contentType) {
+        String objectPath = bucket + "/" + folder + "/" + filename;
         try {
             client.post()
                     .uri("/object/{path}", objectPath)

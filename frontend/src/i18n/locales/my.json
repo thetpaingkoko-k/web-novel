@@ -202,6 +202,7 @@
   "chapters": {
     "chapterLabel": "အခန်း {{number}}",
     "freePreview": "အခမဲ့ အစမ်းဖတ်",
+    "listenTitle": "ဤအခန်းကို နားထောင်ရန်",
     "publishedOn": "{{date}} တွင် ထုတ်ဝေခဲ့သည်",
     "prevChapter": "ယခင်",
     "nextChapter": "နောက်တစ်ခု",
@@ -231,7 +232,30 @@
     "resetPreferences": "မူလအတိုင်း ပြန်ထားရန်",
     "scheduledFor": "{{date}} တွင် ထုတ်ဝေရန် စီစဉ်ထားသည်",
     "enterFullscreen": "မျက်နှာပြင်အပြည့် ဖတ်ရှုရန်",
-    "exitFullscreen": "မျက်နှာပြင်အပြည့်မှ ထွက်ရန်"
+    "exitFullscreen": "မျက်နှာပြင်အပြည့်မှ ထွက်ရန်",
+    "ambient": {
+      "title": "ပတ်ဝန်းကျင် အသံများ",
+      "turnOn": "ပတ်ဝန်းကျင်အသံ ဖွင့်ရန်",
+      "turnOff": "ပတ်ဝန်းကျင်အသံ ပိတ်ရန်",
+      "sound": "အသံ",
+      "volume": "အသံအတိုးအကျယ်",
+      "unavailable": "ဤအသံကို တင်၍မရပါ။",
+      "categoryAmbience": "ပတ်ဝန်းကျင်အသံ",
+      "categoryLofi": "Lo-fi",
+      "categoryPiano": "စန္ဒရား",
+      "rain": "မိုး",
+      "storm": "မိုးသက်မုန်တိုင်း",
+      "ocean": "သမုဒ္ဒရာ",
+      "wind": "လေ",
+      "fire": "မီးဖို",
+      "cafe": "ကော်ဖီဆိုင်",
+      "lofiChill": "အေးဆေး",
+      "lofiDreamy": "စိတ်ကူးယဉ်",
+      "lofiUpbeat": "တက်ကြွ",
+      "pianoSatie": "Satie",
+      "pianoDebussy": "Debussy",
+      "pianoChopin": "Chopin"
+    }
   },
   "access": {
     "subscribeToUnlockTitle": "ဆက်ဖတ်ရန် စာရင်းသွင်းပါ",
@@ -515,6 +539,10 @@
     "chapterNumberAuto": "အခန်းအမှတ်ကို အလိုအလျောက် သတ်မှတ်ပေးပါသည်။",
     "chapterTitle": "အခန်းခေါင်းစဉ်",
     "chapterContent": "အကြောင်းအရာ",
+    "chapterAudio": "အသံဖတ်ကြားချက်",
+    "chapterAudioHint": "မဖြစ်မနေ မဟုတ်ပါ။ ဤအခန်းကို စာဖတ်သူများ နားထောင်နိုင်ရန် အသံဖိုင် တင်ပါ။ ထုတ်ဝေပြီးနောက်တွင်ပင် အချိန်မရွေး ထည့်/ပြောင်း နိုင်ပါသည်။",
+    "audioSaved": "အသံ သိမ်းပြီးပါပြီ",
+    "audioRemoved": "အသံ ဖယ်ရှားပြီးပါပြီ",
     "saveDraft": "မူကြမ်းအဖြစ် သိမ်းရန်",
     "publish": "ထုတ်ဝေရန်",
     "submitForReview": "စိစစ်ရန် တင်သွင်းမည်",
@@ -551,6 +579,13 @@
     "change": "ပုံ ပြောင်းရန်",
     "hint": "PNG, JPEG, WebP သို့မဟုတ် GIF၊ အများဆုံး ၅ MB။",
     "error": "တင်ခြင်း မအောင်မြင်ပါ။ အခြားပုံ တစ်ခု စမ်းကြည့်ပါ။"
+  },
+  "audioUpload": {
+    "choose": "အသံ တင်ရန်",
+    "change": "အသံ ပြောင်းရန်",
+    "remove": "ဖယ်ရှားရန်",
+    "hint": "MP3, M4A, AAC, OGG, WAV သို့မဟုတ် WebM၊ အများဆုံး ၅၀ MB။",
+    "error": "တင်ခြင်း မအောင်မြင်ပါ။ အခြားဖိုင် တစ်ခု စမ်းကြည့်ပါ။"
   },
   "subscribe": {
     "title": "{{author}} ကို စာရင်းသွင်းရန်",

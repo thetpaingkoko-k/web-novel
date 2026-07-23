@@ -1,5 +1,6 @@
 package com.webnovel.controller;
 
+import com.webnovel.dto.content.ChapterAudioRequest;
 import com.webnovel.dto.content.ChapterResponse;
 import com.webnovel.dto.content.ChapterUpdateRequest;
 import com.webnovel.dto.content.PublishRequest;
@@ -28,6 +29,17 @@ public class ChapterController {
     @PreAuthorize("hasRole('ADMIN')")
     public ChapterResponse update(@PathVariable Long id, @Valid @RequestBody ChapterUpdateRequest req) {
         return chapterService.update(SecurityUtils.requirePrincipal(), id, req);
+    }
+
+    /**
+     * Attach/replace/clear a chapter's narration audio (audiobook feature). Unlike
+     * {@link #update} (admin-only), the owning author may set audio at any time —
+     * including after publish; a null {@code audioUrl} clears it.
+     */
+    @PutMapping("/{id}/audio")
+    @PreAuthorize("hasAnyRole('HOBBYIST_AUTHOR','PROFESSIONAL_AUTHOR','ADMIN')")
+    public ChapterResponse setAudio(@PathVariable Long id, @Valid @RequestBody ChapterAudioRequest req) {
+        return chapterService.setAudio(SecurityUtils.requirePrincipal(), id, req);
     }
 
     /** Delete a chapter: authors may remove their own drafts; admins may remove any chapter. */

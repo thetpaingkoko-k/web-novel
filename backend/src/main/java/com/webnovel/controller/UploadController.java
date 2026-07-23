@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-/** Authenticated image upload (multipart) — returns a public {@code /uploads/...} path. */
+/** Authenticated file upload (multipart) — returns a public {@code /uploads/...} path. */
 @RestController
 @RequestMapping("/api/v1/uploads")
 @RequiredArgsConstructor
@@ -26,5 +26,12 @@ public class UploadController {
     @ResponseStatus(HttpStatus.CREATED)
     public UploadResponse uploadImage(@RequestParam("file") MultipartFile file) {
         return fileStorage.store(file);
+    }
+
+    /** Chapter-narration audio upload (audiobook feature). */
+    @PostMapping(path = "/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public UploadResponse uploadAudio(@RequestParam("file") MultipartFile file) {
+        return fileStorage.storeAudio(file);
     }
 }
