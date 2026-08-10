@@ -3,7 +3,8 @@ import { z } from "zod"
 
 export function buildPaymentSchema(t: TFunction) {
   return z.object({
-    amount: z.number().positive(t("validation.required")),
+    // The reader must pick which platform wallet they paid into (0 = none picked).
+    walletId: z.number().int().positive(t("subscribe.walletRequired")),
     screenshotUrl: z.string().min(1, t("validation.required")),
     last6Digits: z
       .string()

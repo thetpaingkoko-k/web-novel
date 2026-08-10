@@ -1,10 +1,13 @@
 package com.webnovel.service;
 
 import com.webnovel.config.AppProperties;
+import com.webnovel.domain.entity.AdminWallet;
 import com.webnovel.domain.entity.AuthorEarning;
 import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.PaymentSubmission;
 import com.webnovel.domain.entity.Subscription;
+import com.webnovel.domain.enums.AdminActionType;
+import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.domain.enums.PaymentStatus;
 import com.webnovel.domain.enums.SubscriptionStatus;
 import com.webnovel.dto.payment.AdminPaymentRow;
@@ -18,6 +21,7 @@ import com.webnovel.repository.AuthorEarningRepository;
 import com.webnovel.repository.AuthorProfileRepository;
 import com.webnovel.repository.PaymentSubmissionRepository;
 import com.webnovel.repository.SubscriptionRepository;
+import com.webnovel.repository.UserRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
@@ -37,33 +41,48 @@ public class PaymentService {
     private final AdminWalletRepository wallets;
     private final AuthorProfileRepository authorProfiles;
     private final AuthorEarningRepository earnings;
+    private final AdminActionService adminActions;
+    private final NotificationService notifications;
+    private final UserRepository users;
     private final AppProperties props;
 
     /** §9.3: create/reuse a pending subscription, run the duplicate check, persist the submission. */
     @Transactional
     public PaymentSubmissionResponse submit(Long readerId, Long authorId, PaymentSubmissionRequest req) {
-        wallets.findById(req.walletId())
+        // A user cannot subscribe to / pay themselves (authors may subscribe only to OTHER authors).
+        if (authorId.equals(readerId)) {
+            throw new BadRequestException("subscription.cannot_subscribe_self");
+        }
+        AdminWallet wallet = wallets.findById(req.walletId())
                 .orElseThrow(() -> new NotFoundException("wallet.none_active"));
+        if (!wallet.isActive()) {
+            throw new BadRequestException("wallet.not_active");
+        }
         AuthorProfile author = authorProfiles.findByUserId(authorId)
                 .orElseThrow(() -> new BadRequestException("author.not_monetized"));
         if (!author.isMonetizationEnabled() || author.getMonthlySubscriptionPrice() == null) {
             throw new BadRequestException("author.not_monetized");
         }
 
-        Subscription subscription = resolveSubscription(readerId, authorId, author.getMonthlySubscriptionPrice());
+        // FR-6.2: the price is a fixed system baseline — the reader cannot set it. Any amount
+        // supplied by the client is ignored; the author's current subscription price is used.
+        BigDecimal price = author.getMonthlySubscriptionPrice();
+        Subscription subscription = resolveSubscription(readerId, authorId, price);
 
         boolean collision = submissions.existsByWalletIdAndLast6DigitsAndAmountAndStatus(
-                req.walletId(), req.last6Digits(), req.amount(), PaymentStatus.approved);
+                req.walletId(), req.last6Digits(), price, PaymentStatus.approved);
 
         PaymentSubmission submission = new PaymentSubmission();
         submission.setReaderId(readerId);
         submission.setWalletId(req.walletId());
         submission.setSubscriptionId(subscription.getId());
-        submission.setAmount(req.amount());
+        submission.setAmount(price);
         submission.setScreenshotUrl(req.screenshotUrl());
         submission.setLast6Digits(req.last6Digits());
         submission.setStatus(collision ? PaymentStatus.flagged_duplicate : PaymentStatus.pending);
         submissions.save(submission);
+        notifications.notifyAdmins(NotificationType.payment_submitted, "payment_submission",
+                submission.getId(), amountMmk(price)); // §7.3: nudge admins to review the queue
         return toResponse(submission);
     }
 
@@ -137,6 +156,15 @@ public class PaymentService {
                 .orElseThrow(() -> new NotFoundException("author.not_monetized"));
         author.setAvailableBalance(author.getAvailableBalance().add(net));
         author.setTotalEarned(author.getTotalEarned().add(net));
+
+        adminActions.log(adminId, AdminActionType.payment_approval,
+                "payment_submission", submission.getId(), null); // §7.3 audit
+
+        // Tell the reader their subscription went active, and the author they have a new subscriber.
+        notifications.notify(subscription.getReaderId(), NotificationType.subscription_activated,
+                "author", subscription.getAuthorId(), username(subscription.getAuthorId()));
+        notifications.notify(subscription.getAuthorId(), NotificationType.new_subscriber,
+                "user", subscription.getReaderId(), username(subscription.getReaderId()));
         return toResponse(submission);
     }
 
@@ -152,7 +180,27 @@ public class PaymentService {
         submission.setRejectionReason(reason);
         submission.setReviewedBy(adminId);
         submission.setReviewedAt(OffsetDateTime.now());
+
+        // Release the linked subscription from pending so the reader is no longer shown a
+        // lingering "pending" state and can submit a fresh payment (§8.3). Only a not-yet-
+        // activated subscription is rejected — never an active one settled by another submission.
+        subscriptions.findById(submission.getSubscriptionId())
+                .filter(s -> s.getStatus() == SubscriptionStatus.pending_payment)
+                .ifPresent(s -> s.setStatus(SubscriptionStatus.rejected));
+
+        adminActions.log(adminId, AdminActionType.payment_rejection,
+                "payment_submission", submission.getId(), reason); // §7.3 audit
+        notifications.notify(submission.getReaderId(), NotificationType.payment_rejected,
+                "payment_submission", submission.getId(), reason);
         return toResponse(submission);
+    }
+
+    private String username(Long userId) {
+        return users.findById(userId).map(com.webnovel.domain.entity.User::getUsername).orElse(null);
+    }
+
+    private static String amountMmk(BigDecimal amount) {
+        return amount.stripTrailingZeros().toPlainString() + " MMK";
     }
 
     static PaymentSubmissionResponse toResponse(PaymentSubmission s) {

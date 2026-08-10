@@ -7,8 +7,10 @@ import java.math.BigDecimal;
 public record AuthorProfileResponse(
         Long authorId,
         String username,
+        String avatarUrl,
         String bio,
         CareerStage careerStage,
         boolean isMonetizationEnabled,
-        BigDecimal monthlySubscriptionPrice) {
+        BigDecimal monthlySubscriptionPrice,
+        long subscriberCount) {
 }

@@ -33,6 +33,35 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
 
     boolean existsByBookIdAndChapterNumber(Long bookId, Integer chapterNumber);
 
+    /**
+     * Whether the book has any OTHER chapter in the given status (excluding {@code id}).
+     * Used to block publishing while an orphaned {@code draft} still exists (a book must
+     * never have a stray draft while another chapter is being published).
+     */
+    boolean existsByBookIdAndStatusAndIdNot(Long bookId, ChapterStatus status, Long id);
+
+    /** Total chapters in a book with the given status (premium preview sizing, §9.1). */
+    long countByBookIdAndStatus(Long bookId, ChapterStatus status);
+
+    /**
+     * 1-based rank of a chapter among same-status chapters ordered by chapterNumber:
+     * the count of chapters in the book with that status whose number is ≤ the given one.
+     */
+    long countByBookIdAndStatusAndChapterNumberLessThanEqual(
+            Long bookId, ChapterStatus status, Integer chapterNumber);
+
+    /** Highest chapter number in a book, or 0 when it has none — for auto-numbering new chapters. */
+    @Query("select coalesce(max(c.chapterNumber), 0) from Chapter c where c.bookId = :bookId")
+    int findMaxChapterNumber(@Param("bookId") Long bookId);
+
+    /** Book-level like total: the sum of like counts across the book's published chapters (§4.1.1). */
+    @Query("""
+            select coalesce(sum(c.likeCount), 0) from Chapter c
+            where c.bookId = :bookId
+              and c.status = com.webnovel.domain.enums.ChapterStatus.published
+            """)
+    long sumLikeCountByBookId(@Param("bookId") Long bookId);
+
     @Modifying
     @Query("update Chapter c set c.likeCount = c.likeCount + :delta where c.id = :id")
     void addLikeCount(@Param("id") Long id, @Param("delta") int delta);

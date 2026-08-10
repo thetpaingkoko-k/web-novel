@@ -12,12 +12,17 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-/** Reader payment submission + own subscriptions (PROJECT SPEC.md §10.6). */
+/**
+ * Payment submission + own subscriptions (PROJECT SPEC.md §10.6). Any non-admin account
+ * may subscribe — readers and authors alike (an author can subscribe to another author).
+ */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('READER','HOBBYIST_AUTHOR','PROFESSIONAL_AUTHOR')")
 @Tag(name = "Payments")
 public class PaymentController {
 

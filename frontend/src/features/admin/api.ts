@@ -1,15 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient, getList } from "@/api/client"
+import { categoryKeys } from "@/features/categories/api"
 import type {
   AdminActionLog,
   AdminUser,
   ApprovalKind,
+  AuthorPayout,
   NewWalletRequest,
+  PaymentAnalytics,
   PaymentSubmissionReview,
   PendingChapterReview,
   PendingUser,
+  UpgradeRequestRow,
 } from "@/types/admin"
 import type { AdminWallet } from "@/types/subscriptions"
+import type { Category, CategoryCreateRequest, CategoryUpdateRequest } from "@/types/categories"
 import type { Withdrawal } from "@/types/earnings"
 
 // ---- Users & authors ----
@@ -34,8 +39,27 @@ export function useApproveUser() {
 export function useSuspendUser() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ userId, ban }: { userId: number; ban: boolean }) => {
-      await apiClient.put(`/admin/users/${userId}/suspend`, { ban })
+    mutationFn: async ({
+      userId,
+      ban,
+      reason,
+    }: {
+      userId: number
+      ban: boolean
+      reason: string
+    }) => {
+      await apiClient.put(`/admin/users/${userId}/suspend`, { ban, reason })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
+  })
+}
+
+/** Decline a pending author application, returning the applicant to a regular reader. */
+export function useRejectApplication() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, reason }: { userId: number; reason: string }) => {
+      await apiClient.put(`/admin/users/${userId}/reject`, { reason })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
   })
@@ -58,6 +82,61 @@ export function useReactivateUser() {
       await apiClient.put(`/admin/users/${userId}/reactivate`)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
+  })
+}
+
+/** Adjust a monetized author's monthly subscription price (baseline is admin-set, FR-1.5). */
+export function useSetSubscriptionPrice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, priceMmk }: { userId: number; priceMmk: number }) => {
+      await apiClient.put(`/admin/users/${userId}/subscription-price`, { priceMmk })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] }),
+  })
+}
+
+// ---- Hobbyist → professional upgrade requests ----
+
+export function useUpgradeRequests() {
+  return useQuery({
+    queryKey: ["admin", "upgrade-requests"] as const,
+    queryFn: () => getList<UpgradeRequestRow>("/admin/authors/upgrade-requests"),
+  })
+}
+
+/**
+ * Approve an upgrade request via the shared user-approval endpoint. The backend
+ * enables monetization AND clears `professionalRequested`, so refresh both the
+ * upgrade-requests queue and the user lists.
+ */
+export function useApproveUpgradeRequest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (userId: number) => {
+      await apiClient.put(`/admin/users/${userId}/approve`, { kind: "enable_monetization" })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "upgrade-requests"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] })
+    },
+  })
+}
+
+/**
+ * Decline an upgrade request. The backend clears the queue flag (the user keeps their
+ * current role) and notifies the applicant, so refresh the upgrade-requests queue.
+ */
+export function useRejectUpgradeRequest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, reason }: { userId: number; reason: string }) => {
+      await apiClient.put(`/admin/authors/upgrade-requests/${userId}/reject`, { reason })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "upgrade-requests"] })
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] })
+    },
   })
 }
 
@@ -186,5 +265,82 @@ export function useAuditLog() {
   return useQuery({
     queryKey: ["admin", "actions"] as const,
     queryFn: () => getList<AdminActionLog>("/admin/actions"),
+  })
+}
+
+/** Delete an audit-log entry. `DELETE /admin/actions/{id}` → 204 (404 adminaction.not_found). */
+export function useDeleteAuditAction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (adminActionId: number) => {
+      await apiClient.delete(`/admin/actions/${adminActionId}`)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "actions"] }),
+  })
+}
+
+// ---- Payment analytics ----
+
+export function usePaymentAnalytics() {
+  return useQuery({
+    queryKey: ["admin", "analytics", "payments"] as const,
+    queryFn: async () => {
+      const { data } = await apiClient.get<PaymentAnalytics>("/admin/analytics/payments")
+      return data
+    },
+  })
+}
+
+/** Per-author payout ledger: earned, paid out, and remaining owed to each author. */
+export function useAuthorPayouts() {
+  return useQuery({
+    queryKey: ["admin", "analytics", "author-payouts"] as const,
+    queryFn: () => getList<AuthorPayout>("/admin/analytics/author-payouts"),
+  })
+}
+
+// ---- Categories ----
+
+/**
+ * Every category, inactive ones included, each with the number of books filed under
+ * it. Mutations invalidate the public `categories` list too, so the browse pills,
+ * home tiles and author picker pick the change up immediately.
+ */
+export function useAdminCategories() {
+  return useQuery({
+    queryKey: categoryKeys.admin,
+    queryFn: () => getList<Category>("/admin/categories"),
+  })
+}
+
+function useCategoryMutation<TVariables>(mutationFn: (variables: TVariables) => Promise<void>) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.admin })
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all })
+    },
+  })
+}
+
+export function useCreateCategory() {
+  return useCategoryMutation(async (payload: CategoryCreateRequest) => {
+    await apiClient.post("/admin/categories", payload)
+  })
+}
+
+export function useUpdateCategory() {
+  return useCategoryMutation(
+    async ({ categoryId, ...payload }: CategoryUpdateRequest & { categoryId: number }) => {
+      await apiClient.put(`/admin/categories/${categoryId}`, payload)
+    },
+  )
+}
+
+/** Deletes an unused category; the backend answers 409 `category.in_use` when books reference it. */
+export function useDeleteCategory() {
+  return useCategoryMutation(async (categoryId: number) => {
+    await apiClient.delete(`/admin/categories/${categoryId}`)
   })
 }

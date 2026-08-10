@@ -18,6 +18,10 @@ const CREATOR: AuthUser = {
   role: "reader",
   status: "approved",
   isMonetizationEnabled: false,
+  avatarUrl: null,
+  gender: null,
+  dateOfBirth: null,
+  createdAt: null,
 }
 
 function seedThread(status: ThreadStatus) {
@@ -29,13 +33,59 @@ function seedThread(status: ThreadStatus) {
         bookId: 2,
         creatorId: 1,
         creatorUsername: "reader_rin",
+        creatorAvatarUrl: null,
         title: "What is the tea shop, really?",
         status,
         postCount: 0,
         createdAt: new Date(0).toISOString(),
       })
     ),
-    http.get("/api/v1/debates/601/posts", () => HttpResponse.json([]))
+    http.get("/api/v1/debates/601/posts", () => HttpResponse.json([])),
+    // The default book mock has one published chapter (id 100); mark it read so the
+    // creator clears the 10%-read discussion gate.
+    http.get("/api/v1/books/2/progress", () =>
+      HttpResponse.json({ bookId: 2, lastChapterReadId: 100, updatedAt: new Date(0).toISOString() })
+    )
+  )
+}
+
+/** A premium book by author 10 (someone other than the reader) with no sub. */
+function seedPremiumThread() {
+  server.use(
+    http.get("/api/v1/users/me", () => HttpResponse.json(CREATOR)),
+    http.get("/api/v1/debates/601", () =>
+      HttpResponse.json({
+        threadId: 601,
+        bookId: 2,
+        creatorId: 1,
+        creatorUsername: "reader_rin",
+        creatorAvatarUrl: null,
+        title: "What is the tea shop, really?",
+        status: "open",
+        postCount: 0,
+        createdAt: new Date(0).toISOString(),
+      })
+    ),
+    http.get("/api/v1/debates/601/posts", () => HttpResponse.json([])),
+    http.get("/api/v1/books/2", () =>
+      HttpResponse.json({
+        bookId: 2,
+        authorId: 10,
+        authorUsername: "premium_pat",
+        title: "Gilded Cage",
+        synopsis: null,
+        genres: [],
+        coverImageUrl: null,
+        status: "ongoing",
+        isPremium: true,
+        createdAt: new Date(0).toISOString(),
+        chapters: [],
+      })
+    ),
+    http.get("/api/v1/subscriptions/me", () => HttpResponse.json([])),
+    http.get("/api/v1/books/2/progress", () =>
+      HttpResponse.json({ bookId: 2, lastChapterReadId: null, updatedAt: new Date(0).toISOString() })
+    )
   )
 }
 
@@ -67,7 +117,6 @@ describe("DebateThreadPage", () => {
 
     expect(await screen.findByRole("heading", { name: /what is the tea shop/i })).toBeInTheDocument()
     expect(await screen.findByRole("button", { name: /lock/i })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /archive/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/your post/i)).toBeInTheDocument()
   })
 
@@ -80,5 +129,21 @@ describe("DebateThreadPage", () => {
     expect(await screen.findByText(/this discussion is locked/i)).toBeInTheDocument()
     expect(screen.queryByLabelText(/your post/i)).not.toBeInTheDocument()
     expect(await screen.findByRole("button", { name: /reopen/i })).toBeInTheDocument()
+  })
+
+  it("gates the composer on a premium book with no subscription", async () => {
+    tokenStorage.setTokens("access", "refresh")
+    seedPremiumThread()
+
+    renderThreadPage()
+
+    // Subscribe prompt replaces the composer for an unsubscribed reader.
+    expect(
+      await screen.findByRole("heading", { name: /subscribe to join the discussion/i })
+    ).toBeInTheDocument()
+    expect(screen.queryByLabelText(/your post/i)).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: /subscribe to premium_pat/i })
+    ).toBeInTheDocument()
   })
 })

@@ -5,10 +5,13 @@ import com.webnovel.domain.entity.Chapter;
 import com.webnovel.domain.enums.AdminActionType;
 import com.webnovel.domain.enums.CareerStage;
 import com.webnovel.domain.enums.ChapterStatus;
+import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.dto.content.AdminChapterRow;
 import com.webnovel.dto.content.ChapterResponse;
 import com.webnovel.dto.content.PublishRequest;
 import com.webnovel.exception.BadRequestException;
+import com.webnovel.exception.ErrorCode;
+import com.webnovel.exception.ConflictException;
 import com.webnovel.exception.ForbiddenException;
 import com.webnovel.exception.NotFoundException;
 import com.webnovel.repository.AuthorProfileRepository;
@@ -32,6 +35,7 @@ public class ChapterPublishService {
     private final BookRepository books;
     private final AuthorProfileRepository authorProfiles;
     private final AdminActionService adminActions;
+    private final NotificationService notifications;
 
     /** Author submits a chapter: professionals publish/schedule directly, hobbyists enter review (§9.5). */
     @Transactional
@@ -42,6 +46,13 @@ public class ChapterPublishService {
                 .orElseThrow(() -> new NotFoundException("book.not_found"));
         if (!principal.isAdmin() && !book.getAuthorId().equals(principal.getId())) {
             throw new ForbiddenException("content.not_author");
+        }
+
+        // A book must never carry an orphaned draft while another chapter is being published:
+        // the author revises by deleting the existing draft first (FR-3.x). Reject if any OTHER
+        // chapter of this book is still in draft.
+        if (chapters.existsByBookIdAndStatusAndIdNot(book.getId(), ChapterStatus.draft, chapter.getId())) {
+            throw new ConflictException(ErrorCode.existing_draft, "chapter.existing_draft");
         }
 
         boolean professional = authorProfiles.findByUserId(book.getAuthorId())
@@ -60,6 +71,11 @@ public class ChapterPublishService {
         } else {
             chapter.setStatus(ChapterStatus.pending_review); // FR-3.1
             chapter.setPublishedAt(scheduledFor); // tentative; finalized on approval
+            // The review queue is pull-only, so without this an admin has no signal that a
+            // hobbyist submitted anything — mirrors the other "needs review" fan-outs
+            // (report_filed, payment_submitted, withdrawal_requested).
+            notifications.notifyAdmins(NotificationType.chapter_submitted,
+                    "chapter", chapter.getId(), book.getTitle());
         }
         return ChapterService.toResponse(chapter);
     }
@@ -85,6 +101,7 @@ public class ChapterPublishService {
         chapter.setReviewedAt(OffsetDateTime.now());
         adminActions.log(SecurityUtils.currentUserId(), AdminActionType.content_approval,
                 "chapter", chapterId, null);
+        notifyBookAuthor(chapter, NotificationType.chapter_approved);
         return ChapterService.toResponse(chapter);
     }
 
@@ -98,7 +115,24 @@ public class ChapterPublishService {
         chapter.setReviewedAt(OffsetDateTime.now());
         adminActions.log(SecurityUtils.currentUserId(), AdminActionType.content_rejection,
                 "chapter", chapterId, reason);
+        // Unlike an approval, a rejection carries the admin's reason as the payload — consistent
+        // with every other *_rejected notification — so the author sees WHY without having to
+        // open the chapter editor.
+        Book book = books.findById(chapter.getBookId()).orElse(null);
+        if (book != null) {
+            notifications.notify(book.getAuthorId(), NotificationType.chapter_rejected,
+                    "chapter", chapter.getId(), reason);
+        }
         return ChapterService.toResponse(chapter);
+    }
+
+    /** Notifies the chapter's book author of an approval; {@code data} is the book title. */
+    private void notifyBookAuthor(Chapter chapter, NotificationType type) {
+        Book book = books.findById(chapter.getBookId()).orElse(null);
+        if (book == null) {
+            return;
+        }
+        notifications.notify(book.getAuthorId(), type, "chapter", chapter.getId(), book.getTitle());
     }
 
     private Chapter requirePendingReview(Long chapterId) {

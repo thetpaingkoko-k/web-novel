@@ -8,6 +8,7 @@ function post(id: number, parentId: number | null, up: number, down: number): De
     threadId: 1,
     authorId: id,
     authorUsername: `user${id}`,
+    authorAvatarUrl: null,
     parentPostId: parentId,
     content: `post ${id}`,
     upvoteCount: up,

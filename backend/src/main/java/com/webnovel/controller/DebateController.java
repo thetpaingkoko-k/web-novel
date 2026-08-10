@@ -60,7 +60,7 @@ public class DebateController {
         return debates.vote(SecurityUtils.requirePrincipal(), id, req);
     }
 
-    /** Lock/archive/reopen — authorized for an admin or the thread's creator, enforced in the service. */
+    /** Lock/reopen — authorized for an admin or the thread's creator, enforced in the service. */
     @PutMapping("/debates/{id}/lock")
     public ThreadResponse setStatus(@PathVariable Long id, @Valid @RequestBody LockRequest req) {
         return debates.setStatus(SecurityUtils.requirePrincipal(), id, req);

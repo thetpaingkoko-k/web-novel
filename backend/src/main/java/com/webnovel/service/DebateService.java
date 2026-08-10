@@ -1,5 +1,6 @@
 package com.webnovel.service;
 
+import com.webnovel.domain.entity.Book;
 import com.webnovel.domain.entity.DebatePost;
 import com.webnovel.domain.entity.DebateThread;
 import com.webnovel.domain.entity.DebateVote;
@@ -24,6 +25,7 @@ import com.webnovel.security.AppUserPrincipal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,14 +44,19 @@ public class DebateService {
     private final DebatePostRepository posts;
     private final DebateVoteRepository votes;
     private final BookRepository books;
+    private final AccessControlService accessControl;
 
     // --- threads ---
 
     @Transactional
     public ThreadResponse createThread(AppUserPrincipal reader, Long bookId, CreateThreadRequest req) {
-        if (!books.existsById(bookId)) {
-            throw new NotFoundException("book.not_found");
+        if (reader.isAdmin()) {
+            throw new ForbiddenException("debate.admin_cannot_participate"); // admins moderate, not discuss
         }
+        Book book = books.findById(bookId)
+                .orElseThrow(() -> new NotFoundException("book.not_found"));
+        assertCanDiscuss(reader, book); // premium books: subscribers/author/admin only (contract §1)
+        accessControl.assertHasReadEnoughToDiscuss(reader, book); // FR-9: must have read ≥10% first
         // Fast pre-check (the UNIQUE (book_id, creator_id) constraint is the DB backstop, FR-9.1).
         if (threads.existsByBookIdAndCreatorId(bookId, reader.getId())) {
             throw new ConflictException(ErrorCode.already_has_thread, "debate.already_has_thread");
@@ -69,8 +76,7 @@ public class DebateService {
         thread.setPostCount(0);
         thread.setCreatedAt(OffsetDateTime.now());
         threads.save(thread);
-        return new ThreadResponse(thread.getId(), bookId, reader.getId(), reader.getUsername(),
-                thread.getTitle(), thread.getStatus(), 0, thread.getCreatedAt());
+        return threads.findThreadView(thread.getId()).orElseThrow();
     }
 
     @Transactional(readOnly = true)
@@ -84,7 +90,7 @@ public class DebateService {
                 .orElseThrow(() -> new NotFoundException("debate.thread_not_found"));
     }
 
-    /** Lock/archive/reopen — admin or the thread's own creator (FR-9.6). */
+    /** Lock/reopen — admin or the thread's own creator (FR-9.6). */
     @Transactional
     public ThreadResponse setStatus(AppUserPrincipal principal, Long threadId, LockRequest req) {
         DebateThread thread = threads.findById(threadId)
@@ -100,8 +106,15 @@ public class DebateService {
 
     @Transactional
     public PostResponse addPost(AppUserPrincipal author, Long threadId, CreatePostRequest req) {
+        if (author.isAdmin()) {
+            throw new ForbiddenException("debate.admin_cannot_participate"); // admins moderate, not discuss
+        }
         DebateThread thread = threads.findById(threadId)
                 .orElseThrow(() -> new NotFoundException("debate.thread_not_found"));
+        Book book = books.findById(thread.getBookId())
+                .orElseThrow(() -> new NotFoundException("book.not_found"));
+        assertCanDiscuss(author, book); // same premium gate as createThread (contract §1)
+        accessControl.assertHasReadEnoughToDiscuss(author, book); // FR-9: must have read ≥10% first
         if (thread.getStatus() != ThreadStatus.open) {
             throw new ConflictException("debate.thread_not_open");
         }
@@ -117,9 +130,7 @@ public class DebateService {
         post.setCreatedAt(OffsetDateTime.now());
         posts.save(post);
         thread.setPostCount(thread.getPostCount() + 1);
-        return new PostResponse(post.getId(), threadId, author.getId(), author.getUsername(),
-                post.getParentPostId(), post.getContent(), 0, 0, post.getStatus(),
-                post.getCreatedAt(), null);
+        return posts.findPostView(post.getId(), author.getId()).orElseThrow();
     }
 
     @Transactional(readOnly = true)
@@ -130,12 +141,39 @@ public class DebateService {
         return posts.findPostsByThread(threadId, viewer.map(AppUserPrincipal::getId).orElse(null));
     }
 
-    // --- votes (FR-9.5: one vote per post per reader; switch allowed) ---
+    /**
+     * Premium-book discussion gate (contract §1): non-premium books are open to any reader;
+     * for a premium book the reader must be the book's own author, an admin, or hold an active
+     * subscription to the author. Otherwise 403 {@code no_subscription}, carrying the authorId
+     * so the frontend can route to the subscribe flow. Reads and votes are never gated.
+     */
+    private void assertCanDiscuss(AppUserPrincipal reader, Book book) {
+        if (!book.isPremium()) {
+            return;
+        }
+        if (reader.isAdmin() || book.getAuthorId().equals(reader.getId())) {
+            return;
+        }
+        if (!accessControl.hasActiveSubscription(reader.getId(), book.getAuthorId())) {
+            throw new ForbiddenException(ErrorCode.no_subscription, "debate.subscription_required",
+                    Map.of("authorId", book.getAuthorId()));
+        }
+    }
+
+    // --- votes (FR-9.5: one vote per post per reader; switch or toggle-off allowed) ---
 
     @Transactional
     public PostResponse vote(AppUserPrincipal reader, Long postId, VoteRequest req) {
-        if (!posts.existsById(postId)) {
-            throw new NotFoundException("debate.post_not_found");
+        if (reader.isAdmin()) {
+            throw new ForbiddenException("debate.admin_cannot_participate"); // admins moderate, not vote
+        }
+        DebatePost post = posts.findById(postId)
+                .orElseThrow(() -> new NotFoundException("debate.post_not_found"));
+        // A locked thread is frozen — no posting and no voting (FR-9.6).
+        DebateThread thread = threads.findById(post.getThreadId())
+                .orElseThrow(() -> new NotFoundException("debate.thread_not_found"));
+        if (thread.getStatus() != ThreadStatus.open) {
+            throw new ConflictException("debate.thread_not_open");
         }
         Optional<DebateVote> existing = votes.findByPostIdAndReaderId(postId, reader.getId());
         if (existing.isEmpty()) {
@@ -147,7 +185,12 @@ public class DebateService {
             applyDelta(postId, req.voteType(), 1);
         } else {
             DebateVote vote = existing.get();
-            if (vote.getVoteType() != req.voteType()) {
+            if (vote.getVoteType() == req.voteType()) {
+                // Re-voting the same direction clears the vote (toggle-off), so the up/down
+                // buttons behave like the toggles the UI presents them as (aria-pressed).
+                applyDelta(postId, vote.getVoteType(), -1);
+                votes.delete(vote);
+            } else {
                 applyDelta(postId, vote.getVoteType(), -1); // remove old direction
                 applyDelta(postId, req.voteType(), 1);      // add new direction
                 vote.setVoteType(req.voteType());

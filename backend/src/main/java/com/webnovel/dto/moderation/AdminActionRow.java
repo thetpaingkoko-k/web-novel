@@ -11,6 +11,20 @@ public record AdminActionRow(
         AdminActionType actionType,
         String targetType,
         Long targetId,
+        String targetLabel,
         String notes,
         OffsetDateTime createdAt) {
+
+    /** Projection constructor used by the repository JPQL; the label is resolved afterwards. */
+    public AdminActionRow(Long adminActionId, Long adminId, String adminUsername,
+                          AdminActionType actionType, String targetType, Long targetId,
+                          String notes, OffsetDateTime createdAt) {
+        this(adminActionId, adminId, adminUsername, actionType, targetType, targetId,
+                null, notes, createdAt);
+    }
+
+    public AdminActionRow withTargetLabel(String label) {
+        return new AdminActionRow(adminActionId, adminId, adminUsername, actionType,
+                targetType, targetId, label, notes, createdAt);
+    }
 }

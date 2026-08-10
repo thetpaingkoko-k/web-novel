@@ -3,18 +3,20 @@ import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router"
 import { BookCard } from "@/components/book-card"
 import { BookCardSkeleton } from "@/components/book-card-skeleton"
+import { UserAvatar } from "@/components/user-avatar"
 import { EmptyState } from "@/components/empty-state"
 import { QueryError } from "@/components/query-error"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { BadgeCheck } from "lucide-react"
 import { useAuth } from "@/features/auth/auth-context"
 import { useBooks } from "@/features/books/api"
 import { useAuthorFeed } from "@/features/feed/api"
 import { FeedPostCard } from "@/features/feed/components/feed-post-card"
 import { ReportDialog } from "@/features/moderation/report-dialog"
+import { useSubscriptionTo } from "@/features/subscriptions/api"
 import { useAuthorProfile } from "./api"
+import { AuthorBadge } from "./author-badge"
 
 export function AuthorProfilePage() {
   const { t } = useTranslation()
@@ -22,9 +24,15 @@ export function AuthorProfilePage() {
   const authorId = Number(authorIdParam)
 
   const { user, isAuthenticated } = useAuth()
+  // Readers and authors can subscribe to other authors; admins can't, and no one
+  // subscribes to themselves. The CTA still shows to guests (signup/login funnel).
+  const isAdmin = user?.role === "admin"
+  const isSelf = user?.userId === authorId
+  const canSubscribeRole = !isAdmin && !isSelf
   const { data: author, isLoading, isError, refetch } = useAuthorProfile(authorId)
   const books = useBooks({ authorId })
   const feed = useAuthorFeed(authorId)
+  const { subscription } = useSubscriptionTo(authorId, isAuthenticated && canSubscribeRole)
 
   if (isError) {
     return <QueryError message={t("authors.notFound")} onRetry={() => refetch()} />
@@ -39,55 +47,85 @@ export function AuthorProfilePage() {
     )
   }
 
-  const canSubscribe = author.isMonetizationEnabled && author.monthlySubscriptionPrice != null
+  const canSubscribe =
+    (!isAuthenticated || canSubscribeRole) &&
+    author.isMonetizationEnabled &&
+    author.monthlySubscriptionPrice != null
+  const booksCount = books.data?.length ?? 0
+  const postsCount = feed.data?.length ?? 0
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-2xl">{author.username}</CardTitle>
-              <Badge variant="secondary" className="w-fit">
-                {t("authors.careerStage." + author.careerStage)}
-              </Badge>
+      {/* Author hero over a quiet paper wash. */}
+      <section className="bg-mesh relative isolate overflow-hidden rounded-2xl border border-border/70 p-6 sm:p-8">
+        <div className="pointer-events-none absolute -top-20 -right-16 -z-10 size-56 rounded-full bg-primary/10 blur-3xl" />
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <UserAvatar
+              name={author.username}
+              src={author.avatarUrl}
+              className="glow-brand font-display size-20 rounded-2xl text-3xl"
+            />
+            <div className="flex flex-col gap-1.5">
+              <h1 className="font-display text-3xl font-semibold tracking-tight">{author.username}</h1>
+              <AuthorBadge careerStage={author.careerStage} className="w-fit" />
+              <Link
+                to={`/authors/${authorId}/feed`}
+                className="text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+              >
+                {t("authors.viewAllPosts")}
+              </Link>
             </div>
-            <div className="flex flex-col items-end gap-2">
-              {canSubscribe && (
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            {canSubscribe &&
+              (subscription ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-sm font-medium text-success">
+                  <BadgeCheck className="size-4" aria-hidden="true" />
+                  {subscription.status === "pending_payment"
+                    ? t("subscribe.status.pending_payment")
+                    : t("subscribe.subscribedBadge")}
+                </span>
+              ) : (
                 <>
                   <span className="text-sm text-muted-foreground">
                     {t("subscribe.priceLabel", { price: author.monthlySubscriptionPrice })}
                   </span>
-                  <Button asChild size="sm">
+                  <Button asChild size="sm" className="glow-brand">
                     <Link to={`/authors/${authorId}/subscribe`}>
                       {t("authors.subscribeAction")}
                     </Link>
                   </Button>
                 </>
-              )}
-              {isAuthenticated && user?.userId !== authorId && (
-                <ReportDialog
-                  targetType="user"
-                  targetId={authorId}
-                  trigger={
-                    <Button variant="ghost" size="xs" className="text-muted-foreground">
-                      {t("moderation.report")}
-                    </Button>
-                  }
-                />
-              )}
-            </div>
+              ))}
+            {isAuthenticated && user?.userId !== authorId && (
+              <ReportDialog
+                targetType="user"
+                targetId={authorId}
+                trigger={
+                  <Button variant="ghost" size="xs" className="text-muted-foreground">
+                    {t("moderation.report")}
+                  </Button>
+                }
+              />
+            )}
           </div>
-        </CardHeader>
+        </div>
+
+        {/* Stat row. */}
+        <div className="mt-6 grid grid-cols-3 divide-x divide-border overflow-hidden rounded-xl border border-border">
+          <ProfileStat value={booksCount} label={t("authors.books")} />
+          <ProfileStat value={postsCount} label={t("authors.postsLabel")} />
+          <ProfileStat value={author.subscriberCount} label={t("authors.subscribersLabel")} />
+        </div>
+
         {author.bio && (
-          <CardContent>
-            <p className="text-sm whitespace-pre-wrap text-muted-foreground">{author.bio}</p>
-          </CardContent>
+          <p className="mt-6 text-sm whitespace-pre-wrap text-muted-foreground">{author.bio}</p>
         )}
-      </Card>
+      </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">{t("authors.books")}</h2>
+        <h2 className="font-display text-xl font-semibold">{t("authors.books")}</h2>
         {books.isError ? (
           <QueryError onRetry={() => books.refetch()} />
         ) : books.isLoading ? (
@@ -109,7 +147,7 @@ export function AuthorProfilePage() {
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium">{t("authors.feed")}</h2>
+          <h2 className="font-display text-xl font-semibold">{t("authors.feed")}</h2>
           <Link
             to={`/authors/${authorId}/feed`}
             className="text-sm text-muted-foreground underline underline-offset-4"
@@ -135,6 +173,17 @@ export function AuthorProfilePage() {
           <EmptyState icon={Megaphone} message={t("authors.noPostsYet")} />
         )}
       </section>
+    </div>
+  )
+}
+
+function ProfileStat({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-0.5 bg-card px-4 py-4 text-center">
+      <span className="font-display text-2xl font-semibold tabular-nums">
+        {value.toLocaleString()}
+      </span>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
     </div>
   )
 }

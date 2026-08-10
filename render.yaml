@@ -1,0 +1,36 @@
+# Render Blueprint for the WebNovel backend (Spring Boot).
+# In Render: New > Blueprint > pick this repo. Secrets marked `sync: false` are
+# entered once in the dashboard (they are NOT stored in git). See DEPLOYMENT.md.
+services:
+  - type: web
+    name: webnovel-backend
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      # --- Supabase Postgres (Session pooler, IPv4 — see DEPLOYMENT.md) ---
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # --- Auth ---
+      - key: APP_JWT_SECRET
+        generateValue: true       # Render generates a strong value on first deploy
+      # --- CORS: your Vercel URL(s), comma-separated, no trailing slash ---
+      - key: APP_CORS_ORIGINS
+        sync: false
+      # --- Image storage: Supabase Storage ---
+      - key: APP_STORAGE_TYPE
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: uploads
+      - key: SUPABASE_SERVICE_KEY
+        sync: false

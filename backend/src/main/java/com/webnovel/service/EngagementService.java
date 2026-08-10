@@ -5,6 +5,7 @@ import com.webnovel.domain.entity.Chapter;
 import com.webnovel.domain.entity.ChapterComment;
 import com.webnovel.domain.entity.ChapterLike;
 import com.webnovel.domain.entity.ReadingProgress;
+import com.webnovel.domain.enums.AdminActionType;
 import com.webnovel.domain.enums.CommentStatus;
 import com.webnovel.dto.engagement.CommentRequest;
 import com.webnovel.dto.engagement.CommentResponse;
@@ -12,11 +13,13 @@ import com.webnovel.dto.engagement.LikeResponse;
 import com.webnovel.dto.engagement.ProgressResponse;
 import com.webnovel.dto.engagement.ProgressUpdateRequest;
 import com.webnovel.exception.BadRequestException;
+import com.webnovel.exception.ForbiddenException;
 import com.webnovel.exception.NotFoundException;
 import com.webnovel.repository.BookRepository;
 import com.webnovel.repository.ChapterCommentRepository;
 import com.webnovel.repository.ChapterLikeRepository;
 import com.webnovel.repository.ChapterRepository;
+import com.webnovel.repository.ChapterViewRepository;
 import com.webnovel.repository.ReadingProgressRepository;
 import com.webnovel.security.AppUserPrincipal;
 import java.time.OffsetDateTime;
@@ -34,8 +37,10 @@ public class EngagementService {
     private final ChapterRepository chapters;
     private final ChapterLikeRepository likes;
     private final ChapterCommentRepository comments;
+    private final ChapterViewRepository views;
     private final ReadingProgressRepository progress;
     private final BookRepository books;
+    private final AdminActionService adminActions;
 
     // --- likes (FR-8.1, once each; like_count denormalized) ---
 
@@ -69,6 +74,11 @@ public class EngagementService {
     @Transactional
     public CommentResponse addComment(AppUserPrincipal reader, Long chapterId, CommentRequest req) {
         requireChapter(chapterId);
+        // FR-8.2: you may only discuss a chapter you have actually read. Subscription is not
+        // required — only a recorded view of this chapter. Admins and the book's author bypass.
+        if (!reader.isAdmin() && !views.existsByChapterIdAndReaderId(chapterId, reader.getId())) {
+            throw new ForbiddenException("comment.must_read_first");
+        }
         if (req.parentCommentId() != null
                 && !comments.existsByIdAndChapterId(req.parentCommentId(), chapterId)) {
             throw new NotFoundException("comment.parent_not_found");
@@ -82,15 +92,17 @@ public class EngagementService {
         comment.setStatus(CommentStatus.visible);
         comment.setCreatedAt(OffsetDateTime.now());
         comments.save(comment);
-        return new CommentResponse(comment.getId(), chapterId, comment.getParentCommentId(),
-                reader.getId(), reader.getUsername(), comment.getContent(),
-                comment.isSpoilerFlagged(), comment.getStatus(), comment.getCreatedAt());
+        // Re-read via the join-backed view so the response carries the author's avatar,
+        // consistent with the thread read model.
+        return comments.findCommentView(comment.getId())
+                .orElseThrow(() -> new NotFoundException("comment.not_found"));
     }
 
     /**
      * Spoiler-safe listing (FR-8.3): a chapter's comments are shown only to a reader
      * whose reading progress in that book has reached this chapter — enforced here, never
-     * on the client (§4.1.1). The book's author and admins bypass the gate.
+     * on the client (§4.1.1). The book's author and admins bypass the gate. A subscription
+     * does NOT bypass it: even a subscriber must have read this far to avoid spoilers.
      */
     @Transactional(readOnly = true)
     public List<CommentResponse> listComments(Long chapterId, Optional<AppUserPrincipal> viewer) {
@@ -105,8 +117,45 @@ public class EngagementService {
             if (lastRead == null || lastRead < chapter.getChapterNumber()) {
                 return List.of();
             }
+            return comments.findThreadByChapter(chapterId);
         }
-        return comments.findVisibleByChapter(chapterId);
+        // Admins and the book's author also see moderator-hidden comments (FR-13.6).
+        return comments.findThreadByChapterIncludingHidden(chapterId);
+    }
+
+    /**
+     * Hard-deletes the caller's own comment: the row is removed entirely and never
+     * appears in the thread again (no "[deleted]" tombstone). Any replies cascade away
+     * with it (the {@code parent_comment_id} FK is {@code ON DELETE CASCADE}). 403 if the
+     * caller is not the comment's author, 404 if it does not exist.
+     */
+    @Transactional
+    public void deleteComment(AppUserPrincipal reader, Long commentId) {
+        ChapterComment comment = comments.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("comment.not_found"));
+        if (!comment.getReaderId().equals(reader.getId())) {
+            throw new ForbiddenException("comment.not_author");
+        }
+        comments.delete(comment);
+    }
+
+    /**
+     * Admin moderation: hides ({@link CommentStatus#hidden}) or restores
+     * ({@link CommentStatus#visible}) a comment and writes an audit entry (§7.3, FR-13.6).
+     * Hidden comments are dropped from the non-privileged reader thread listing, but
+     * remain visible to admins and the book's author (FR-13.6).
+     * 404 if the comment does not exist.
+     */
+    @Transactional
+    public CommentResponse setCommentHidden(Long adminId, Long commentId, boolean hidden) {
+        ChapterComment comment = comments.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("comment.not_found"));
+        comment.setStatus(hidden ? CommentStatus.hidden : CommentStatus.visible);
+        comments.save(comment);
+        adminActions.log(adminId,
+                hidden ? AdminActionType.content_removal : AdminActionType.content_approval,
+                "chapter_comment", commentId, hidden ? "Comment hidden" : "Comment unhidden");
+        return comments.findCommentView(commentId).orElseThrow();
     }
 
     // --- reading progress (FR-10) ---

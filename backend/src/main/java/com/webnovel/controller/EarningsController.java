@@ -12,12 +12,19 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-/** Author earnings, balance, and withdrawals (PROJECT SPEC.md §10.7). */
+/**
+ * Author earnings, balance, and withdrawals (PROJECT SPEC.md §10.7). Earnings exist
+ * only for monetized professional authors (§5), so hobbyists are barred at the API
+ * layer; admins retain access per §10.7 ("Author/Admin"). Per-row self/owner checks
+ * still run in the service.
+ */
 @RestController
 @RequestMapping("/api/v1/authors")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('PROFESSIONAL_AUTHOR','ADMIN')")
 @Tag(name = "Earnings")
 public class EarningsController {
 

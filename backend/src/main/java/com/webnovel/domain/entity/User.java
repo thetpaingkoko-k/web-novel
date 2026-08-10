@@ -1,8 +1,11 @@
 package com.webnovel.domain.entity;
 
+import com.webnovel.domain.enums.AuthProvider;
+import com.webnovel.domain.enums.Gender;
 import com.webnovel.domain.enums.Role;
 import com.webnovel.domain.enums.UserStatus;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,8 +28,13 @@ public class User {
     @Column(nullable = false, unique = true, length = 255)
     private String email;
 
-    @Column(name = "password_hash", nullable = false, length = 255)
+    /** Null for Google accounts (they never set a password); required for LOCAL accounts. */
+    @Column(name = "password_hash", length = 255)
     private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false, length = 20)
+    private AuthProvider authProvider = AuthProvider.LOCAL;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -35,6 +43,25 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private UserStatus status;
+
+    /** Profile picture path/url returned by POST /uploads/images (nullable). */
+    @Column(name = "avatar_url", length = 512)
+    private String avatarUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Gender gender;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    /** When the user confirmed the terms & conditions at registration (nullable for pre-existing rows). */
+    @Column(name = "terms_accepted_at")
+    private OffsetDateTime termsAcceptedAt;
+
+    /** Admin-supplied reason captured on suspend/ban; shown on a blocked login and cleared on reactivate (FR-1.4). */
+    @Column(name = "suspension_reason", length = 500)
+    private String suspensionReason;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;

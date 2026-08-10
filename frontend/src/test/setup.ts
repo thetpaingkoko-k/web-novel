@@ -17,6 +17,9 @@ if (!window.matchMedia) {
   })
 }
 
+// jsdom doesn't implement scrollTo; pagination calls it on page change.
+window.scrollTo = () => {}
+
 // jsdom doesn't implement ResizeObserver; Radix Switch/Select/etc. measure size with it.
 if (!window.ResizeObserver) {
   window.ResizeObserver = class ResizeObserver {
@@ -24,6 +27,21 @@ if (!window.ResizeObserver) {
     unobserve() {}
     disconnect() {}
   }
+}
+
+// jsdom lacks these Element methods that Radix Select relies on to open its
+// popover and keep the active option in view.
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false
+}
+if (!Element.prototype.setPointerCapture) {
+  Element.prototype.setPointerCapture = () => {}
+}
+if (!Element.prototype.releasePointerCapture) {
+  Element.prototype.releasePointerCapture = () => {}
+}
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {}
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }))

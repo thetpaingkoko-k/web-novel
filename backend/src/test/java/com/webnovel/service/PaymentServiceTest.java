@@ -3,6 +3,8 @@ package com.webnovel.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,6 +14,7 @@ import com.webnovel.domain.entity.AuthorEarning;
 import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.PaymentSubmission;
 import com.webnovel.domain.entity.Subscription;
+import com.webnovel.domain.enums.AdminActionType;
 import com.webnovel.domain.enums.PaymentStatus;
 import com.webnovel.domain.enums.SubscriptionStatus;
 import com.webnovel.exception.ConflictException;
@@ -38,15 +41,23 @@ class PaymentServiceTest {
     @Mock AdminWalletRepository wallets;
     @Mock AuthorProfileRepository authorProfiles;
     @Mock AuthorEarningRepository earnings;
+    @Mock AdminActionService adminActions;
+    @Mock NotificationService notifications;
+    @Mock com.webnovel.repository.UserRepository users;
 
     private final AppProperties props = new AppProperties(
             new AppProperties.Jwt("unit-test-secret-value-at-least-32-bytes!!",
                     java.time.Duration.ofMinutes(15), java.time.Duration.ofDays(30)),
-            new BigDecimal("20"), new BigDecimal("5000"), 30,
-            new AppProperties.Cors(List.of("http://localhost:5173")));
+            new BigDecimal("20"), new BigDecimal("5000"), new BigDecimal("5000"), 30, 3,
+            new AppProperties.Cors(List.of("http://localhost:5173")),
+            new AppProperties.Uploads("images"),
+            new AppProperties.Google(""),
+            new AppProperties.Mail("noreply@test", "", false,
+                    java.time.Duration.ofMinutes(10), java.time.Duration.ofSeconds(60)));
 
     private PaymentService service() {
-        return new PaymentService(submissions, subscriptions, wallets, authorProfiles, earnings, props);
+        return new PaymentService(submissions, subscriptions, wallets, authorProfiles, earnings,
+                adminActions, notifications, users, props);
     }
 
     @Test
@@ -91,6 +102,10 @@ class PaymentServiceTest {
         assertThat(author.getAvailableBalance()).isEqualByComparingTo("9000");
         assertThat(author.getTotalEarned()).isEqualByComparingTo("9000");
         assertThat(sub.getStatus()).isEqualTo(PaymentStatus.approved);
+
+        // §7.3: the approval is audited
+        verify(adminActions).log(eq(99L), eq(AdminActionType.payment_approval),
+                eq("payment_submission"), eq(1L), isNull());
     }
 
     @Test
@@ -103,6 +118,52 @@ class PaymentServiceTest {
 
         assertThatThrownBy(() -> service().approve(99L, 1L)).isInstanceOf(ConflictException.class);
         verify(earnings, never()).save(any());
+    }
+
+    @Test
+    void reject_releasesPendingSubscription_soReaderCanReSubmit() {
+        PaymentSubmission sub = new PaymentSubmission();
+        sub.setId(1L);
+        sub.setSubscriptionId(9L);
+        sub.setStatus(PaymentStatus.pending);
+
+        Subscription subscription = new Subscription();
+        subscription.setId(9L);
+        subscription.setStatus(SubscriptionStatus.pending_payment);
+
+        when(submissions.findById(1L)).thenReturn(Optional.of(sub));
+        when(subscriptions.findById(9L)).thenReturn(Optional.of(subscription));
+
+        service().reject(99L, 1L, "blurry screenshot");
+
+        assertThat(sub.getStatus()).isEqualTo(PaymentStatus.rejected);
+        // the subscription is released from pending so it no longer shows as "pending" and
+        // the reader can start a new payment (§8.3)
+        assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.rejected);
+        verify(adminActions).log(eq(99L), eq(AdminActionType.payment_rejection),
+                eq("payment_submission"), eq(1L), eq("blurry screenshot"));
+    }
+
+    @Test
+    void reject_leavesActiveSubscriptionUntouched() {
+        // A duplicate/late submission is rejected while an earlier one already activated the
+        // subscription — rejecting must never revoke the reader's active access.
+        PaymentSubmission sub = new PaymentSubmission();
+        sub.setId(2L);
+        sub.setSubscriptionId(9L);
+        sub.setStatus(PaymentStatus.flagged_duplicate);
+
+        Subscription subscription = new Subscription();
+        subscription.setId(9L);
+        subscription.setStatus(SubscriptionStatus.active);
+
+        when(submissions.findById(2L)).thenReturn(Optional.of(sub));
+        when(subscriptions.findById(9L)).thenReturn(Optional.of(subscription));
+
+        service().reject(99L, 2L, "duplicate");
+
+        assertThat(sub.getStatus()).isEqualTo(PaymentStatus.rejected);
+        assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.active);
     }
 
     @Test
@@ -120,9 +181,11 @@ class PaymentServiceTest {
         ArgumentCaptor<PaymentSubmission> captor = ArgumentCaptor.forClass(PaymentSubmission.class);
         when(submissions.save(captor.capture())).thenAnswer(i -> i.getArgument(0));
 
+        // no amount is sent: the price is the fixed author baseline (10000 here), set server-side
         service().submit(7L, 50L, new com.webnovel.dto.payment.PaymentSubmissionRequest(
-                3L, new BigDecimal("10000"), "http://x/y.png", "123456"));
+                3L, "http://x/y.png", "123456"));
 
         assertThat(captor.getValue().getStatus()).isEqualTo(PaymentStatus.flagged_duplicate);
+        assertThat(captor.getValue().getAmount()).isEqualByComparingTo("10000");
     }
 }

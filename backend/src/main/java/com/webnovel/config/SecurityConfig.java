@@ -40,13 +40,17 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Uploaded images are served publicly; POST /api/v1/uploads/** stays authenticated
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         // Public reads (access control for premium content is enforced in the service layer)
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/books/**",
                                 "/api/v1/authors/**",
+                                "/api/v1/categories",
                                 "/api/v1/chapters/**").permitAll()
                         // View recording is anonymous-capable (FR-5.1: reader_id nullable)
                         .requestMatchers(HttpMethod.POST, "/api/v1/chapters/*/view").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/books/*/view").permitAll()
                         // Debate reads are public (§10.5): thread lists, a thread, and its posts
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/books/*/debates",
@@ -74,6 +78,7 @@ public class SecurityConfig {
         cors.setAllowedOrigins(props.cors().allowedOrigins());
         cors.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         cors.setAllowedHeaders(List.of("*"));
+        cors.setExposedHeaders(List.of("X-Total-Count")); // so the browser can read the pagination total
         cors.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cors);

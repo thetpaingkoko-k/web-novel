@@ -4,6 +4,9 @@
 app:
   jwt:
     secret: test-only-secret-value-at-least-32-bytes-long!!
+  mail:
+    # Tests must NEVER hit real SMTP — codes are captured via a mocked EmailService.
+    enabled: false
 logging:
   level:
     org.springframework.security: WARN

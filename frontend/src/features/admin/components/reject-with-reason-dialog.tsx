@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { Ban } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -20,6 +22,15 @@ interface RejectWithReasonDialogProps {
   onReject: (reason: string) => void
   pending?: boolean
   triggerLabel?: string
+  /** Sub-title hint under the title. Defaults to the reject-flavored hint. */
+  description?: string
+  /** Confirm-button label. Defaults to "Reject" — override for suspend/ban etc. */
+  confirmLabel?: string
+  /** Controlled open state — pass with `onOpenChange` to drive from a row menu. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /** Hide the built-in trigger button (for controlled use). */
+  hideTrigger?: boolean
 }
 
 export function RejectWithReasonDialog({
@@ -27,9 +38,20 @@ export function RejectWithReasonDialog({
   onReject,
   pending,
   triggerLabel,
+  description,
+  confirmLabel,
+  open: openProp,
+  onOpenChange,
+  hideTrigger,
 }: RejectWithReasonDialogProps) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = openProp !== undefined
+  const open = isControlled ? openProp : internalOpen
+  const setOpen = (next: boolean) => {
+    if (isControlled) onOpenChange?.(next)
+    else setInternalOpen(next)
+  }
 
   const schema = useMemo(
     () => z.object({ reason: z.string().min(1, t("validation.required")) }),
@@ -52,14 +74,24 @@ export function RejectWithReasonDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="destructive" size="sm">
-          {triggerLabel ?? t("admin.reject")}
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="destructive" size="sm">
+            {triggerLabel ?? t("admin.reject")}
+          </Button>
+        </DialogTrigger>
+      )}
+      <DialogContent className="rounded-2xl">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <div className="flex items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+              <Ban className="size-5" aria-hidden />
+            </span>
+            <div className="space-y-1">
+              <DialogTitle>{title}</DialogTitle>
+              <DialogDescription>{description ?? t("admin.rejectDialogHint")}</DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
           <Field data-invalid={!!errors.reason}>
@@ -74,7 +106,7 @@ export function RejectWithReasonDialog({
           </Field>
           <DialogFooter>
             <Button type="submit" variant="destructive" disabled={pending}>
-              {t("admin.confirmReject")}
+              {confirmLabel ?? t("admin.confirmReject")}
             </Button>
           </DialogFooter>
         </form>

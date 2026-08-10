@@ -2,12 +2,15 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource-variable/lora";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-heading: var(--font-display);
+    --font-display: 'Lora Variable', Georgia, 'Times New Roman', serif;
+    --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-reading: 'Lora Variable', Georgia, 'Times New Roman', serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,6 +42,11 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
+    --color-brand: var(--brand);
+    --color-brand-foreground: var(--brand-foreground);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-info: var(--info);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -48,73 +56,100 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * EDITORIAL PAPER-INK identity — calm, literary, flagship-minimal.
+ * Background is a warm off-white "paper"; text is a soft warm-black "ink".
+ * The single brand accent is a deep indigo, used sparingly for actions, links
+ * and active states — everything else stays neutral. Headings are serif (Lora)
+ * for an editorial voice; UI/body is a clean sans (Geist). Dark mode is a warm
+ * near-black charcoal (never violet), where indigo reads a touch brighter.
+ * Semantic action colors (success/warning/info/destructive) remain for the
+ * admin console and status states.
+ */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    /* Warm "paper" light theme — a soft cream page with brighter cards so
+       content lifts off the background and the eye has somewhere to rest,
+       instead of a flat, glaring near-white. */
+    --background: oklch(0.955 0.016 79);
+    --foreground: oklch(0.25 0.013 58);
+    --card: oklch(0.988 0.008 82);
+    --card-foreground: oklch(0.25 0.013 58);
+    --popover: oklch(0.988 0.008 82);
+    --popover-foreground: oklch(0.25 0.013 58);
+    --primary: oklch(0.505 0.185 272);
+    --primary-foreground: oklch(0.985 0.01 272);
+    --secondary: oklch(0.928 0.018 78);
+    --secondary-foreground: oklch(0.32 0.03 272);
+    --muted: oklch(0.925 0.018 78);
+    --muted-foreground: oklch(0.5 0.022 64);
+    --accent: oklch(0.945 0.022 274);
+    --accent-foreground: oklch(0.42 0.14 273);
+    --destructive: oklch(0.555 0.2 25);
+    --success: oklch(0.6 0.13 152);
+    --warning: oklch(0.72 0.14 72);
+    --info: oklch(0.56 0.13 250);
+    --border: oklch(0.885 0.016 76);
+    --input: oklch(0.885 0.016 76);
+    --ring: oklch(0.505 0.185 272);
+    --brand: oklch(0.505 0.185 272);
+    --brand-foreground: oklch(0.985 0.01 272);
+    --brand-from: oklch(0.52 0.19 274);
+    --brand-to: oklch(0.45 0.16 264);
+    --chart-1: oklch(0.505 0.185 272);
+    --chart-2: oklch(0.58 0.14 250);
+    --chart-3: oklch(0.62 0.11 210);
+    --chart-4: oklch(0.68 0.13 72);
+    --chart-5: oklch(0.6 0.13 152);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar: oklch(0.938 0.018 80);
+    --sidebar-foreground: oklch(0.25 0.013 58);
+    --sidebar-primary: oklch(0.505 0.185 272);
+    --sidebar-primary-foreground: oklch(0.985 0.01 272);
+    --sidebar-accent: oklch(0.945 0.022 274);
+    --sidebar-accent-foreground: oklch(0.42 0.14 273);
+    --sidebar-border: oklch(0.883 0.016 76);
+    --sidebar-ring: oklch(0.505 0.185 272);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --background: oklch(0.19 0.006 75);
+    --foreground: oklch(0.94 0.005 82);
+    --card: oklch(0.225 0.007 75);
+    --card-foreground: oklch(0.94 0.005 82);
+    --popover: oklch(0.225 0.007 75);
+    --popover-foreground: oklch(0.94 0.005 82);
+    --primary: oklch(0.66 0.155 274);
+    --primary-foreground: oklch(0.17 0.02 274);
+    --secondary: oklch(0.275 0.008 75);
+    --secondary-foreground: oklch(0.93 0.008 82);
+    --muted: oklch(0.265 0.008 75);
+    --muted-foreground: oklch(0.7 0.011 80);
+    --accent: oklch(0.31 0.045 274);
+    --accent-foreground: oklch(0.86 0.06 276);
+    --destructive: oklch(0.66 0.19 25);
+    --success: oklch(0.7 0.15 154);
+    --warning: oklch(0.78 0.15 74);
+    --info: oklch(0.66 0.14 250);
+    --border: oklch(0.97 0.01 82 / 10%);
+    --input: oklch(0.97 0.01 82 / 14%);
+    --ring: oklch(0.66 0.155 274);
+    --brand: oklch(0.66 0.155 274);
+    --brand-foreground: oklch(0.17 0.02 274);
+    --brand-from: oklch(0.66 0.16 276);
+    --brand-to: oklch(0.58 0.15 262);
+    --chart-1: oklch(0.66 0.155 274);
+    --chart-2: oklch(0.66 0.14 250);
+    --chart-3: oklch(0.7 0.11 210);
+    --chart-4: oklch(0.76 0.13 74);
+    --chart-5: oklch(0.7 0.15 154);
+    --sidebar: oklch(0.225 0.007 75);
+    --sidebar-foreground: oklch(0.94 0.005 82);
+    --sidebar-primary: oklch(0.66 0.155 274);
+    --sidebar-primary-foreground: oklch(0.17 0.02 274);
+    --sidebar-accent: oklch(0.31 0.045 274);
+    --sidebar-accent-foreground: oklch(0.86 0.06 276);
+    --sidebar-border: oklch(0.97 0.01 82 / 10%);
+    --sidebar-ring: oklch(0.66 0.155 274);
 }
 
 @layer base {
@@ -123,8 +158,121 @@
     }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
     }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
     }
+  /* Serif headings inherit an editorial optical polish. */
+  h1, h2, h3, h4 {
+    font-optical-sizing: auto;
+    }
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 22%, transparent);
+    }
+  /* Slim, quiet scrollbars. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--foreground) 20%, transparent) transparent;
+    }
+}
+
+@layer utilities {
+  /* Display type — editorial serif, softly tightened, for headings & hero. */
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.011em;
+  }
+
+  /* Brand wash (deep indigo) — restrained, for the mark, avatars, active chips.
+     Kept in the blue/indigo family only; no neon, no fuchsia. */
+  .brand-gradient {
+    background-image: linear-gradient(135deg, var(--brand-from), var(--brand-to));
+  }
+  .brand-gradient-animated {
+    background-image: linear-gradient(120deg, var(--brand-from), var(--brand-to), var(--brand-from));
+    background-size: 200% 200%;
+    animation: brand-pan 9s ease infinite;
+  }
+  /* Subtle indigo gradient text — for a single hero accent word. */
+  .text-gradient {
+    background-image: linear-gradient(120deg, var(--brand-from), var(--brand-to));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Frosted paper surface — theme-aware via color-mix on --card. Used for
+     sticky bars and overlays; soft, not glassy-flashy. */
+  .glass {
+    background-color: color-mix(in oklch, var(--card) 78%, transparent);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);
+  }
+
+  /* Quiet elevation — a hairline ring plus a soft, tight shadow. Replaces the
+     old neon halo with restrained editorial depth. */
+  .glow-brand {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--border) 90%, transparent),
+      0 12px 32px -22px color-mix(in oklch, var(--foreground) 55%, transparent);
+  }
+  .glow-brand-hover {
+    transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+  }
+  .glow-brand-hover:hover {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--brand) 22%, transparent),
+      0 16px 40px -24px color-mix(in oklch, var(--foreground) 55%, transparent);
+  }
+
+  /* Ambient paper wash — a whisper of warm light and indigo behind heroes.
+     Far quieter than a mesh; it should read as fine paper, not a gradient. */
+  .bg-mesh {
+    background-color: var(--background);
+    background-image:
+      radial-gradient(at 12% -5%, color-mix(in oklch, var(--brand) 9%, transparent) 0px, transparent 55%),
+      radial-gradient(at 92% 4%, color-mix(in oklch, var(--brand) 5%, transparent) 0px, transparent 48%);
+  }
+
+  /* Subtle hover lift for cards/tiles. */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Immersive long-form reading: serif face, generous rhythm. */
+  .reading-prose {
+    font-family: var(--font-reading);
+    font-size: 1.1875rem;
+    line-height: 1.85;
+    letter-spacing: 0.003em;
+    text-wrap: pretty;
+    overflow-wrap: break-word;
+  }
+  .reading-prose p + p {
+    margin-top: 1.4em;
+  }
+
+  /* Copy deterrent for the reading surface only. This is a soft deterrent, NOT
+     DRM — the text still ships to the browser and a determined reader can
+     extract it. It just discourages casual copy/paste scraping of chapter text.
+     Selection stays enabled everywhere else (title, nav, comments). */
+  .reading-guard {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+  }
+}
+
+@keyframes brand-pan {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }

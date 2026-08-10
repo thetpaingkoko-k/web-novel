@@ -3,7 +3,10 @@ package com.webnovel.controller;
 import com.webnovel.domain.enums.UserStatus;
 import com.webnovel.dto.admin.AdminUserRow;
 import com.webnovel.dto.admin.ApproveRequest;
+import com.webnovel.dto.admin.SetSubscriptionPriceRequest;
 import com.webnovel.dto.admin.SuspendRequest;
+import com.webnovel.dto.author.SubscriptionPriceResponse;
+import com.webnovel.dto.content.RejectRequest;
 import com.webnovel.dto.user.UserResponse;
 import com.webnovel.service.AdminUserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,13 +39,26 @@ public class AdminUserController {
         return adminUserService.approve(id, req);
     }
 
+    /** Decline a pending author application, returning the applicant to a regular reader (§4.1.1). */
+    @PutMapping("/{id}/reject")
+    public UserResponse rejectApplication(@PathVariable Long id, @Valid @RequestBody RejectRequest req) {
+        return adminUserService.rejectApplication(id, req.reason());
+    }
+
     @PutMapping("/{id}/suspend")
     public UserResponse suspend(@PathVariable Long id, @Valid @RequestBody SuspendRequest req) {
-        return adminUserService.suspend(id, req.ban());
+        return adminUserService.suspend(id, req.ban(), req.reason());
     }
 
     @PutMapping("/{id}/reactivate")
     public UserResponse reactivate(@PathVariable Long id) {
         return adminUserService.reactivate(id);
+    }
+
+    /** Adjust a monetized author's monthly subscription price (FR-1.5). */
+    @PutMapping("/{id}/subscription-price")
+    public SubscriptionPriceResponse setSubscriptionPrice(
+            @PathVariable Long id, @Valid @RequestBody SetSubscriptionPriceRequest req) {
+        return adminUserService.setSubscriptionPrice(id, req.priceMmk());
     }
 }

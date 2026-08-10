@@ -15,11 +15,20 @@ export function AuthorFeedPage() {
   const authorId = Number(authorIdParam)
   const { user } = useAuth()
   const isOwner = user?.userId === authorId
+  const canDelete = isOwner || user?.role === "admin"
   const { data, isLoading, isError, refetch } = useAuthorFeed(authorId)
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("feed.title")}</h1>
+      <div className="flex items-center gap-3">
+        <span
+          className="brand-gradient glow-brand flex size-11 shrink-0 items-center justify-center rounded-xl text-white"
+          aria-hidden="true"
+        >
+          <Megaphone className="size-5" />
+        </span>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">{t("feed.title")}</h1>
+      </div>
 
       {isOwner && <FeedComposer authorId={authorId} />}
 
@@ -40,7 +49,7 @@ export function AuthorFeedPage() {
       {!isError && !isLoading && data && data.length > 0 && (
         <div className="flex flex-col gap-4">
           {data.map((post) => (
-            <FeedPostCard key={post.feedPostId} post={post} />
+            <FeedPostCard key={post.feedPostId} post={post} canDelete={canDelete} />
           ))}
         </div>
       )}

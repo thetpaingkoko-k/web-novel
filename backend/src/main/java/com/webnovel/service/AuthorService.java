@@ -3,6 +3,7 @@ package com.webnovel.service;
 import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.User;
 import com.webnovel.domain.enums.CareerStage;
+import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.domain.enums.UserStatus;
 import com.webnovel.dto.author.AuthorApplyRequest;
 import com.webnovel.dto.author.AuthorMeResponse;
@@ -10,9 +11,13 @@ import com.webnovel.dto.author.AuthorProfileResponse;
 import com.webnovel.dto.author.AuthorUpdateRequest;
 import com.webnovel.dto.author.SubscriptionPriceResponse;
 import com.webnovel.dto.user.UserResponse;
+import com.webnovel.exception.BadRequestException;
 import com.webnovel.exception.NotFoundException;
+import com.webnovel.domain.enums.SubscriptionStatus;
 import com.webnovel.repository.AuthorProfileRepository;
+import com.webnovel.repository.SubscriptionRepository;
 import com.webnovel.repository.UserRepository;
+import java.time.OffsetDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +29,9 @@ public class AuthorService {
 
     private final UserRepository users;
     private final AuthorProfileRepository authorProfiles;
+    private final SubscriptionRepository subscriptions;
     private final UserService userService;
+    private final NotificationService notifications;
 
     /** Reader applies to become an author: creates a hobbyist profile and marks the user pending. */
     @Transactional
@@ -37,8 +44,12 @@ public class AuthorService {
             return p;
         });
         profile.setBio(req.bio());
+        profile.setWritingMotivation(req.writingMotivation());
+        profile.setWritingInterests(req.writingInterests());
         authorProfiles.save(profile);
         user.setStatus(UserStatus.pending); // §4.1.1: application pending until admin review
+        notifications.notifyAdmins(NotificationType.upgrade_requested, "user",
+                userId, user.getUsername()); // nudge admins: an author application awaits review
         return userService.toResponse(user);
     }
 
@@ -47,9 +58,11 @@ public class AuthorService {
         User user = users.findById(authorId).orElseThrow(() -> new NotFoundException("user.not_found"));
         AuthorProfile profile = authorProfiles.findByUserId(authorId)
                 .orElseThrow(() -> new NotFoundException("user.not_found"));
+        // Active subscribers only — the public "N subscribers" figure (§4.1.1).
+        long subscriberCount = subscriptions.countByAuthorIdAndStatus(authorId, SubscriptionStatus.active);
         return new AuthorProfileResponse(
-                user.getId(), user.getUsername(), profile.getBio(), profile.getCareerStage(),
-                profile.isMonetizationEnabled(), profile.getMonthlySubscriptionPrice());
+                user.getId(), user.getUsername(), user.getAvatarUrl(), profile.getBio(), profile.getCareerStage(),
+                profile.isMonetizationEnabled(), profile.getMonthlySubscriptionPrice(), subscriberCount);
     }
 
     @Transactional(readOnly = true)
@@ -64,16 +77,34 @@ public class AuthorService {
         return toMe(userId, requireProfile(userId));
     }
 
-    /** Author self-update; price is ignored unless monetization is enabled (FR-1.5). */
+    /**
+     * Author self-update. The subscription price is intentionally NOT accepted here — it is a
+     * system baseline set when monetization is enabled and adjustable only by an admin (FR-1.5).
+     */
     @Transactional
     public AuthorMeResponse updateMe(Long userId, AuthorUpdateRequest req) {
         AuthorProfile profile = requireProfile(userId);
+        // Only the bio is author-editable here. Payout-wallet details are captured per-withdrawal
+        // (WithdrawalRequest), so they are intentionally not touched by this self-update.
         profile.setBio(req.bio());
-        if (profile.isMonetizationEnabled() && req.monthlySubscriptionPrice() != null) {
-            profile.setMonthlySubscriptionPrice(req.monthlySubscriptionPrice());
+        return toMe(userId, profile);
+    }
+
+    /**
+     * Hobbyist author requests promotion to professional (FR-1.5 / §4.1.1). Idempotent:
+     * already-professional or already-monetized authors are rejected; otherwise the
+     * request flag + timestamp are set for the admin review queue.
+     */
+    @Transactional
+    public AuthorMeResponse requestUpgrade(Long userId) {
+        AuthorProfile profile = requireProfile(userId);
+        if (profile.getCareerStage() == CareerStage.professional || profile.isMonetizationEnabled()) {
+            throw new BadRequestException("author.already_professional");
         }
-        profile.setPayoutWalletProvider(req.payoutWalletProvider());
-        profile.setPayoutWalletNumber(req.payoutWalletNumber());
+        profile.setProfessionalRequested(true);
+        profile.setProfessionalRequestedAt(OffsetDateTime.now());
+        notifications.notifyAdmins(NotificationType.upgrade_requested, "user",
+                userId, users.findById(userId).map(User::getUsername).orElse(null));
         return toMe(userId, profile);
     }
 
@@ -83,10 +114,15 @@ public class AuthorService {
     }
 
     private AuthorMeResponse toMe(Long userId, AuthorProfile p) {
-        String username = users.findById(userId).map(User::getUsername).orElse(null);
-        return new AuthorMeResponse(userId, username, p.getBio(), p.getCareerStage(),
+        User user = users.findById(userId).orElse(null);
+        String username = user == null ? null : user.getUsername();
+        String avatarUrl = user == null ? null : user.getAvatarUrl();
+        long subscriberCount = subscriptions.countByAuthorIdAndStatus(userId, SubscriptionStatus.active);
+        return new AuthorMeResponse(userId, username, avatarUrl, p.getBio(),
+                p.getWritingMotivation(), p.getWritingInterests(), p.getCareerStage(),
                 p.isMonetizationEnabled(), p.getMonthlySubscriptionPrice(),
                 p.getPayoutWalletProvider(), p.getPayoutWalletNumber(),
-                p.getAvailableBalance(), p.getTotalEarned());
+                p.getAvailableBalance(), p.getTotalEarned(), subscriberCount,
+                p.isProfessionalRequested(), p.getProfessionalRequestedAt());
     }
 }

@@ -6,7 +6,9 @@ import java.time.OffsetDateTime;
 /**
  * Full chapter incl. content — returned to the author, or to a reader who passes access control.
  * {@code likedByMe} is populated on the reader path ({@code GET /chapters/{id}}); authoring and
- * admin review responses always return {@code false}.
+ * admin review responses always return {@code false}. {@code preview} is {@code true} when this
+ * chapter is a free-preview chapter of a premium book (first 10% of published chapters) — the
+ * frontend badges it and skips the paywall.
  */
 public record ChapterResponse(
         Long chapterId,
@@ -14,11 +16,14 @@ public record ChapterResponse(
         Integer chapterNumber,
         String title,
         String content,
+        // Narration audio URL for the audiobook feature; null when the chapter has no audio.
+        String audioUrl,
         ChapterStatus status,
         int likeCount,
         int uniqueViewCount,
         int completionCount,
         String rejectionReason,
         OffsetDateTime publishedAt,
-        boolean likedByMe) {
+        boolean likedByMe,
+        boolean preview) {
 }

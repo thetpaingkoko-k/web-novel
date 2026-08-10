@@ -3,10 +3,12 @@ package com.webnovel.service;
 import com.webnovel.domain.entity.AuthorProfile;
 import com.webnovel.domain.entity.AuthorWithdrawal;
 import com.webnovel.domain.enums.AdminActionType;
+import com.webnovel.domain.enums.NotificationType;
 import com.webnovel.domain.enums.WalletProvider;
 import com.webnovel.domain.enums.WithdrawalStatus;
 import com.webnovel.dto.payment.BalanceResponse;
 import com.webnovel.dto.payment.EarningResponse;
+import com.webnovel.dto.payment.PaymentAnalyticsResponse;
 import com.webnovel.dto.payment.WithdrawalRequest;
 import com.webnovel.dto.payment.WithdrawalResponse;
 import com.webnovel.exception.BadRequestException;
@@ -35,6 +37,7 @@ public class EarningsService {
     private final AuthorEarningRepository earnings;
     private final AuthorWithdrawalRepository withdrawals;
     private final AdminActionService adminActions;
+    private final NotificationService notifications;
     private final com.webnovel.config.AppProperties props;
 
     @Transactional(readOnly = true)
@@ -88,7 +91,42 @@ public class EarningsService {
         w.setPayoutWalletProvider(provider);
         w.setPayoutWalletNumber(number);
         w.setStatus(WithdrawalStatus.pending);
-        return toResponse(withdrawals.save(w));
+        AuthorWithdrawal saved = withdrawals.save(w);
+        notifications.notifyAdmins(NotificationType.withdrawal_requested, "withdrawal",
+                saved.getId(), amountMmk(saved.getAmount())); // nudge admins: a payout awaits review
+        return toResponse(saved);
+    }
+
+    /**
+     * §9.4: platform payment analytics — reader revenue collected, author earnings credited,
+     * and the platform's cut, aggregated across every approved payment.
+     */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public PaymentAnalyticsResponse paymentAnalytics() {
+        AuthorEarningRepository.EarningsAggregate agg = earnings.earningsAggregate();
+        BigDecimal paidOut = nz(withdrawals.sumAmountByStatus(WithdrawalStatus.paid));
+        BigDecimal outstanding = nz(authorProfiles.sumAvailableBalance());
+        BigDecimal pendingAmount = nz(withdrawals.sumAmountByStatus(WithdrawalStatus.pending));
+        long pendingCount = withdrawals.countByStatus(WithdrawalStatus.pending);
+        return new PaymentAnalyticsResponse(
+                nz(agg.getTotalGross()), nz(agg.getTotalNet()), nz(agg.getTotalFee()), agg.getCount(),
+                paidOut, outstanding, pendingAmount, pendingCount);
+    }
+
+    /** §9.4: per-author payout ledger — earned, paid out, and remaining owed, for the admin. */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<com.webnovel.dto.admin.AuthorPayoutRow> authorPayouts() {
+        return authorProfiles.findAuthorPayouts();
+    }
+
+    private static BigDecimal nz(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
+    }
+
+    private static String amountMmk(BigDecimal amount) {
+        return amount.stripTrailingZeros().toPlainString() + " MMK";
     }
 
     @Transactional(readOnly = true)
@@ -113,6 +151,8 @@ public class EarningsService {
         w.setReviewedBy(adminId);
         p.setAvailableBalance(p.getAvailableBalance().subtract(w.getAmount()));
         adminActions.log(adminId, AdminActionType.withdrawal_approval, "withdrawal", withdrawalId, null);
+        notifications.notify(w.getAuthorId(), NotificationType.withdrawal_approved,
+                "withdrawal", withdrawalId, amountMmk(w.getAmount()));
         return toResponse(w);
     }
 
@@ -123,6 +163,9 @@ public class EarningsService {
         w.setStatus(WithdrawalStatus.rejected);
         w.setRejectionReason(reason);
         w.setReviewedBy(adminId);
+        // Tell the author their payout was declined and why (mirrors the approval notification).
+        notifications.notify(w.getAuthorId(), NotificationType.withdrawal_rejected,
+                "withdrawal", withdrawalId, reason);
         return toResponse(w);
     }
 

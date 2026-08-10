@@ -1,6 +1,11 @@
 spring:
   application:
     name: webnovel-backend
+  # Optionally load local secrets (e.g. RESEND_API_KEY) from a gitignored `.env`
+  # in the working dir, parsed as properties. Real OS env vars still override it,
+  # so prod (Koyeb) is unaffected; the file is simply absent there.
+  config:
+    import: optional:file:.env[.properties]
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   docker:
@@ -21,9 +26,15 @@ spring:
     basename: messages
     encoding: UTF-8
     fallback-to-system-locale: false
+  servlet:
+    multipart:
+      # Sized for chapter-narration audio (audiobook). Images are still capped at
+      # 5 MB in FileStorageService; this only sets the servlet-level ceiling.
+      max-file-size: 50MB
+      max-request-size: 51MB
 
 server:
-  port: 8080
+  port: ${PORT:8080}          # Render (and other PaaS) inject the listen port via $PORT
 
 springdoc:
   swagger-ui:
@@ -36,6 +47,40 @@ app:
     refresh-ttl: ${APP_JWT_REFRESH_TTL:P30D}
   platform-fee-percent: ${APP_PLATFORM_FEE_PERCENT:20}
   min-withdrawal-mmk: ${APP_MIN_WITHDRAWAL_MMK:5000}
+  base-subscription-price-mmk: ${APP_BASE_SUBSCRIPTION_PRICE_MMK:5000}   # system baseline; not author-set, admin-adjustable
   subscription-days: ${APP_SUBSCRIPTION_DAYS:30}
+  max-sessions-per-user: ${APP_MAX_SESSIONS_PER_USER:3}   # concurrent devices per account; oldest session evicted past this
+  mail:
+    # Email delivery via Resend's HTTP API (https://api.resend.com) — sends over
+    # 443, which works where outbound SMTP is blocked (this network, most PaaS).
+    # From address: must be on a domain verified in Resend (novelspire.dpdns.org).
+    # Fall back to Resend's shared sender only if the domain isn't verified yet —
+    # in that test mode mail reaches only the address the Resend account signed up
+    # with, so use the real domain for live signups.
+    from: ${MAIL_FROM:NovelSpire <noreply@novelspire.dpdns.org>}
+    # API key (starts with re_...). NEVER hardcode — supply via env only.
+    resend-api-key: ${RESEND_API_KEY:}
+    # Real sending is ON by default. It still only sends when a key is present;
+    # with a blank key it safely falls back to logging the code to the console.
+    enabled: ${MAIL_ENABLED:true}
+    # Verification code lifetime and resend cooldown.
+    code-ttl: ${MAIL_CODE_TTL:PT10M}
+    resend-cooldown: ${MAIL_RESEND_COOLDOWN:PT60S}
+  google:
+    # OAuth Web client ID from Google Cloud Console. Backend verifies Google ID
+    # tokens against this audience. Blank → /api/v1/auth/google returns 503.
+    # The client ID is public (it also ships in the frontend), so it's safe as a
+    # default; override per-environment with APP_GOOGLE_CLIENT_ID if it changes.
+    client-id: ${APP_GOOGLE_CLIENT_ID:894084339777-n1r806m03mpq7iuj2a3k8if51pm9c059.apps.googleusercontent.com}
   cors:
     allowed-origins: ${APP_CORS_ORIGINS:http://localhost:5173}
+  uploads:
+    dir: ${APP_UPLOADS_DIR:images}
+  storage:
+    # `local` = filesystem served at /uploads/** (dev). `supabase` = Supabase Storage
+    # (prod; survives ephemeral-host restarts). Supabase fields required when type=supabase.
+    type: ${APP_STORAGE_TYPE:local}
+    supabase:
+      url: ${SUPABASE_URL:}
+      bucket: ${SUPABASE_BUCKET:uploads}
+      service-key: ${SUPABASE_SERVICE_KEY:}

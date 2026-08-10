@@ -16,6 +16,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /** One place that turns exceptions into the consistent {@link ApiError} body. */
 @RestControllerAdvice
@@ -71,6 +72,21 @@ public class GlobalExceptionHandler {
         String msg = messages.getMessage("error.conflict", null, "Conflict", locale);
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiError.of(ErrorCode.conflict, msg, null));
+    }
+
+    /**
+     * A request for a static resource that does not exist — most often a
+     * {@code GET /uploads/images/...} whose file is missing (e.g. uploaded on an
+     * ephemeral host that was restarted). It's a plain 404, so answer as one and
+     * log quietly instead of letting {@link #onUnexpected} turn it into a noisy
+     * 500 with a full stack trace.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> onNoResource(NoResourceFoundException ex, Locale locale) {
+        log.debug("No static resource for {} {}", ex.getHttpMethod(), ex.getResourcePath());
+        String msg = messages.getMessage("error.not_found", null, "The requested resource was not found", locale);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiError.of(ErrorCode.not_found, msg, null));
     }
 
     @ExceptionHandler(Exception.class)

@@ -31,3 +31,13 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Uploaded images (runtime) ###
+/images/*
+!/images/.gitkeep
+
+### Local secrets — NEVER commit (contain API keys / passwords) ###
+run-dev.sh
+run-dev.cmd
+.env
+.env.local

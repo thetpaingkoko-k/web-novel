@@ -3,6 +3,10 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      # Supabase's free connection pooler is shared and small; keep this modest so a
+      # single Render instance (web threads + scheduled jobs) never exhausts it.
+      maximum-pool-size: ${DB_POOL_MAX:5}
 
 springdoc:
   swagger-ui:

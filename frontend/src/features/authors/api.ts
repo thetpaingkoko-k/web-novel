@@ -34,15 +34,38 @@ export function useApplyForAuthor() {
   })
 }
 
+export const authorMeKey = ["authors", "me"] as const
+
 /** The signed-in author's own profile, including private payout-wallet fields. */
 export function useMyAuthorProfile(enabled: boolean) {
   return useQuery({
-    queryKey: ["authors", "me"] as const,
+    queryKey: authorMeKey,
     queryFn: async () => {
       const { data } = await apiClient.get<MyAuthorProfile>("/authors/me")
       return data
     },
     enabled,
+  })
+}
+
+/** Alias matching the API contract's `GET /authors/me` naming. */
+export const useAuthorMe = useMyAuthorProfile
+
+/**
+ * Ask an admin to upgrade a hobbyist account to professional. Idempotent; the
+ * backend returns the updated `AuthorMeResponse` (with `professionalRequested`
+ * set), which we push into the author-me cache.
+ */
+export function useRequestUpgrade() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiClient.post<MyAuthorProfile>("/authors/upgrade-request")
+      return data
+    },
+    onSuccess: (profile) => {
+      queryClient.setQueryData(authorMeKey, profile)
+    },
   })
 }
 

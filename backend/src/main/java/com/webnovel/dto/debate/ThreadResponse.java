@@ -1,5 +1,6 @@
 package com.webnovel.dto.debate;
 
+import com.webnovel.domain.enums.CareerStage;
 import com.webnovel.domain.enums.ThreadStatus;
 import java.time.OffsetDateTime;
 
@@ -9,6 +10,8 @@ public record ThreadResponse(
         Long bookId,
         Long creatorId,
         String creatorUsername,
+        String creatorAvatarUrl,
+        CareerStage careerStage,
         String title,
         ThreadStatus status,
         int postCount,

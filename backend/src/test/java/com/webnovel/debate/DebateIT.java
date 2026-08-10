@@ -1,6 +1,7 @@
 package com.webnovel.debate;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -25,7 +26,7 @@ class DebateIT extends AuthTestSupport {
                         .content("{\"kind\":\"" + ApproveRequest.Kind.verify_author + "\"}"))
                 .andExpect(status().isOk());
         String body = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"" + email + "\",\"password\":\"password123\"}"))
+                        .content("{\"email\":\"" + email + "\",\"password\":\"Password123!\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(body).get("accessToken").asText();
     }
@@ -91,6 +92,13 @@ class DebateIT extends AuthTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.upvoteCount", is(0)))
                 .andExpect(jsonPath("$.downvoteCount", is(1)));
+
+        // re-voting the same direction toggles the vote off → count back to 0, myVote cleared
+        mvc.perform(post("/api/v1/posts/{id}/vote", postId).header("Authorization", bearer(voter))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"voteType\":\"down\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.downvoteCount", is(0)))
+                .andExpect(jsonPath("$.myVote", is(nullValue())));
 
         // creator locks the thread (FR-9.6) → posting now rejected
         mvc.perform(put("/api/v1/debates/{id}/lock", threadId).header("Authorization", bearer(reader))

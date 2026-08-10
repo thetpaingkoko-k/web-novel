@@ -7,7 +7,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.webnovel.domain.entity.BookView;
 import com.webnovel.domain.entity.ChapterView;
+import com.webnovel.repository.BookRepository;
+import com.webnovel.repository.BookViewRepository;
 import com.webnovel.repository.ChapterRepository;
 import com.webnovel.repository.ChapterViewRepository;
 import java.time.OffsetDateTime;
@@ -25,6 +28,8 @@ class ViewTrackingServiceTest {
 
     @Mock ChapterViewRepository views;
     @Mock ChapterRepository chapters;
+    @Mock BookViewRepository bookViews;
+    @Mock BookRepository books;
     @InjectMocks ViewTrackingService service;
 
     @Test
@@ -56,5 +61,33 @@ class ViewTrackingServiceTest {
         verify(views).save(captor.capture()); // raw view still persisted (FR-5.4)
         assertThat(captor.getValue().isUnique()).isFalse();
         verify(chapters, never()).incrementUniqueViewCount(any());
+    }
+
+    @Test
+    void firstBookView_isUnique_andIncrementsBookCounter() {
+        when(books.existsById(7L)).thenReturn(true);
+        when(bookViews.existsRecentView(eq(7L), eq("sess"), eq("dev"), any(OffsetDateTime.class)))
+                .thenReturn(false);
+
+        boolean unique = service.recordBookView(7L, Optional.empty(), "sess", "dev");
+
+        assertThat(unique).isTrue();
+        ArgumentCaptor<BookView> captor = ArgumentCaptor.forClass(BookView.class);
+        verify(bookViews).save(captor.capture());
+        assertThat(captor.getValue().isUnique()).isTrue();
+        verify(books).incrementViewCount(7L);
+    }
+
+    @Test
+    void repeatBookViewInWindow_isNotUnique_andDoesNotIncrement() {
+        when(books.existsById(7L)).thenReturn(true);
+        when(bookViews.existsRecentView(eq(7L), eq("sess"), eq("dev"), any(OffsetDateTime.class)))
+                .thenReturn(true);
+
+        boolean unique = service.recordBookView(7L, Optional.empty(), "sess", "dev");
+
+        assertThat(unique).isFalse();
+        verify(bookViews).save(any(BookView.class)); // raw view still persisted (FR-5.4)
+        verify(books, never()).incrementViewCount(any());
     }
 }

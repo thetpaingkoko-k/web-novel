@@ -6,5 +6,7 @@ public record WalletResponse(
         Long walletId,
         WalletProvider provider,
         String walletNumber,
-        boolean isActive) {
+        String accountName,
+        boolean isActive,
+        String qrImageUrl) {
 }

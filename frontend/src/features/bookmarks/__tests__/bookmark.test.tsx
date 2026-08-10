@@ -21,18 +21,24 @@ const READER: AuthUser = {
   role: "reader",
   status: "approved",
   isMonetizationEnabled: false,
+  avatarUrl: null,
+  gender: null,
+  dateOfBirth: null,
+  createdAt: null,
 }
 
 const SAVED_BOOK: BookListItem = {
   bookId: 7,
   authorUsername: "moonlight_writer",
+  authorAvatarUrl: null,
   title: "The Saved Tale",
-  genre: "Fantasy",
+  genres: ["Fantasy"],
   coverImageUrl: null,
   status: "ongoing",
   isPremium: false,
   chapterCount: 2,
   readChaptersCount: null,
+  hidden: false,
 }
 
 function withProviders(ui: React.ReactNode) {

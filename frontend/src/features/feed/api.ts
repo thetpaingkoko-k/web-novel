@@ -26,3 +26,16 @@ export function useCreateFeedPost(authorId: number) {
     },
   })
 }
+
+/** Delete a feed post (author-owned or admin). `DELETE /authors/{authorId}/feed/{postId}` → 204. */
+export function useDeleteFeedPost(authorId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (postId: number) => {
+      await apiClient.delete(`/authors/${authorId}/feed/${postId}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: feedKeys.list(authorId) })
+    },
+  })
+}

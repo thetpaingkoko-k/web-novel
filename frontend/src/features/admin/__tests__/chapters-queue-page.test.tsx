@@ -74,8 +74,9 @@ describe("ChaptersQueuePage", () => {
 
     renderQueue()
 
-    // Content is not fetched until the review dialog is opened.
-    await user.click(await screen.findByRole("button", { name: /review content/i }))
+    // Content is not fetched until the review dialog is opened from the row menu.
+    await user.click(await screen.findByRole("button", { name: /^actions$/i }))
+    await user.click(await screen.findByRole("menuitem", { name: /review content/i }))
 
     expect(await screen.findByText(/ash rained over the valley/i)).toBeInTheDocument()
     expect(detailRequested).toBe(true)
@@ -94,8 +95,9 @@ describe("ChaptersQueuePage", () => {
 
     renderQueue()
 
-    // Open the reject dialog from the card's trigger button.
-    await user.click(await screen.findByRole("button", { name: /^reject$/i }))
+    // Open the reject dialog from the row's ⋮ action menu.
+    await user.click(await screen.findByRole("button", { name: /^actions$/i }))
+    await user.click(await screen.findByRole("menuitem", { name: /^reject$/i }))
 
     const dialog = await screen.findByRole("dialog")
     await user.type(within(dialog).getByLabelText(/reason/i), "Formatting is broken")

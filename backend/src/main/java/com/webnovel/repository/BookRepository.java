@@ -2,7 +2,10 @@ package com.webnovel.repository;
 
 import com.webnovel.domain.entity.Book;
 import com.webnovel.domain.enums.BookStatus;
+import com.webnovel.dto.content.BookGenreRow;
 import com.webnovel.dto.content.BookListItem;
+import com.webnovel.dto.content.TrendingBook;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,36 +15,120 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     /**
      * Public browse/search (§10.3). Joins the author's username and counts
-     * published chapters (denormalized read-model fields, §4.1.1). Draft books
-     * are excluded from public listings. {@code searchPattern} is a pre-built,
-     * lower-cased, wildcard-escaped {@code %term%} LIKE pattern (built by the
-     * service) matched against the book title OR the author's username.
+     * published chapters (denormalized read-model fields, §4.1.1). Draft books are always
+     * excluded; admin-hidden books are excluded unless {@code includeHidden} is true (admin
+     * moderation view), and the row's {@code hidden} flag is projected so an admin listing can
+     * badge them. {@code searchPattern} is a pre-built, lower-cased, wildcard-escaped
+     * {@code %term%} LIKE pattern (built by the service) matched against the book title OR the
+     * author's username. {@code genre} filters to books containing that genre ({@code member of});
+     * genres themselves are not projected here — the service batch-loads them.
      */
-    @Query("""
+    @Query(value = """
             select new com.webnovel.dto.content.BookListItem(
-                b.id, b.title, b.coverImageUrl, b.genre, b.status, b.premium, u.username,
-                (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published))
-            from Book b, User u
-            where u.id = b.authorId
-              and b.status <> com.webnovel.domain.enums.BookStatus.draft
-              and (:genre is null or b.genre = :genre)
+                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, u.avatarUrl, ap.careerStage,
+                (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published),
+                b.hidden)
+            from Book b
+                join User u on u.id = b.authorId
+                left join AuthorProfile ap on ap.userId = b.authorId
+            where b.status <> com.webnovel.domain.enums.BookStatus.draft
+              and (:includeHidden = true or b.hidden = false)
+              and (:genre is null or :genre member of b.genres)
               and (:status is null or b.status = :status)
               and (:searchPattern is null
                    or lower(b.title) like :searchPattern
                    or lower(u.username) like :searchPattern)
             order by b.createdAt desc
+            """,
+            countQuery = """
+            select count(b) from Book b
+                join User u on u.id = b.authorId
+            where b.status <> com.webnovel.domain.enums.BookStatus.draft
+              and (:includeHidden = true or b.hidden = false)
+              and (:genre is null or :genre member of b.genres)
+              and (:status is null or b.status = :status)
+              and (:searchPattern is null
+                   or lower(b.title) like :searchPattern
+                   or lower(u.username) like :searchPattern)
             """)
-    List<BookListItem> browse(@Param("genre") String genre, @Param("status") BookStatus status,
-                              @Param("searchPattern") String searchPattern);
+    org.springframework.data.domain.Page<BookListItem> browse(
+            @Param("genre") String genre, @Param("status") BookStatus status,
+            @Param("searchPattern") String searchPattern,
+            @Param("includeHidden") boolean includeHidden,
+            org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * Trending books for the home carousel (§5): non-draft, non-hidden books ranked by a
+     * weighted popularity score over their published-chapter engagement — book views, summed
+     * chapter likes, and visible comments. The weights are passed in so the ranking can be
+     * tuned without a schema change; ties fall back to raw views then recency. The genres
+     * collection is filled in by the service after a batch load (JPQL can't project it here).
+     */
+    @Query("""
+            select new com.webnovel.dto.content.TrendingBook(
+                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, u.avatarUrl, ap.careerStage,
+                (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published),
+                b.viewCount,
+                (select coalesce(sum(c.likeCount), 0) from Chapter c
+                    where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published),
+                (select count(cm) from ChapterComment cm, Chapter ch
+                    where cm.chapterId = ch.id and ch.bookId = b.id
+                      and ch.status = com.webnovel.domain.enums.ChapterStatus.published
+                      and cm.status <> com.webnovel.domain.enums.CommentStatus.hidden))
+            from Book b
+                join User u on u.id = b.authorId
+                left join AuthorProfile ap on ap.userId = b.authorId
+            where b.status <> com.webnovel.domain.enums.BookStatus.draft
+              and b.hidden = false
+            order by (
+                b.viewCount * :viewWeight
+                + (select coalesce(sum(c.likeCount), 0) from Chapter c
+                    where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published) * :likeWeight
+                + (select count(cm) from ChapterComment cm, Chapter ch
+                    where cm.chapterId = ch.id and ch.bookId = b.id
+                      and ch.status = com.webnovel.domain.enums.ChapterStatus.published
+                      and cm.status <> com.webnovel.domain.enums.CommentStatus.hidden) * :commentWeight
+              ) desc,
+              b.viewCount desc,
+              b.createdAt desc
+            """)
+    List<TrendingBook> findTrending(
+            @Param("viewWeight") int viewWeight,
+            @Param("likeWeight") int likeWeight,
+            @Param("commentWeight") int commentWeight,
+            org.springframework.data.domain.Pageable pageable);
 
     /** Books authored by a given user (for the author's own dashboard / public profile). */
     @Query("""
             select new com.webnovel.dto.content.BookListItem(
-                b.id, b.title, b.coverImageUrl, b.genre, b.status, b.premium, u.username,
+                b.id, b.title, b.coverImageUrl, b.status, b.premium, u.username, u.avatarUrl, ap.careerStage,
                 (select count(c) from Chapter c where c.bookId = b.id and c.status = com.webnovel.domain.enums.ChapterStatus.published))
-            from Book b, User u
-            where u.id = b.authorId and b.authorId = :authorId
+            from Book b
+                join User u on u.id = b.authorId
+                left join AuthorProfile ap on ap.userId = b.authorId
+            where b.authorId = :authorId
             order by b.createdAt desc
             """)
     List<BookListItem> findByAuthor(@Param("authorId") Long authorId);
+
+    /** Batch-loads (bookId, genre) pairs for the given books so list rows can be populated. */
+    @Query("""
+            select new com.webnovel.dto.content.BookGenreRow(b.id, g)
+            from Book b join b.genres g
+            where b.id in :bookIds
+            """)
+    List<BookGenreRow> findGenresByBookIds(@Param("bookIds") Collection<Long> bookIds);
+
+    /** How many books are filed under a category code — guards category delete/retire (§5). */
+    @Query("select count(b) from Book b join b.genres g where g = :genre")
+    long countBooksWithGenre(@Param("genre") String genre);
+
+    /** (categoryCode, bookCount) pairs for the admin category console (§5). */
+    @Query("select g, count(b) from Book b join b.genres g group by g")
+    List<Object[]> countBooksByGenre();
+
+    /** Bumps the denormalized book-level unique-view counter (§9.2, FR-5.3). */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("update Book b set b.viewCount = b.viewCount + 1 where b.id = :id")
+    void incrementViewCount(@Param("id") Long id);
 }

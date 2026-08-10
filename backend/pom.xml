@@ -78,6 +78,12 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- Verifies Google ID tokens (JWKS fetch + signature/claims validation via Nimbus) -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-jose</artifactId>
+		</dependency>
+
 		<!-- OpenAPI / Swagger UI -->
 		<dependency>
 			<groupId>org.springdoc</groupId>

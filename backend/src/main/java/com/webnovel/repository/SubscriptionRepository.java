@@ -41,7 +41,14 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     List<Subscription> findByReaderIdOrderByIdDesc(Long readerId);
 
+    /** How many readers currently hold a subscription in the given state to an author (§4.1.1). */
+    long countByAuthorIdAndStatus(Long authorId, SubscriptionStatus status);
+
     List<Subscription> findByStatusAndReminderSentFalseAndEndDateBefore(
+            SubscriptionStatus status, java.time.OffsetDateTime before);
+
+    /** The subscriptions the expiry sweep is about to flip — used to notify each reader. */
+    List<Subscription> findByStatusAndEndDateBefore(
             SubscriptionStatus status, java.time.OffsetDateTime before);
 
     /** Expiry sweep: flip active subscriptions whose window has ended to {@code expired}. */

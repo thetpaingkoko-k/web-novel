@@ -19,6 +19,10 @@ const READER: AuthUser = {
   role: "reader",
   status: "approved",
   isMonetizationEnabled: false,
+  avatarUrl: null,
+  gender: null,
+  dateOfBirth: null,
+  createdAt: null,
 }
 
 function renderPage() {
@@ -47,19 +51,30 @@ describe("AuthorApplicationPage", () => {
 
     renderPage()
 
+    // Fill motivation + interests validly so only the bio fails validation.
     await user.type(await screen.findByLabelText(/about you/i), "too short")
+    await user.type(
+      screen.getByLabelText(/why do you want to write/i),
+      "I have stories that have lived in my head for years."
+    )
+    await user.type(
+      screen.getByLabelText(/what do you want to write/i),
+      "Cozy fantasy about tea shops and quiet everyday magic."
+    )
     await user.click(screen.getByRole("button", { name: /submit application/i }))
 
     expect(await screen.findByText(/at least 20 characters/i)).toBeInTheDocument()
   })
 
-  it("shows the pending state after a successful application", async () => {
+  it("submits bio, writingMotivation and writingInterests, then shows the pending state", async () => {
     tokenStorage.setTokens("access", "refresh")
+    let captured: unknown = null
     server.use(
       http.get("/api/v1/users/me", () => HttpResponse.json(READER)),
-      http.post("/api/v1/authors/apply", () =>
-        HttpResponse.json({ ...READER, status: "pending" })
-      )
+      http.post("/api/v1/authors/apply", async ({ request }) => {
+        captured = await request.json()
+        return HttpResponse.json({ ...READER, status: "pending" })
+      })
     )
     const user = userEvent.setup()
 
@@ -69,8 +84,21 @@ describe("AuthorApplicationPage", () => {
       await screen.findByLabelText(/about you/i),
       "I write cozy fantasy about tea shops and quiet magic."
     )
+    await user.type(
+      screen.getByLabelText(/why do you want to write/i),
+      "Writing is how I make sense of the world around me."
+    )
+    await user.type(
+      screen.getByLabelText(/what do you want to write/i),
+      "Slow, warm slice-of-life fantasy with gentle stakes."
+    )
     await user.click(screen.getByRole("button", { name: /submit application/i }))
 
     expect(await screen.findByText(/under review/i)).toBeInTheDocument()
+    expect(captured).toEqual({
+      bio: "I write cozy fantasy about tea shops and quiet magic.",
+      writingMotivation: "Writing is how I make sense of the world around me.",
+      writingInterests: "Slow, warm slice-of-life fantasy with gentle stakes.",
+    })
   })
 })

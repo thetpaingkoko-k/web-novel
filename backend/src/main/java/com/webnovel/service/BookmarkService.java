@@ -21,7 +21,7 @@ public class BookmarkService {
 
     @Transactional(readOnly = true)
     public List<BookListItem> myBookmarks(AppUserPrincipal reader) {
-        return bookmarks.findBookmarkedBooks(reader.getId());
+        return BookService.populateGenres(bookmarks.findBookmarkedBooks(reader.getId()), books);
     }
 
     /** Idempotent: bookmarking an already-bookmarked book is a no-op, not an error. */

@@ -19,10 +19,11 @@ public interface DebatePostRepository extends JpaRepository<DebatePost, Long> {
      */
     @Query("""
             select new com.webnovel.dto.debate.PostResponse(
-                p.id, p.threadId, p.authorId, u.username, p.parentPostId, p.content,
+                p.id, p.threadId, p.authorId, u.username, u.avatarUrl, ap.careerStage, p.parentPostId, p.content,
                 p.upvoteCount, p.downvoteCount, p.status, p.createdAt, v.voteType)
             from DebatePost p
                 join User u on u.id = p.authorId
+                left join AuthorProfile ap on ap.userId = p.authorId
                 left join DebateVote v on v.postId = p.id and v.readerId = :viewerId
             where p.threadId = :threadId
               and p.status = com.webnovel.domain.enums.CommentStatus.visible
@@ -32,10 +33,11 @@ public interface DebatePostRepository extends JpaRepository<DebatePost, Long> {
 
     @Query("""
             select new com.webnovel.dto.debate.PostResponse(
-                p.id, p.threadId, p.authorId, u.username, p.parentPostId, p.content,
+                p.id, p.threadId, p.authorId, u.username, u.avatarUrl, ap.careerStage, p.parentPostId, p.content,
                 p.upvoteCount, p.downvoteCount, p.status, p.createdAt, v.voteType)
             from DebatePost p
                 join User u on u.id = p.authorId
+                left join AuthorProfile ap on ap.userId = p.authorId
                 left join DebateVote v on v.postId = p.id and v.readerId = :viewerId
             where p.id = :postId
             """)

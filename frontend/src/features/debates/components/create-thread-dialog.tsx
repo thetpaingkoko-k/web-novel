@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useQueryClient } from "@tanstack/react-query"
 import { isAxiosError } from "axios"
 import { useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldError } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { subscriptionKeys } from "@/features/subscriptions/api"
 import type { ThreadLimitError } from "@/types/debates"
 import { useCreateThread } from "../api"
 import { buildThreadSchema, type ThreadFormSchema } from "../schemas"
@@ -22,6 +24,7 @@ import { buildThreadSchema, type ThreadFormSchema } from "../schemas"
 export function CreateThreadDialog({ bookId }: { bookId: number }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const queryClient = useQueryClient()
   const createThread = useCreateThread(bookId)
   const schema = useMemo(() => buildThreadSchema(t), [t])
 
@@ -47,6 +50,22 @@ export function CreateThreadDialog({ bookId }: { bookId: number }) {
           toast.error(
             t(code === "already_has_thread" ? "debates.alreadyHasThread" : "debates.bookWindowFull")
           )
+        } else if (
+          isAxiosError<{ code?: string }>(error) &&
+          error.response?.status === 403 &&
+          error.response.data?.code === "no_subscription"
+        ) {
+          // Lost/never had a subscription — surface the prompt and close.
+          toast.error(t("debates.subscriptionRequired"))
+          setOpen(false)
+          queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine })
+        } else if (
+          isAxiosError<{ code?: string }>(error) &&
+          error.response?.status === 403 &&
+          error.response.data?.code === "must_read_more"
+        ) {
+          toast.error(t("debates.mustReadMore"))
+          setOpen(false)
         } else {
           toast.error(t("common.genericError"))
         }

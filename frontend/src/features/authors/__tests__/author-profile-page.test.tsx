@@ -64,6 +64,7 @@ describe("AuthorProfilePage", () => {
           careerStage: "hobbyist",
           isMonetizationEnabled: false,
           monthlySubscriptionPrice: null,
+          subscriberCount: 0,
         })
       )
     )

@@ -4,20 +4,22 @@ import { z } from "zod"
 export function buildApplicationSchema(t: TFunction) {
   return z.object({
     bio: z.string().min(20, t("authors.bioTooShort")).max(1000, t("authors.bioTooLong")),
+    writingMotivation: z
+      .string()
+      .min(20, t("authors.motivationTooShort"))
+      .max(1000, t("authors.motivationTooLong")),
+    writingInterests: z
+      .string()
+      .min(20, t("authors.interestsTooShort"))
+      .max(1000, t("authors.interestsTooLong")),
   })
 }
 export type ApplicationFormSchema = z.infer<ReturnType<typeof buildApplicationSchema>>
 
-export function buildAuthorSettingsSchema(t: TFunction) {
+/** Bio-only author self-edit (shown on the account page for authors). */
+export function buildAuthorBioSchema(t: TFunction) {
   return z.object({
-    bio: z.string().max(1000, t("authors.bioTooLong")),
-    monthlySubscriptionPrice: z
-      .number({ message: t("validation.required") })
-      .int()
-      .min(0, t("authors.priceInvalid"))
-      .nullable(),
-    payoutWalletProvider: z.enum(["KBZPay", "WavePay", "AYAPay", "other"]).nullable(),
-    payoutWalletNumber: z.string().max(30, t("authors.walletTooLong")),
+    bio: z.string().max(2000, t("account.bioTooLong")),
   })
 }
-export type AuthorSettingsFormSchema = z.infer<ReturnType<typeof buildAuthorSettingsSchema>>
+export type AuthorBioFormSchema = z.infer<ReturnType<typeof buildAuthorBioSchema>>

@@ -19,6 +19,7 @@ public record AdminPaymentRow(
         BigDecimal amount,
         String last6Digits,
         WalletProvider walletProvider,
+        String walletAccountName,
         String screenshotUrl,
         PaymentStatus status,
         OffsetDateTime submittedAt) {
